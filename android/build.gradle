@@ -1,4 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Applied before buildscript so Kotlin/plugin versions are available to it.
+apply from: "variables.gradle"
 
 buildscript {
     
@@ -9,13 +11,13 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'com.google.gms:google-services:4.4.4'
+        // Required by the native Quick Settings TileService (Kotlin source).
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
-
-apply from: "variables.gradle"
 
 allprojects {
     repositories {

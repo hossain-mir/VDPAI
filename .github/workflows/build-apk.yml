@@ -108,6 +108,24 @@ jobs:
           fi
           ls -lh "$APK"
 
+      - name: Verify Quick Settings tile is packaged
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          AAPT2="$(find "$SDK/build-tools" -type f -name aapt2 -perm -u+x | sort -V | tail -1)"
+          "$AAPT2" dump xmltree "$APK" AndroidManifest.xml > manifest.txt
+          grep -q "JarvisTileService" manifest.txt
+          grep -q "android.service.quicksettings.action.QS_TILE" manifest.txt
+          grep -q "android.permission.BIND_QUICK_SETTINGS_TILE" manifest.txt
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("android/app/build/outputs/apk/debug/app-debug.apk") as apk:
+              assert b"JarvisTileService" in apk.read("classes.dex"), "tile class missing from dex"
+          PY
+          echo "Quick Settings tile service, permission and class are present in the APK."
+
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:

@@ -44,6 +44,21 @@
 
         </activity>
 
+        <!-- Native Quick Settings tile. The system binds only this service and
+             only after the user adds "J.A.R.V.I.S." in Edit tiles. No new
+             uses-permission is needed: BIND_QUICK_SETTINGS_TILE is a system
+             permission enforced on this component, not requested by the app. -->
+        <service
+            android:name=".JarvisTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_core"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
