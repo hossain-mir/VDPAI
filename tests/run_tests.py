@@ -751,6 +751,7 @@ def main() -> int:
         package = os.path.join(ROOT, "package.json")
         android_build = os.path.join(ROOT, "android", "app", "build.gradle")
         capacitor = os.path.join(ROOT, "capacitor.config.js")
+        tile_service = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "hsai", "assistant", "JarvisTileService.kt")
         settings_js = os.path.join(ROOT, "frontend", "js", "settings.js")
         panels_js = os.path.join(ROOT, "frontend", "js", "panels.js")
         app_js = os.path.join(ROOT, "frontend", "js", "app.js")
@@ -822,12 +823,15 @@ def main() -> int:
             gradle = handle.read()
         with open(capacitor, encoding="utf-8") as handle:
             cap_config = handle.read()
+        with open(tile_service, encoding="utf-8") as handle:
+            tile_source = handle.read()
         check(
             "Android package ID is consistent",
             'applicationId "com.hsai.assistant"' in gradle
             and 'namespace = "com.hsai.assistant"' in gradle
             and 'appId: "com.hsai.assistant"' in cap_config
-            and '<string name="package_name">com.hsai.assistant</string>' in labels,
+            and '<string name="package_name">com.hsai.assistant</string>' in labels
+            and tile_source.startswith("package com.hsai.assistant"),
         )
 
         res_dir = os.path.join(ROOT, "android", "app", "src", "main", "res")
