@@ -42,6 +42,7 @@ const app = {
   lastResponse: null,
   retryTimer: null,
   retryDelay: 4000,
+  paused: false,
 };
 
 let core = null;
@@ -92,10 +93,10 @@ function setBackendState(state, detail = "") {
 }
 
 function scheduleBackendRetry() {
-  if (app.retryTimer) return;
+  if (app.paused || app.retryTimer) return;
   app.retryTimer = setTimeout(async () => {
     app.retryTimer = null;
-    if (!app.entered || document.hidden) {
+    if (app.paused || !app.entered || document.hidden) {
       app.retryDelay = 4000;
       return;
     }
@@ -105,7 +106,9 @@ function scheduleBackendRetry() {
 }
 
 /** Handshake + status refresh. The HUD is already visible when this runs. */
-async function connectBackend({ silent = false } = {}) {
+async function connectBackend({ silent = false, force = false } = {}) {
+  if (app.paused && !force) return false;
+  app.paused = false;
   try {
     await startSession();
     const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
@@ -134,9 +137,24 @@ async function connectBackend({ silent = false } = {}) {
 
 /** Rebind after the owner changes the server in System → Backend server. */
 async function reconnectBackend() {
-  const ok = await connectBackend({ silent: true });
+  const ok = await connectBackend({ silent: true, force: true });
   if (!ok) throw new Error("The backend did not respond. The address was saved; try again when it is online.");
   transcript?.add("system", `BACKEND RECONNECTED · ${getBackendUrl() || "same origin"}`);
+}
+
+/** Stop talking to the backend without deleting the saved address. */
+function disconnectBackend() {
+  app.paused = true;
+  if (app.retryTimer) {
+    clearTimeout(app.retryTimer);
+    app.retryTimer = null;
+  }
+  app.stream?.close();
+  app.stream = null;
+  setBackendState("offline", "disconnected — press Connect to resume");
+  uiState.set("IDLE", "backend disconnected");
+  transcript?.add("system", "BACKEND DISCONNECTED · HUD stays available; press Connect in System → Backend server.");
+  return true;
 }
 
 /** Restore local preferences (non-secret UI choices) and the backend URL. */
@@ -149,6 +167,7 @@ async function resetLocalSettings() {
     }
   }
   await clearBackendUrl();
+  app.paused = false;
   document.body.classList.remove("reduce-motion");
   if (core) {
     core.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -195,6 +214,7 @@ async function enter() {
       requestApproval,
       refreshStatus: (options) => refreshStatus(options),
       reconnectBackend: () => reconnectBackend(),
+      disconnectBackend: () => disconnectBackend(),
       clearLocalSettings: () => resetLocalSettings(),
       getLanguage: language,
       setState: (state, detail) => uiState.set(state, detail),
@@ -414,6 +434,10 @@ function handleError(error) {
 }
 
 async function refreshStatus({ silent = false, manual = false } = {}) {
+  if (app.paused) {
+    if (manual) ui.toast("Backend is disconnected. Press Connect in System → Backend server.", "warn", 5000);
+    return null;
+  }
   try {
     const status = await api.get("/api/status");
     app.status = status;
@@ -679,7 +703,7 @@ function wireInteractive() {
 
   window.addEventListener("online", () => {
     ui.setChip("chipNet", "ok", "NET");
-    connectBackend({ silent: true });
+    if (!app.paused) connectBackend({ silent: true });
   });
   window.addEventListener("offline", () => {
     ui.setChip("chipNet", "bad", "NET");

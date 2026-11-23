@@ -88,6 +88,10 @@ async function main() {
   check("core is rendered", doc.querySelector("#stateText")?.textContent === "IDLE");
   check("offline guidance is shown", doc.querySelector("#transcript")?.textContent.includes("CORE ONLINE"));
   check("settings remain accessible", !!doc.querySelector('[data-panel="system"]'));
+  check(
+    "backend settings usable offline",
+    !!doc.getElementById("backendForm") && !!doc.getElementById("backendDisconnect") && !!doc.getElementById("backendUrl"),
+  );
   check("no uncaught errors", errors.length === 0, errors.join(" | ").slice(0, 500));
 }
 

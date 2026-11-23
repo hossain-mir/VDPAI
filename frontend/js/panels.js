@@ -11,6 +11,7 @@ let ctx = {
   requestApproval: () => {},
   refreshStatus: async () => {},
   reconnectBackend: async () => {},
+  disconnectBackend: async () => {},
   clearLocalSettings: async () => {},
   getLanguage: () => "en-US",
   setState: () => {},
@@ -440,6 +441,11 @@ async function testBackend() {
   }
 }
 
+async function disconnectBackend() {
+  await ctx.disconnectBackend();
+  backendResult("Disconnected. The saved address is kept; press Connect to resume.", "warn");
+}
+
 function clearBackend() {
   setBackendUrl("");
   syncBackendForm();
@@ -528,6 +534,7 @@ async function clearAllLocal() {
 function bindSystem() {
   $("#backendForm")?.addEventListener("submit", saveBackend);
   $("#backendTest")?.addEventListener("click", testBackend);
+  $("#backendDisconnect")?.addEventListener("click", disconnectBackend);
   $("#backendClear")?.addEventListener("click", clearBackend);
   $("#providerSelect")?.addEventListener("change", () => syncModelInput(true));
   $("#providerTest")?.addEventListener("click", testProvider);
@@ -543,13 +550,21 @@ function bindSystem() {
 }
 
 async function loadSystem() {
-  const [status, providers] = await Promise.all([api.get("/api/status"), api.get("/api/providers")]);
   syncBackendForm();
   fillNativeInfo();
   fillAboutInfo();
-  applyStatus(status);
-  applyProviders(providers);
-  return { status, providers };
+  try {
+    const [status, providers] = await Promise.all([api.get("/api/status"), api.get("/api/providers")]);
+    applyStatus(status);
+    applyProviders(providers);
+    return { status, providers };
+  } catch {
+    ui.fillFacts($("#sysFacts"), [
+      ["Backend", getBackendUrl() || "this page's own origin"],
+      ["Status", "offline — configure a reachable HTTPS server"],
+    ]);
+    return { status: null, providers: null };
+  }
 }
 
 export function applyStatus(status) {

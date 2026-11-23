@@ -208,6 +208,7 @@
             <div class="row">
               <button class="btn primary small" type="submit">Connect</button>
               <button class="btn small" id="backendTest" type="button">Test</button>
+              <button class="btn small" id="backendDisconnect" type="button">Disconnect</button>
               <button class="btn small" id="backendClear" type="button">Clear</button>
             </div>
             <p class="hint" id="backendResult" role="status"></p>
@@ -232,7 +233,7 @@
               <p class="hint">Saved to the server's <code>.env</code> (owner-only permissions). Keys are never returned to this page or saved in the APK.</p>
               <label class="field"><span>Provider</span><select id="keyProvider"></select></label>
               <label class="field"><span>API key</span><input id="keyValue" type="password" autocomplete="off" placeholder="Paste key"></label>
-              <label class="field"><span>Base URL (Ollama/custom)</span><input id="keyBaseUrl" maxlength="400" placeholder="http://127.0.0.1:11434/v1"></label>
+              <label class="field"><span>Base URL (Ollama/custom, optional)</span><input id="keyBaseUrl" maxlength="400" placeholder="Provider or Ollama endpoint"></label>
               <label class="field"><span>Default model</span><input id="keyModel" maxlength="120" placeholder="llama3.2"></label>
               <button class="btn primary" type="submit">Save configuration</button>
               <p class="hint" id="keyResult"></p>

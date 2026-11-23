@@ -268,8 +268,34 @@ try {
   check("sheet closes", doc.querySelector("#sheet").hidden === true);
   check("no mandatory startup form", doc.querySelector("#bootBackendForm") === null);
   check("HUD shows backend status", !!doc.querySelector("#backendStatus") && !!doc.querySelector("#chipBackend"));
-  const settingIds = ["backendForm", "ttsToggle", "reduceMotionToggle", "permissionMic", "nativeTest", "clearLocalData", "aboutInfo"];
+  const settingIds = [
+    "backendForm",
+    "backendTest",
+    "backendDisconnect",
+    "backendClear",
+    "ttsToggle",
+    "reduceMotionToggle",
+    "permissionMic",
+    "nativeTest",
+    "clearLocalData",
+    "aboutInfo",
+  ];
   check("settings dashboard controls present", settingIds.every((id) => !!doc.getElementById(id)));
+
+  doc.querySelector("#backendDisconnect").click();
+  await wait(250);
+  check("Disconnect shows OFFLINE", doc.querySelector("#backendStatusText").textContent === "OFFLINE");
+  check("Disconnect keeps the HUD open", doc.querySelector("#app").hidden === false);
+  doc.querySelector("#backendForm").dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+  await waitFor(
+    "reconnect after disconnect",
+    () => ["ONLINE", "LOCAL"].includes(doc.querySelector("#backendStatusText").textContent),
+    8000,
+  );
+  check(
+    "Connect resumes the backend",
+    ["ONLINE", "LOCAL"].includes(doc.querySelector("#backendStatusText").textContent),
+  );
 
   const settings = await import(SETTINGS);
   check("browser backend default is same origin", settings.getBackendUrl() === "");

@@ -40,7 +40,15 @@ jobs:
       - name: Install Node dependencies (jsdom for the HUD tests)
         run: npm ci
 
-      - name: Frontend HUD smoke tests (39 + 19 + 7 checks)
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          for file in frontend/js/*.js scripts/*.mjs capacitor.config.js tests/*.mjs; do
+            node --check "$file"
+          done
+          echo "All JavaScript modules parse."
+
+      - name: Frontend HUD smoke tests (42 + 19 + 8 checks)
         run: npm run test:js
 
   build-apk:
@@ -90,6 +98,25 @@ jobs:
           "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate Android XML and configuration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          files = ["android/app/src/main/AndroidManifest.xml"]
+          files += glob.glob("android/app/src/main/res/**/*.xml", recursive=True)
+          for path in files:
+              ET.parse(path)
+
+          manifest = open("android/app/src/main/AndroidManifest.xml", encoding="utf-8").read()
+          assert "BIND_QUICK_SETTINGS_TILE" in manifest, "tile permission missing"
+          assert "network_security_config" in manifest, "network security config missing"
+          assert "windowSoftInputMode" in manifest, "keyboard handling missing"
+          print(f"Android XML valid: {len(files)} files; manifest, tile and network config present.")
+          PY
 
       - name: Sync Capacitor web assets into the Android project
         run: npm run cap:sync

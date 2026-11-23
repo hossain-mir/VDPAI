@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import base64
+import glob
 import json
 import os
 import shutil
@@ -23,6 +24,7 @@ import sys
 import tempfile
 import time
 import traceback
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -747,6 +749,9 @@ def main() -> int:
         manifest = os.path.join(ROOT, "android", "app", "src", "main", "AndroidManifest.xml")
         package = os.path.join(ROOT, "package.json")
         settings_js = os.path.join(ROOT, "frontend", "js", "settings.js")
+        panels_js = os.path.join(ROOT, "frontend", "js", "panels.js")
+        app_js = os.path.join(ROOT, "frontend", "js", "app.js")
+        strings = os.path.join(ROOT, "android", "app", "src", "main", "res", "values", "strings.xml")
 
         with open(html, encoding="utf-8") as handle:
             page = handle.read()
@@ -758,6 +763,22 @@ def main() -> int:
             "About J.A.R.V.I.S.",
         ]
         check("settings dashboard sections present", all(item in page for item in required))
+        check(
+            "backend connect/test/disconnect/clear controls",
+            all(f'id="{name}"' in page for name in ("backendForm", "backendTest", "backendDisconnect", "backendClear")),
+        )
+
+        with open(panels_js, encoding="utf-8") as handle:
+            panels = handle.read()
+        check("disconnect is wired to the app", 'id="backendDisconnect"' in page and "disconnectBackend" in panels)
+
+        with open(app_js, encoding="utf-8") as handle:
+            application = handle.read()
+        check(
+            "disconnect pauses retries and keeps HUD open",
+            "paused" in application and "scheduleBackendRetry" in application and "BACKEND DISCONNECTED" in application,
+        )
+        check("local UI preferences persist", "jarvis.reduceMotion" in application and "localStorage" in application)
 
         with open(manifest, encoding="utf-8") as handle:
             xml = handle.read()
@@ -766,6 +787,39 @@ def main() -> int:
         check("tile intent filter", "android.service.quicksettings.action.QS_TILE" in xml)
         check("keyboard handling configured", "windowSoftInputMode" in xml)
 
+        android_ns = {"android": "http://schemas.android.com/apk/res/android"}
+        tree = ET.parse(manifest)
+        root = tree.getroot()
+        application_node = root.find("application")
+        check(
+            "network security config wired",
+            application_node is not None
+            and application_node.get(f"{{{android_ns['android']}}}networkSecurityConfig") == "@xml/network_security_config"
+            and application_node.get(f"{{{android_ns['android']}}}usesCleartextTraffic") == "false",
+        )
+        permissions = {
+            node.get(f"{{{android_ns['android']}}}name") for node in root.findall("uses-permission")
+        }
+        check(
+            "required Android permissions declared",
+            {"android.permission.INTERNET", "android.permission.RECORD_AUDIO"} <= permissions,
+        )
+
+        with open(strings, encoding="utf-8") as handle:
+            labels = handle.read()
+        check("application name is JARVIS AI", '<string name="app_name">JARVIS AI</string>' in labels)
+        check("tile label is J.A.R.V.I.S.", '<string name="tile_label">J.A.R.V.I.S.</string>' in labels)
+
+        res_dir = os.path.join(ROOT, "android", "app", "src", "main", "res")
+        resource_files = glob.glob(os.path.join(res_dir, "**", "*.xml"), recursive=True)
+        try:
+            for resource in resource_files:
+                ET.parse(resource)
+            parsed = True
+        except ET.ParseError:
+            parsed = False
+        check("all Android XML resources parse", parsed and len(resource_files) > 0, f"{len(resource_files)} files")
+
         with open(package, encoding="utf-8") as handle:
             pkg = handle.read()
         check("secure native storage dependency", "@capacitor/preferences" in pkg)
@@ -773,6 +827,7 @@ def main() -> int:
         with open(settings_js, encoding="utf-8") as handle:
             settings = handle.read()
         check("no placeholder production URL in settings", "your-server" not in settings and "your-server" not in page)
+        check("native preferences store the backend URL", "Preferences.set" in settings and "Preferences.get" in settings)
 
     timed("Android + HUD static structure", android_and_hud_static_test)
 

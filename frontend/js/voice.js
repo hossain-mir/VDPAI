@@ -2,7 +2,7 @@
  *
  * Honest Android behaviour:
  *  - SpeechRecognition (Web Speech API) does not exist in every browser.
- *  - Microphone access requires a secure context: http://127.0.0.1 or https://.
+ *  - Microphone access requires a secure context: localhost or https://.
  *    A plain http://LAN-IP page cannot use the mic in Chrome.
  *  - Wake-word listening only runs while this tab is open and the screen is on.
  *  - The manual mic button is the reliable fallback.
@@ -65,7 +65,7 @@ export class VoiceEngine {
 
   unsupportedReason() {
     if (window.isSecureContext === false) {
-      return "Voice needs a secure context. Open http://127.0.0.1:8000 on this phone, or use an HTTPS tunnel. Plain http://LAN-IP pages cannot access the microphone in Chrome.";
+      return "Voice needs a secure context. Open the HUD on localhost or an HTTPS tunnel. Plain http://LAN-IP pages cannot access the microphone in Chrome.";
     }
     if (!Recognition) {
       return "This browser does not expose speech recognition. Use Chrome on Android, or type your command.";
