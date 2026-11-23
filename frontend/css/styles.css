@@ -894,6 +894,17 @@ body.reduce-motion *::after {
 }
 body.reduce-motion::after { display: none; }
 
+/* Low-glow theme: keeps the same layout while removing expensive glow/blur. */
+body.low-glow .glass {
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+body.low-glow .state-text,
+body.low-glow .state-readout small { text-shadow: none; }
+body.low-glow .backend-status i { box-shadow: none; }
+body.low-glow .core-wrap { filter: saturate(0.82); }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes scan {
   0% { transform: translateX(-120%); }

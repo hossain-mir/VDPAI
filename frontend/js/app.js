@@ -20,6 +20,7 @@ const LS = {
   tts: "jarvis.tts",
   wake: "jarvis.wake",
   motion: "jarvis.reduceMotion",
+  glow: "jarvis.lowGlow",
 };
 const DEFAULT_STATUS = {
   provider: { label: "demo", model: "demo", demo: true },
@@ -168,16 +169,8 @@ async function resetLocalSettings() {
   }
   await clearBackendUrl();
   app.paused = false;
-  document.body.classList.remove("reduce-motion");
-  if (core) {
-    core.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (core.reduced) {
-      core.stop();
-      core.draw();
-    } else {
-      core.start();
-    }
-  }
+  document.body.classList.remove("reduce-motion", "low-glow");
+  applyAppearance();
   syncPreferenceUi();
   return connectBackend({ silent: true });
 }
@@ -595,8 +588,15 @@ function wireInteractive() {
   $("#reduceMotionToggle")?.addEventListener("change", (event) => {
     const reduced = event.target.checked;
     store(LS.motion, reduced ? "1" : "0");
-    applyAppearance(reduced);
+    applyAppearance();
     ui.toast(reduced ? "Reduced motion enabled." : "Full motion enabled.", "", 2000);
+  });
+
+  $("#lowGlowToggle")?.addEventListener("change", (event) => {
+    const lowGlow = event.target.checked;
+    store(LS.glow, lowGlow ? "1" : "0");
+    applyAppearance();
+    ui.toast(lowGlow ? "Low-glow HUD enabled." : "Full HUD lighting restored.", "", 2000);
   });
 
   $("#langSelect").addEventListener("change", (event) => {
@@ -734,8 +734,11 @@ function clearAttachment() {
   if (input) input.value = "";
 }
 
-function applyAppearance(reduced) {
+function applyAppearance() {
+  const reduced = stored(LS.motion, "0") === "1";
+  const lowGlow = stored(LS.glow, "0") === "1";
   document.body.classList.toggle("reduce-motion", reduced);
+  document.body.classList.toggle("low-glow", lowGlow);
   if (!core) return;
   core.reduced = reduced || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (core.reduced) {
@@ -761,7 +764,10 @@ function syncPreferenceUi() {
   const reduced = stored(LS.motion, "0") === "1";
   const motionToggle = $("#reduceMotionToggle");
   if (motionToggle) motionToggle.checked = reduced;
-  applyAppearance(reduced);
+  const lowGlow = stored(LS.glow, "0") === "1";
+  const glowToggle = $("#lowGlowToggle");
+  if (glowToggle) glowToggle.checked = lowGlow;
+  applyAppearance();
 }
 
 function tickClock() {

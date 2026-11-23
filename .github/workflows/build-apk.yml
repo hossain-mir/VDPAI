@@ -48,7 +48,7 @@ jobs:
           done
           echo "All JavaScript modules parse."
 
-      - name: Frontend HUD smoke tests (42 + 19 + 8 checks)
+      - name: Frontend HUD smoke tests (44 + 19 + 8 checks)
         run: npm run test:js
 
   build-apk:

@@ -759,7 +759,7 @@ def main() -> int:
         check("backend status visible in HUD", 'id="backendStatus"' in page and 'id="chipBackend"' in page)
         required = [
             'id="backendForm"', "AI providers", "Voice settings", "Language settings",
-            "Permissions", "Appearance", "Android integration", "Privacy &amp; security",
+            "Permissions", "Theme &amp; appearance", "Android integration", "Privacy &amp; security",
             "About J.A.R.V.I.S.",
         ]
         check("settings dashboard sections present", all(item in page for item in required))
@@ -778,7 +778,12 @@ def main() -> int:
             "disconnect pauses retries and keeps HUD open",
             "paused" in application and "scheduleBackendRetry" in application and "BACKEND DISCONNECTED" in application,
         )
-        check("local UI preferences persist", "jarvis.reduceMotion" in application and "localStorage" in application)
+        check(
+            "local UI preferences persist",
+            all(key in application for key in ("jarvis.reduceMotion", "jarvis.lowGlow"))
+            and "localStorage" in application,
+        )
+        check("theme controls present", 'id="lowGlowToggle"' in page and "low-glow" in application)
 
         with open(manifest, encoding="utf-8") as handle:
             xml = handle.read()

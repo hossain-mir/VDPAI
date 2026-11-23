@@ -275,12 +275,24 @@ try {
     "backendClear",
     "ttsToggle",
     "reduceMotionToggle",
+    "lowGlowToggle",
     "permissionMic",
     "nativeTest",
     "clearLocalData",
     "aboutInfo",
   ];
   check("settings dashboard controls present", settingIds.every((id) => !!doc.getElementById(id)));
+
+  const glowToggle = doc.querySelector("#lowGlowToggle");
+  glowToggle.checked = true;
+  glowToggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+  check(
+    "low-glow theme applies and persists",
+    doc.body.classList.contains("low-glow") && window.localStorage.getItem("jarvis.lowGlow") === "1",
+  );
+  glowToggle.checked = false;
+  glowToggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+  check("low-glow theme can be disabled", !doc.body.classList.contains("low-glow"));
 
   doc.querySelector("#backendDisconnect").click();
   await wait(250);

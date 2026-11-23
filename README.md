@@ -77,7 +77,7 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 * The backend allows credentialed CORS from the APK's `http://localhost` WebView origin and issues `SameSite=None; Secure` session cookies over HTTPS. Requests from your LAN are trusted automatically; if you set `JARVIS_ACCESS_TOKEN`, a publicly hosted backend still requires either a trusted proxy/network or the same-origin mode below.
 * Network security config sets `cleartextTrafficPermitted="false"` for the Android app; `INTERNET`, `RECORD_AUDIO` and `CAMERA` permissions are declared, with camera/microphone marked optional so the app installs on devices without them.
 * A native **Quick Settings tile** named `J.A.R.V.I.S.` is provided by `JarvisTileService.kt` (Kotlin). Open **Quick Settings → Edit tiles → J.A.R.V.I.S.** to add it. Tap launches the existing HUD; a long press opens Android's **App Info** screen (the platform default for third-party tiles, supported on Android 13/16). It uses a Liquid-Glass-style concentric core icon, Android 13+ immutable `PendingIntent` launching, and binds only with `BIND_QUICK_SETTINGS_TILE` — no extra app permission is requested.
-* **System → Settings dashboard** contains working controls for backend connection, AI providers/API keys/model selection, voice TTS/wake phrase, language, permissions, reduced-motion appearance, native bridge diagnostics, privacy (clear local data, audit log), and About. Reduced motion stops the core/waveform animation loops to save battery.
+* **System → Settings dashboard** contains working controls for backend connection, AI providers/API keys/model selection, voice TTS/wake phrase, language, permissions, reduced-motion appearance, native bridge diagnostics, privacy (clear local data, audit log), and About. Reduced motion stops the core/waveform animation loops and low-glow mode removes expensive glass glows; both persist locally to save battery.
 
 ### Required dependencies for an APK build
 
@@ -180,7 +180,7 @@ JARVIS-AI/
 ├── www/                        generated copy of frontend/ (git-ignored)
 ├── android/                    generated Capacitor Android project (see above)
 ├── .github/workflows/build-apk.yml    tests + debug APK + artifact upload
-├── tests/                      208-check API suite + jsdom HUD, no-lock and offline smoke tests
+├── tests/                      209-check API suite + jsdom HUD, no-lock and offline smoke tests
 └── database/, logs/, workspace/  runtime data (git-ignored)
 ```
 
@@ -301,10 +301,10 @@ Only `/api/health`, `/api/session` and `/api/unlock` are public. All other API c
 ## Tests
 
 ```bash
-bash scripts/test.sh                         # 208 Python checks (real subprocess server)
+bash scripts/test.sh                         # 209 Python checks (real subprocess server)
 
 cd tests && npm install                      # optional jsdom-based HUD tests
-node frontend_smoke.mjs                      # 42 HUD checks, no token
+node frontend_smoke.mjs                      # 44 HUD checks, no token
 node no_lock_smoke.mjs                       # 19 checks: no lock screen, HUD boots directly
 node offline_smoke.mjs                       # 8 checks: HUD opens with no backend
 cd ..
