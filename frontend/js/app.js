@@ -18,6 +18,10 @@ import {
   subscribe,
   updateSettings,
   usesNativeStorage,
+  addCustomQuickCommand,
+  addHudLogEntry,
+  getCustomQuickCommands,
+  getHudLog,
 } from "./store.js";
 import { providerReady, sendChat } from "./ai.js";
 import { testBackend } from "./backend.js";
@@ -134,6 +138,12 @@ async function boot() {
   wireNavigation();
   wireLaunchSequence();
   updateGreeting();
+  renderQuickCommands();
+  renderHudLog();
+  window.addEventListener("vdpai:hudlog", () => renderHudLog());
+  window.addEventListener("vdpai:quickcommands", () => renderQuickCommands());
+  addHudLogEntry("App opened.");
+  addHudLogEntry("VDPAI ready.");
 
   $("#app").hidden = false;
   app.booted = true;
@@ -362,6 +372,9 @@ async function send(raw, { source = "text" } = {}) {
   app.transcript?.add("user", message, source === "voice" ? "voice" : "");
   app.liveBubble = app.transcript?.add("assistant", "", `${provider.name} · ${provider.model}`);
 
+  addHudLogEntry(`Command received: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
+  addHudLogEntry("AI thinking...");
+
   try {
     const result = await sendChat({
       text: message,
@@ -390,6 +403,7 @@ async function send(raw, { source = "text" } = {}) {
       if (meta) meta.textContent = `${app.lastMeta} · ${ui.timeLabel()}`;
     }
     uiState.set("IDLE", result.stopped ? "response stopped" : "answer ready");
+    addHudLogEntry(result.stopped ? "Response stopped by user." : "Response generated.");
     refreshProviderUi();
     renderHistory();
     refreshControlCenter();
@@ -627,13 +641,52 @@ function wireHud() {
     }
   });
 
-  $("#micBtn").addEventListener("click", async () => {
+  let micPressTimer = null;
+  let micLongPressed = false;
+  const micBtn = $("#micBtn");
+
+  micBtn.addEventListener("pointerdown", () => {
+    micLongPressed = false;
+    micPressTimer = setTimeout(() => {
+      micLongPressed = true;
+      openControlCenter("voice");
+      ui.toast("Voice & Speech Settings", "", 1800);
+    }, 500);
+  });
+
+  const clearMicPress = () => {
+    if (micPressTimer) clearTimeout(micPressTimer);
+    micPressTimer = null;
+  };
+
+  micBtn.addEventListener("pointerup", clearMicPress);
+  micBtn.addEventListener("pointercancel", clearMicPress);
+
+  micBtn.addEventListener("click", async (e) => {
+    if (micLongPressed) {
+      e.preventDefault();
+      micLongPressed = false;
+      return;
+    }
     if (!app.voice) return;
     if (!app.voice.inputAvailable) {
       ui.toast(app.voice.unsupportedInputReason() || "Voice input is unavailable.", "warn", 7000);
       return;
     }
     await app.voice.toggleListening();
+  });
+
+  $("#themeQuickBtn")?.addEventListener("click", () => {
+    const themes = ["cyan", "emerald", "violet", "blue", "gold", "crimson"];
+    const current = document.body.dataset.theme || "cyan";
+    const nextIdx = (themes.indexOf(current) + 1) % themes.length;
+    const nextTheme = themes[nextIdx];
+    document.body.dataset.theme = nextTheme;
+    updateSettings({ theme: nextTheme });
+    const select = $("#themeSelect");
+    if (select) select.value = nextTheme;
+    saveNow().catch(() => {});
+    ui.toast(`Theme: ${nextTheme.toUpperCase()}`, "", 1600);
   });
 
   $("#ttsQuickBtn").addEventListener("click", () => {
@@ -832,6 +885,72 @@ function handleEmergencyStop() {
   ui.toast("EMERGENCY STOP: Active processes terminated.", "error", 4000);
 }
 
+function renderQuickCommands() {
+  const container = $("#quickActions");
+  if (!container) return;
+  const commands = getCustomQuickCommands();
+  container.replaceChildren();
+  for (const cmd of commands) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.quick = cmd.prompt;
+    btn.textContent = cmd.label;
+    container.appendChild(btn);
+  }
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "btn-add-quick";
+  addBtn.id = "addQuickCmdBtn";
+  addBtn.title = "Customize quick commands";
+  addBtn.textContent = "+ Add";
+  addBtn.addEventListener("click", async () => {
+    const label = await ui.promptAction({
+      title: "New Quick Command",
+      text: "Enter a button label for your quick command:",
+      placeholder: "e.g. Status Briefing",
+    });
+    if (!label?.trim()) return;
+    const prompt = await ui.promptAction({
+      title: "Command Instruction",
+      text: `Enter the prompt to send when "${label.trim()}" is tapped:`,
+      placeholder: "e.g. Give me a short status briefing.",
+    });
+    if (!prompt?.trim()) return;
+    addCustomQuickCommand({ label: label.trim(), prompt: prompt.trim() });
+    renderQuickCommands();
+    ui.toast("Quick command added.", "ok", 2000);
+  });
+  container.appendChild(addBtn);
+}
+
+function renderHudLog() {
+  const list = $("#hudLogList");
+  if (!list) return;
+  const entries = getHudLog();
+  list.replaceChildren();
+  if (entries.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "hud-log-entry empty";
+    empty.textContent = "All systems nominal. No recent activity.";
+    list.appendChild(empty);
+    return;
+  }
+  for (const entry of entries.slice(0, 10)) {
+    const row = document.createElement("div");
+    row.className = "hud-log-entry";
+    const time = document.createElement("time");
+    time.textContent = entry.time || "--:--:--";
+    const msg = document.createElement("span");
+    msg.className = "log-msg";
+    msg.textContent = entry.text;
+    row.appendChild(time);
+    row.appendChild(msg);
+    list.appendChild(row);
+  }
+  const countBadge = $("#hudLogCount");
+  if (countBadge) countBadge.textContent = `${entries.length} EVENTS`;
+}
+
 function updateGreeting() {
   const settings = getSettings();
   const hour = new Date().getHours();
@@ -847,8 +966,18 @@ function updateGreeting() {
 function wireNavigation() {
   $$("#bottomNavBar .nav-pill-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      switchPage(btn.dataset.page);
+      if (btn.dataset.page) {
+        switchPage(btn.dataset.page);
+      }
     });
+  });
+
+  $("#navVoiceBtn")?.addEventListener("click", () => {
+    $("#micBtn")?.click();
+  });
+
+  $("#navMoreBtn")?.addEventListener("click", () => {
+    openControlCenter("ai");
   });
 
   const viewport = $("#pagesViewport");

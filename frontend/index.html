@@ -62,8 +62,11 @@
       </div>
 
       <div class="top-actions">
-        <button class="icon-btn" id="historyBtn" type="button" aria-label="Conversation history" title="History">
+        <button class="icon-btn" id="historyBtn" type="button" aria-label="Conversation history" title="Chat">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 9h8M8 12.5h5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <button class="icon-btn" id="themeQuickBtn" type="button" aria-label="Toggle theme or brightness" title="Brightness / Theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5"/></svg>
         </button>
         <button class="icon-btn" id="controlBtn" type="button" aria-label="Control Center" title="Control Center">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -80,7 +83,7 @@
           <main class="hud">
             <!-- Greeting Banner -->
             <div class="greeting-banner" id="greetingBanner">
-              <span class="greeting-salute" id="greetingSalute">Good evening, Sir.</span>
+              <span class="greeting-salute" id="greetingSalute">Good morning, Sir.</span>
               <span class="greeting-sub" id="greetingSub">All systems nominal. How may I assist you?</span>
             </div>
 
@@ -94,17 +97,21 @@
                   <small id="stateDetail">awaiting command</small>
                 </div>
                 <div class="mic-orb-wrap">
-                  <button id="micBtn" class="mic-orb" type="button" aria-label="Start voice input" aria-pressed="false">
+                  <button id="micBtn" class="mic-orb" type="button" aria-label="Start voice input" aria-pressed="false" title="Tap to talk, hold for voice settings">
                     <span class="mic-halo" aria-hidden="true"></span>
+                    <span class="mic-pulse-fx" aria-hidden="true"></span>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
                   </button>
                   <span class="mic-label" id="micLabel">MIC</span>
                 </div>
               </div>
-              <div class="core-provider">
-                <span class="kicker">ACTIVE PROVIDER</span>
+              <div class="core-provider glass" id="activeProviderCard">
+                <div class="provider-pill-head">
+                  <span class="provider-pulse-dot" aria-hidden="true"></span>
+                  <span class="kicker">ACTIVE PROVIDER</span>
+                </div>
                 <strong id="providerBadge">Not configured</strong>
-                <small id="providerModel">Configure an AI provider in Control Center</small>
+                <small id="providerModel">Add a provider in Control Center</small>
               </div>
             </section>
 
@@ -133,13 +140,28 @@
               <div class="activity" id="transcript" role="log" aria-live="polite"></div>
             </section>
 
+            <!-- Activity / HUD Log (Stored locally) -->
+            <section class="hud-log-panel glass" id="hudActivityLog" aria-label="Activity and HUD log">
+              <header class="panel-head">
+                <div class="hud-log-head-left">
+                  <span class="hud-live-dot" aria-hidden="true"></span>
+                  <span class="kicker">ACTIVITY / HUD LOG</span>
+                </div>
+                <span class="mini-status" id="hudLogCount">SYSTEM ONLINE</span>
+              </header>
+              <div class="hud-log-list" id="hudLogList" role="log" aria-live="polite"></div>
+            </section>
+
             <!-- Quick Commands -->
-            <div class="quick" id="quickActions" aria-label="Quick commands">
-              <button type="button" data-quick="Give me a short status briefing.">Status Briefing</button>
-              <button type="button" data-quick="Help me plan my day in five concise steps.">Plan Day</button>
-              <button type="button" data-quick="What are your full capabilities as VDPAI?">Capabilities</button>
-              <button type="button" data-quick="কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।">বাংলা (Bengali)</button>
-              <button type="button" data-quick="नमस्ते VDPAI, आज की मुख्य योजना क्या है?">हिन्दी (Hindi)</button>
+            <div class="quick-scroll-wrap" aria-label="Quick commands">
+              <div class="quick" id="quickActions" aria-label="Quick commands list">
+                <button type="button" data-quick="Give me a short status briefing.">Status Briefing</button>
+                <button type="button" data-quick="Help me plan my day in five concise steps.">Plan Day</button>
+                <button type="button" data-quick="What are your full capabilities as VDPAI?">Capabilities</button>
+                <button type="button" data-quick="কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।">বাংলা</button>
+                <button type="button" data-quick="नमस्ते VDPAI, आज की मुख्य योजना क्या है?">हिन्दी</button>
+                <button type="button" class="btn-add-quick" id="addQuickCmdBtn" title="Customize quick commands">+ Add</button>
+              </div>
             </div>
           </main>
 
@@ -150,7 +172,7 @@
                 <svg viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
               </button>
               <label class="sr-only" for="chatInput">Message</label>
-              <textarea id="chatInput" rows="1" placeholder="Ask VDPAI anything…" maxlength="8000" enterkeyhint="send"></textarea>
+              <textarea id="chatInput" rows="1" placeholder="Ask VDPAI..." maxlength="8000" enterkeyhint="send"></textarea>
               <button class="send-pill-btn" type="submit" aria-label="Send message" title="Send">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
               </button>
@@ -517,31 +539,43 @@
       </div>
     </div>
 
-    <!-- Dynamic Pill Bottom Navigation Bar (Image 6 style) -->
+    <!-- Dynamic Pill Bottom Navigation Bar (Floating Futuristic Dock) -->
     <nav class="bottom-nav-bar" id="bottomNavBar" role="tablist" aria-label="Main Navigation">
-      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true">
+      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Home">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.6"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
         </span>
         <span class="nav-label">Home</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false">
+      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false" title="Tasks">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2ZM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
         </span>
-        <span class="nav-label">Assistant</span>
+        <span class="nav-label">Tasks</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false">
+      <button type="button" class="nav-pill-btn nav-pill-voice" id="navVoiceBtn" role="button" aria-label="Voice Input" title="Voice">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </span>
+        <span class="nav-label">Voice</span>
+      </button>
+      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="Control Center">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
         </span>
         <span class="nav-label">Control</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false">
+      <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false" title="Profile">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
         </span>
         <span class="nav-label">Profile</span>
+      </button>
+      <button type="button" class="nav-pill-btn" id="navMoreBtn" role="button" aria-label="Add or More Shortcuts" title="More">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/></svg>
+        </span>
+        <span class="nav-label">More</span>
       </button>
     </nav>
   </div>

@@ -78,4 +78,5 @@ tests/package-lock.json
 Thumbs.db
 .idea/
 .vscode/
+.gemini/
 JARVIS-AI-2.0

@@ -1561,10 +1561,153 @@ textarea, input, select { scroll-margin-bottom: 80px; }
   gap: 8px;
 }
 .battery-readout {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
   color: var(--muted);
   border: 1px solid var(--line);
   padding: 3px 6px;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
+
+/* Activity / HUD Log Panel */
+.hud-log-panel {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(4, 15, 24, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+.hud-log-head-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.hud-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+.hud-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+.hud-log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.4;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(88, 231, 255, 0.05);
+}
+.hud-log-entry time {
+  color: var(--primary);
+  font-weight: 600;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.hud-log-entry .log-msg {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hud-log-entry.empty {
+  color: var(--dim);
+  font-style: italic;
+  border: none;
+}
+
+/* Quick Commands Horizontal Scroll */
+.quick-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 0 8px 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.quick-scroll-wrap::-webkit-scrollbar {
+  display: none;
+}
+.quick-scroll-wrap .quick {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+.btn-add-quick {
+  background: rgba(88, 231, 255, 0.08);
+  border: 1px dashed var(--line-strong);
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.btn-add-quick:hover {
+  background: rgba(88, 231, 255, 0.18);
+  box-shadow: 0 0 10px rgba(88, 231, 255, 0.25);
+}
+
+/* Active Provider Card */
+.core-provider.glass {
+  background: rgba(5, 16, 26, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+.provider-pill-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.provider-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--secondary);
+  box-shadow: 0 0 6px var(--secondary);
+}
+
+/* Voice Nav Button */
+.nav-pill-voice {
+  background: rgba(88, 231, 255, 0.12);
+  border-color: rgba(88, 231, 255, 0.4);
+  color: var(--primary);
+}
+.nav-pill-voice:active,
+body[data-state="listening"] .nav-pill-voice {
+  background: rgba(61, 255, 176, 0.22);
+  border-color: var(--secondary);
+  color: var(--secondary);
+  box-shadow: 0 0 16px rgba(61, 255, 176, 0.45);
+}
+

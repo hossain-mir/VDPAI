@@ -3,7 +3,7 @@
  */
 
 import * as ui from "./ui.js";
-import { getSettings, updateSettings } from "./store.js";
+import { addHudLogEntry, getSettings, updateSettings } from "./store.js";
 
 const $ = ui.$;
 const $$ = ui.$$;
@@ -252,6 +252,7 @@ function bindBackgroundAssistant() {
   const badge = $("#bgAssistantStatus");
   if (badge) badge.textContent = "UNAVAILABLE";
   updateSettings({ backgroundAssistantEnabled: false });
+  addHudLogEntry("Background assistant status: STANDBY (foreground only).");
 }
 
 /* ----------------------------------------------------- battery and network */

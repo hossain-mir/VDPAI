@@ -903,6 +903,89 @@ export function exportData() {
   );
 }
 
+/* ------------------------------------------------------------------ HUD Log */
+const HUD_LOG_KEY = "vdpai_hud_log";
+
+export function getHudLog() {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(HUD_LOG_KEY) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addHudLogEntry(text) {
+  try {
+    const log = getHudLog();
+    const d = new Date();
+    const time = [
+      String(d.getHours()).padStart(2, "0"),
+      String(d.getMinutes()).padStart(2, "0"),
+      String(d.getSeconds()).padStart(2, "0"),
+    ].join(":");
+    const entry = { id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, time, text };
+    log.unshift(entry);
+    if (log.length > 40) log.length = 40;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(HUD_LOG_KEY, JSON.stringify(log));
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("vdpai:hudlog", { detail: entry }));
+    }
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+export function clearHudLog() {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(HUD_LOG_KEY);
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("vdpai:hudlog", { detail: null }));
+    }
+  } catch {}
+}
+
+/* ----------------------------------------------------------- Quick Commands */
+const QUICK_CMDS_KEY = "vdpai_quick_commands";
+const DEFAULT_QUICK_COMMANDS = [
+  { label: "Status Briefing", prompt: "Give me a short status briefing." },
+  { label: "Plan Day", prompt: "Help me plan my day in five concise steps." },
+  { label: "Capabilities", prompt: "What are your full capabilities as VDPAI?" },
+  { label: "বাংলা", prompt: "কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।" },
+  { label: "हिन्दी", prompt: "नमस्ते VDPAI, आज की मुख्य योजना क्या है?" },
+];
+
+export function getCustomQuickCommands() {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(QUICK_CMDS_KEY) : null;
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [...DEFAULT_QUICK_COMMANDS];
+}
+
+export function saveCustomQuickCommands(commands) {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(QUICK_CMDS_KEY, JSON.stringify(commands));
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("vdpai:quickcommands", { detail: commands }));
+    }
+  } catch {}
+}
+
+export function addCustomQuickCommand(item) {
+  const list = getCustomQuickCommands();
+  list.push(item);
+  saveCustomQuickCommands(list);
+  return list;
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("pagehide", () => {
     if (saveTimer) saveNow().catch(() => {});
@@ -911,3 +994,4 @@ if (typeof window !== "undefined") {
     if (document.hidden && saveTimer) saveNow().catch(() => {});
   });
 }
+
