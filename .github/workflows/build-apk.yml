@@ -163,8 +163,8 @@ jobs:
               store = apk.read("assets/public/js/store.js").decode("utf-8")
               assert "nativePreferences" in store, "native Preferences storage bridge missing"
               assert 'from "@capacitor/preferences"' not in store, "bare package import would break WebView loading"
-          plugins = apk.read("assets/capacitor.plugins.json").decode("utf-8")
-          assert "PreferencesPlugin" in plugins, "native Preferences plugin missing"
+              plugins = apk.read("assets/capacitor.plugins.json").decode("utf-8")
+              assert "PreferencesPlugin" in plugins, "native Preferences plugin missing"
           PY
           echo "Tile, offline HUD and native storage are present in the APK."
 
