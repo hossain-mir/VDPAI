@@ -4,9 +4,7 @@ import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
@@ -16,8 +14,8 @@ import android.util.Log
  *
  * It is bound by the system through BIND_QUICK_SETTINGS_TILE, so it only exists
  * after the user adds it in Quick Settings -> Edit tiles. Tapping launches the
- * existing Capacitor MainActivity; a long press opens Android's application
- * details screen. No extra permission or component is required.
+ * existing Capacitor MainActivity. Android itself opens the App Info screen on
+ * a long press, so no extra activity or permission is needed for that gesture.
  */
 class JarvisTileService : TileService() {
 
@@ -43,14 +41,6 @@ class JarvisTileService : TileService() {
         launchApp()
     }
 
-    /**
-     * Available from API 28. On older platforms the framework never calls it;
-     * we deliberately do not call super because that method does not exist there.
-     */
-    override fun onTileLongClick() {
-        openAppDetails()
-    }
-
     private fun updateTile() {
         val tile = qsTile ?: return
         tile.state = Tile.STATE_ACTIVE
@@ -63,11 +53,10 @@ class JarvisTileService : TileService() {
     }
 
     private fun launchApp() {
-        val context = this
-        val launchIntent = packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         } ?: Intent(Intent.ACTION_MAIN).apply {
-            setClassName(context.packageName, "${context.packageName}.MainActivity")
+            setClassName(packageName, "$packageName.MainActivity")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         if (!safeStart(launchIntent)) {
@@ -75,19 +64,10 @@ class JarvisTileService : TileService() {
         }
     }
 
-    private fun openAppDetails() {
-        val details = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", packageName, null)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        // Some OEM skins omit this screen; fall back to opening the app itself.
-        if (!safeStart(details)) launchApp()
-    }
-
-    /** Returns false when the intent cannot be started on this device. */
+    /** Returns false when the system refuses to start the activity. */
     private fun safeStart(intent: Intent): Boolean = try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ requires an immutable PendingIntent for background starts.
+            // Android 13+: immutable PendingIntent is required for background starts.
             val pending = PendingIntent.getActivity(
                 this,
                 0,
