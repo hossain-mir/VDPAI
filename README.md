@@ -113,7 +113,7 @@ cd android && ./gradlew assembleDebug --no-daemon
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-This exact path is checked (non-empty) by CI before the artifact is uploaded. No APK is claimed as built unless that file exists.
+This exact path is checked (non-empty) by CI before the artifact is uploaded. No APK is claimed as built unless that file exists. A successful build is available as the `jarvis-ai-debug-apk` artifact on the [latest workflow run](https://github.com/hossain-mir/JARVIS-AI/actions/workflows/build-apk.yml).
 
 ### Android project structure
 
