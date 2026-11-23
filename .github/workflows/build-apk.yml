@@ -64,18 +64,30 @@ jobs:
       - name: Generate Android icons and splash screens
         run: npm run assets
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
+      # ubuntu-latest already ships the Android SDK and cmdline-tools. The
+      # setup-android action is no longer usable: it installs the removed
+      # `tools` package and fails on current SDK manager versions.
       - name: Install Android SDK 36
         shell: bash
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [ -z "$SDK" ]; then
+            echo "::error::Android SDK is not preinstalled on this runner."
+            exit 1
+          fi
+          SDKMANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort -V | tail -1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "::error::sdkmanager was not found under $SDK/cmdline-tools."
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
 
