@@ -108,6 +108,16 @@ def secure_cookie(request: Request) -> bool:
     return False
 
 
+def cookie_samesite(request: Request) -> str:
+    """HTTPS sessions must work from the bundled APK's local WebView origin.
+
+    A packaged WebView is cross-origin to the backend, so its cookies need
+    SameSite=None (always paired with Secure). Plain HTTP/loopback keeps the
+    original lax policy.
+    """
+    return "none" if secure_cookie(request) else "lax"
+
+
 def throttle(request: Request, bucket: str, limit: int) -> None:
     allowed, retry_after, _remaining = rate_limiter.hit(client_ip(request), bucket, limit)
     if not allowed:
@@ -156,7 +166,7 @@ async def session_endpoint(request: Request):
         session.sid,
         max_age=settings.session_ttl_hours * 3600,
         httponly=True,
-        samesite="lax",
+        samesite=cookie_samesite(request),
         secure=secure_cookie(request),
         path="/",
     )
@@ -201,7 +211,7 @@ async def unlock(request: Request):
         session.sid,
         max_age=max_age,
         httponly=True,
-        samesite="lax",
+        samesite=cookie_samesite(request),
         secure=secure_cookie(request),
         path="/",
     )
@@ -212,7 +222,7 @@ async def unlock(request: Request):
         grant.grant_id,
         max_age=max_age,
         httponly=True,
-        samesite="lax",
+        samesite=cookie_samesite(request),
         secure=secure_cookie(request),
         path="/",
     )

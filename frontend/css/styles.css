@@ -181,6 +181,17 @@ a { color: var(--cyan); }
   background: linear-gradient(90deg, transparent, var(--cyan), transparent);
   animation: scan 1.35s ease-in-out infinite;
 }
+.boot.is-setup .boot-bar { display: none; }
+.boot.is-setup .boot-mark { transform: scale(0.7); }
+.boot-connect {
+  width: min(420px, calc(100vw - 40px));
+  padding: 18px;
+  justify-items: stretch;
+  text-align: left;
+}
+.boot-connect strong { color: var(--cyan); font-size: 12px; letter-spacing: 0.16em; }
+.boot-connect .hint { min-height: 1em; }
+.boot-connect[hidden] { display: none; }
 
 /* ------------------------------------------------------------------- app grid */
 .app {

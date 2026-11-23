@@ -3,10 +3,11 @@
  *
  * This is intentionally a copy, not a rewrite: the browser version at
  * http://127.0.0.1:8000 remains byte-for-byte equivalent. A tiny generated
- * `js/native-config.js` lets the Android build point API calls at a deployed
- * HTTPS backend without editing any application source.
+ * `js/native-config.js` carries an optional build-time backend address, and
+ * the HUD also exposes a runtime setting stored in WebView localStorage.
+ * The browser frontend is never modified.
  */
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -33,4 +34,17 @@ writeFileSync(
   "utf8",
 );
 
-console.log(`[jarvis] www/ built from frontend/ (backend base: ${configured || "same origin"})`);
+// The generated config was previously never loaded by index.html, so
+// JARVIS_API_BASE was always empty in the packaged app. Load it as a classic
+// script before the module bundle (runtime localStorage still wins).
+const indexPath = join(TARGET, "index.html");
+const marker = '<script src="/js/native-config.js"></script>';
+const entry = '<script type="module" src="/js/app.js"></script>';
+const html = readFileSync(indexPath, "utf8");
+if (!html.includes(entry)) {
+  console.error("[jarvis] frontend/index.html is missing the app.js module entry point.");
+  process.exit(2);
+}
+writeFileSync(indexPath, html.replace(entry, `${marker}\n  ${entry}`), "utf8");
+
+console.log(`[jarvis] www/ built from frontend/ (backend base: ${configured || "runtime setting / same origin"})`);

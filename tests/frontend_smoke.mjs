@@ -23,6 +23,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const APP = pathToFileURL(path.join(ROOT, "frontend/js/app.js")).href;
+const SETTINGS = pathToFileURL(path.join(ROOT, "frontend/js/settings.js")).href;
 const PREFERRED_TMP = "/data/user/0/com.termux/files/usr/tmp/opencode";
 const TMP_BASE = existsSync(PREFERRED_TMP) ? PREFERRED_TMP : os.tmpdir();
 const KEEP = process.argv.includes("--keep");
@@ -265,6 +266,20 @@ try {
   }
   doc.querySelector("#sheet .sheet-head .icon-btn").click();
   check("sheet closes", doc.querySelector("#sheet").hidden === true);
+
+  const settings = await import(SETTINGS);
+  check("browser backend default is same origin", settings.getBackendUrl() === "");
+  const valid = settings.validateBackendUrl("https://jarvis.example:8443/base/");
+  check("HTTPS backend URL is accepted and normalised", valid.ok && valid.url === "https://jarvis.example:8443/base");
+  check("invalid backend URL is refused", !settings.validateBackendUrl("not a url").ok);
+  const previousNative = window.JARVIS_NATIVE_BUILD;
+  window.JARVIS_NATIVE_BUILD = true;
+  const nativeHttp = settings.validateBackendUrl("http://192.168.1.10:8000");
+  const nativeHttps = settings.validateBackendUrl("https://jarvis.example:8000");
+  if (previousNative === undefined) delete window.JARVIS_NATIVE_BUILD;
+  else window.JARVIS_NATIVE_BUILD = previousNative;
+  check("APK refuses plaintext backend URLs", !nativeHttp.ok && /HTTPS/i.test(nativeHttp.error));
+  check("APK accepts HTTPS backend URLs", nativeHttps.ok && nativeHttps.url === "https://jarvis.example:8000");
 } catch (error) {
   errors.push(error.stack || String(error));
   console.error("HARNESS ERROR:", error);

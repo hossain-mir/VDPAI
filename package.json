@@ -2,7 +2,7 @@
   "name": "jarvis-ai-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Capacitor Android wrapper for the JARVIS AI HUD. The Python backend stays separate and is deployed independently over HTTPS.",
+  "description": "Bundled Capacitor Android wrapper for the JARVIS AI HUD. The Python backend stays separate; its URL is configured in the app.",
   "engines": {
     "node": ">=22"
   },

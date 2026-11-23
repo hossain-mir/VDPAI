@@ -1,5 +1,7 @@
 /* JARVIS AI — API client, session/CSRF handling and live event stream. */
 
+import { getBackendUrl, onBackendUrlChange } from "./settings.js";
+
 export class ApiError extends Error {
   constructor(message, code = "http_error", status = 0, details = null) {
     super(message);
@@ -13,31 +15,35 @@ export class ApiError extends Error {
 let csrf = null;
 export const session = { id: null, authRequired: false };
 
-/* In the browser this is empty, so every request stays exactly as before
- * (same origin).  The Capacitor build injects a deployed HTTPS base URL. */
-const API_BASE = (
-  typeof window !== "undefined" && typeof window.JARVIS_API_BASE === "string"
-    ? window.JARVIS_API_BASE
-    : ""
-).replace(/\/+$/, "");
-
+/* The base is resolved on every call: the owner can change it at runtime in
+ * the APK's connection setting. An empty value keeps the browser's original
+ * same-origin behaviour. */
 function apiUrl(path) {
-  return API_BASE ? API_BASE + path : path;
+  const base = getBackendUrl();
+  return base ? base + path : path;
 }
 
 function apiCredentials() {
   // A native build talks to a different origin; send the session cookies.
-  return API_BASE ? "include" : "same-origin";
+  return getBackendUrl() ? "include" : "same-origin";
 }
 
 function socketUrl() {
-  if (API_BASE) {
-    const parsed = new URL(API_BASE);
+  const base = getBackendUrl();
+  if (base) {
+    const parsed = new URL(base);
     return `${parsed.protocol === "https:" ? "wss" : "ws"}://${parsed.host}/ws`;
   }
   const scheme = location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${location.host}/ws`;
 }
+
+// A different server means a different session and CSRF token.
+onBackendUrlChange(() => {
+  csrf = null;
+  session.id = null;
+  session.authRequired = false;
+});
 
 async function parse(response) {
   try {
@@ -141,6 +147,30 @@ export class EventStream {
     this.closed = false;
     this.lastMessage = 0;
     this.watchdog = null;
+    this.unsubscribe = onBackendUrlChange(() => this.restart());
+  }
+
+  /** Drop the old socket immediately when the owner changes servers. */
+  restart() {
+    clearTimeout(this.timer);
+    this.stopWatchdog();
+    if (this.socket) {
+      this.socket.onclose = null;
+      try {
+        this.socket.close();
+      } catch {
+        /* ignore */
+      }
+      this.socket = null;
+    }
+    this.attempt = 0;
+    this.onStatus?.("offline");
+    if (!this.closed) this.connect();
+  }
+
+  ensureConnected() {
+    clearTimeout(this.timer);
+    this.connect();
   }
 
   connect() {
@@ -208,6 +238,7 @@ export class EventStream {
 
   close() {
     this.closed = true;
+    this.unsubscribe?.();
     clearTimeout(this.timer);
     this.stopWatchdog();
     if (this.socket) {

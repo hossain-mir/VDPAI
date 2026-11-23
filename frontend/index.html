@@ -18,6 +18,13 @@
     <p>INITIALISING JARVIS CORE</p>
     <div class="boot-bar" aria-hidden="true"><i></i></div>
     <small id="bootHint">connecting to local server…</small>
+    <form id="bootBackendForm" class="boot-connect glass stack" hidden>
+      <strong>Connect to your JARVIS server</strong>
+      <small id="bootBackendHint">Enter the address of the Python backend. It is saved on this device only.</small>
+      <label class="field"><span>Server URL</span><input id="bootBackendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server:8000"></label>
+      <button class="btn primary" type="submit">Connect</button>
+      <small id="bootBackendResult" class="hint" role="status"></small>
+    </form>
   </div>
 
   <div class="app" id="app" hidden>
@@ -208,6 +215,19 @@
             <div>
               <h3>Connection</h3>
               <dl class="facts" id="sysFacts"></dl>
+            </div>
+            <div>
+              <h3>Backend server</h3>
+              <form id="backendForm" class="stack">
+                <p class="hint" id="backendHint">Leave the address empty to use this page's own origin.</p>
+                <label class="field"><span>Server URL</span><input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server:8000"></label>
+                <div class="row">
+                  <button class="btn primary small" type="submit">Connect</button>
+                  <button class="btn small" id="backendTest" type="button">Test</button>
+                  <button class="btn small" id="backendClear" type="button">Clear</button>
+                </div>
+                <p class="hint" id="backendResult" role="status"></p>
+              </form>
             </div>
             <div>
               <h3>Security</h3>

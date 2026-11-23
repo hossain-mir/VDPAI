@@ -158,6 +158,8 @@ app = CORSMiddleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-Jarvis-CSRF", "Authorization", "X-Jarvis-Token"],
     expose_headers=["X-RateLimit-Remaining"],
-    allow_credentials=False,
+    # Credentialed requests are needed when the APK's bundled HUD (served
+    # from http://localhost) calls a remotely hosted backend over HTTPS.
+    allow_credentials=True,
     max_age=600,
 )

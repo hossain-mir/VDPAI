@@ -1,13 +1,12 @@
 /* Capacitor configuration for the JARVIS AI Android wrapper.
  *
- * The Python backend is NOT bundled into the APK.  Set JARVIS_BACKEND_URL to
- * the deployed HTTPS URL of the backend before building.  When it is set, the
- * WebView loads the app from that origin, so API calls, cookies and CSRF stay
- * same-origin and no secret is ever embedded in the APK.
+ * The Python backend is NOT bundled into the APK.  Normally this variable is
+ * left empty: the HUD in www/ is packaged locally and the owner enters the
+ * backend URL in the app on first launch.
  *
- * When the variable is empty the build falls back to the bundled copy in
- * www/ (same-origin only — intended for local development, not for a device
- * that is not running the backend).
+ * For a local build you may optionally set JARVIS_BACKEND_URL to a deployed
+ * HTTPS URL.  Then the WebView loads the app from that origin, so API calls,
+ * cookies and CSRF stay same-origin.  No secret is ever embedded in the APK.
  */
 const backend = (process.env.JARVIS_BACKEND_URL || "").trim().replace(/\/+$/, "");
 

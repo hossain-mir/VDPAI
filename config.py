@@ -227,9 +227,11 @@ class Settings:
         # Networks allowed to reach the API without a token. Defaults cover
         # loopback and RFC1918 private LANs; extra CIDRs can be added via env.
         self.trusted_networks = self._build_trusted_networks()
+        # The bundled APK's WebView runs on http://localhost and talks to a
+        # different origin; keep credentialed CORS working for it by default.
         self.allowed_origins = [
             origin.strip().rstrip("/")
-            for origin in _env("JARVIS_ALLOWED_ORIGINS").split(",")
+            for origin in _env("JARVIS_ALLOWED_ORIGINS", "http://localhost,capacitor://localhost").split(",")
             if origin.strip()
         ]
         self.allow_private_urls = _bool("JARVIS_ALLOW_PRIVATE_URLS", False)

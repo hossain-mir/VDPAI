@@ -8,10 +8,8 @@ on:
 permissions:
   contents: read
 
-# Set this as a repository variable (Settings → Secrets and variables → Actions → Variables).
-# It must be the deployed HTTPS URL of the Python backend, e.g. https://jarvis.example.com
-env:
-  JARVIS_BACKEND_URL: ${{ vars.JARVIS_BACKEND_URL }}
+# No backend URL variable is required: the APK bundles the HUD and the owner
+# enters the server address in the app after installation.
 
 jobs:
   tests:
@@ -42,7 +40,7 @@ jobs:
       - name: Install Node dependencies (jsdom for the HUD tests)
         run: npm ci
 
-      - name: Frontend HUD smoke tests (29 + 19 checks)
+      - name: Frontend HUD smoke tests (34 + 19 checks)
         run: npm run test:js
 
   build-apk:
@@ -51,15 +49,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Require a deployed HTTPS backend
-        shell: bash
-        run: |
-          if [ -z "${JARVIS_BACKEND_URL}" ]; then
-            echo "::error::JARVIS_BACKEND_URL repository variable is not set. Set it to your deployed HTTPS backend URL (for example https://jarvis.example.com)."
-            exit 1
-          fi
-          echo "APK will talk to ${JARVIS_BACKEND_URL}"
 
       - uses: actions/setup-node@v4
         with:

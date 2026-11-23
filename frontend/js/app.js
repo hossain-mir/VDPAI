@@ -4,6 +4,7 @@
 import "./native.js";
 
 import { startSession, api, chat, voiceTurn, EventStream, session } from "./api.js";
+import { getBackendUrl, setBackendUrl, validateBackendUrl } from "./settings.js";
 import { uiState } from "./state.js";
 import { CoreRenderer } from "./core.js";
 import { Waveform } from "./wave.js";
@@ -54,15 +55,82 @@ function language() {
 }
 
 /* ------------------------------------------------------------------ bootstrap */
+function nativeBuild() {
+  return typeof window !== "undefined" && window.JARVIS_NATIVE_BUILD === true;
+}
+
+let setupBound = false;
+function showBackendSetup(message) {
+  const bootEl = $("#boot");
+  const form = $("#bootBackendForm");
+  if (!bootEl || !form) return false;
+  bootEl.classList.add("is-setup");
+  form.hidden = false;
+  const bootHint = $("#bootHint");
+  if (bootHint) bootHint.hidden = true;
+  const input = $("#bootBackendUrl");
+  if (input && !input.value) input.value = getBackendUrl();
+  const result = $("#bootBackendResult");
+  if (result) result.textContent = message || "Enter the address of your JARVIS server.";
+  if (setupBound) return true;
+  setupBound = true;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const checked = validateBackendUrl(input?.value || "");
+    if (!checked.ok) {
+      if (result) result.textContent = checked.error;
+      return;
+    }
+    if (nativeBuild() && !checked.url) {
+      if (result) result.textContent = "The APK needs an HTTPS server address.";
+      return;
+    }
+    const button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    if (result) result.textContent = "Connecting…";
+    setBackendUrl(checked.url);
+    try {
+      await startSession();
+      await boot();
+    } catch (error) {
+      if (result) result.textContent = `${error.message} — check the address and try again.`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+  return true;
+}
+
 async function boot() {
   try {
+    // The APK has no backend bundled; ask once, then remember the answer.
+    if (nativeBuild() && !getBackendUrl()) {
+      showBackendSetup();
+      return;
+    }
     await startSession();
     await enter();
   } catch (error) {
     const hint = $("#bootHint");
     if (hint) hint.textContent = `${error.message} — retrying…`;
+    if (nativeBuild() && showBackendSetup(`${error.message} — check the server address.`)) return;
     setTimeout(boot, 4000);
   }
+}
+
+/** Rebind the whole app after the owner changes the server in System. */
+async function reconnectBackend() {
+  await startSession();
+  const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
+  app.config = configResponse.config;
+  app.status = statusResponse;
+  applyStatus(statusResponse);
+  updateChips(statusResponse);
+  applyFacts(statusResponse);
+  await loadPanels();
+  app.stream?.ensureConnected();
+  refreshStatus({ silent: true });
+  transcript?.add("system", `BACKEND RECONNECTED · ${getBackendUrl() || "same origin"}`);
 }
 
 function hideBoot() {
@@ -98,6 +166,7 @@ async function enter() {
     voice,
     requestApproval,
     refreshStatus: (options) => refreshStatus(options),
+    reconnectBackend: () => reconnectBackend(),
     getLanguage: language,
     setState: (state, detail) => uiState.set(state, detail),
   });

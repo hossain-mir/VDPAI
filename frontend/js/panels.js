@@ -1,6 +1,7 @@
 /* JARVIS AI — sheet panels: memory, tools, vision, system/provider setup. */
 
-import { api } from "./api.js";
+import { api, startSession } from "./api.js";
+import { getBackendUrl, onBackendUrlChange, setBackendUrl, validateBackendUrl } from "./settings.js";
 import * as ui from "./ui.js";
 
 const $ = ui.$;
@@ -9,6 +10,7 @@ let ctx = {
   voice: null,
   requestApproval: () => {},
   refreshStatus: async () => {},
+  reconnectBackend: async () => {},
   getLanguage: () => "en-US",
   setState: () => {},
 };
@@ -28,6 +30,8 @@ export function initPanels(context) {
   bindTools();
   bindVision();
   bindSystem();
+  onBackendUrlChange(syncBackendForm);
+  syncBackendForm();
 }
 
 export async function loadPanels() {
@@ -359,7 +363,91 @@ async function analyzeImage() {
 }
 
 /* ------------------------------------------------------------------- system */
+/* ------------------------------------------------------- backend connection */
+function syncBackendForm() {
+  const input = $("#backendUrl");
+  if (input && input.value !== getBackendUrl()) input.value = getBackendUrl();
+  const hint = $("#backendHint");
+  if (hint) {
+    hint.textContent = getBackendUrl()
+      ? `Connected to ${getBackendUrl()}. The address is stored on this device only.`
+      : "Leave the address empty to use this page's own origin.";
+  }
+}
+
+function backendResult(message, tone = "") {
+  const el = $("#backendResult");
+  if (!el) return;
+  el.textContent = message || "";
+  el.dataset.tone = tone;
+}
+
+async function saveBackend(event) {
+  event?.preventDefault();
+  const input = $("#backendUrl");
+  const checked = validateBackendUrl(input?.value || "");
+  if (!checked.ok) {
+    backendResult(checked.error, "warn");
+    ui.toast(checked.error, "warn");
+    return;
+  }
+  const changed = checked.url !== getBackendUrl();
+  setBackendUrl(checked.url);
+  syncBackendForm();
+  try {
+    await ctx.reconnectBackend();
+    const okText = changed ? "Server saved and connected." : "Connection is active.";
+    backendResult(checked.warning ? `${okText} ${checked.warning}` : okText, checked.warning ? "warn" : "ok");
+    if (checked.warning) ui.toast(checked.warning, "warn", 7000);
+    else ui.toast("JARVIS server connected.", "ok");
+  } catch (error) {
+    backendResult(error.message, "warn");
+    ui.toast(error.message, "error", 7000);
+  }
+}
+
+async function testBackend() {
+  const input = $("#backendUrl");
+  const checked = validateBackendUrl(input?.value || "");
+  if (!checked.ok) {
+    backendResult(checked.error, "warn");
+    return;
+  }
+  const previous = getBackendUrl();
+  const button = $("#backendTest");
+  if (button) button.disabled = true;
+  backendResult("Testing connection…");
+  try {
+    setBackendUrl(checked.url);
+    await startSession();
+    const status = await api.get("/api/status");
+    const label = status?.provider?.label || "demo";
+    backendResult(`Connected: ${label} · Python ${status?.runtime?.python || "?"}`, "ok");
+    ui.toast("Server replied successfully.", "ok");
+  } catch (error) {
+    backendResult(`Cannot connect: ${error.message}`, "warn");
+    ui.toast(error.message, "error", 7000);
+  } finally {
+    if (getBackendUrl() !== previous) {
+      setBackendUrl(previous);
+      if (previous) await startSession().catch(() => {});
+      syncBackendForm();
+    }
+    if (button) button.disabled = false;
+  }
+}
+
+function clearBackend() {
+  setBackendUrl("");
+  syncBackendForm();
+  backendResult("Saved server cleared.");
+  ctx.reconnectBackend().catch((error) => ui.toast(error.message, "warn"));
+}
+
 function bindSystem() {
+  $("#backendForm")?.addEventListener("submit", saveBackend);
+  $("#backendTest")?.addEventListener("click", testBackend);
+  $("#backendClear")?.addEventListener("click", clearBackend);
   $("#providerSelect")?.addEventListener("change", () => syncModelInput(true));
   $("#providerTest")?.addEventListener("click", testProvider);
   $("#providerUse")?.addEventListener("click", useProvider);
@@ -371,6 +459,7 @@ function bindSystem() {
 
 async function loadSystem() {
   const [status, providers] = await Promise.all([api.get("/api/status"), api.get("/api/providers")]);
+  syncBackendForm();
   applyStatus(status);
   applyProviders(providers);
   return { status, providers };
@@ -385,6 +474,7 @@ export function applyStatus(status) {
   const voice = status.voice || {};
 
   ui.fillFacts($("#sysFacts"), [
+    ["Backend", getBackendUrl() || "this page's own origin"],
     ["Platform", runtime.platform],
     ["Python", runtime.python],
     ["Machine", runtime.machine],
