@@ -115,7 +115,7 @@ jobs:
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           AAPT2="$(find "$SDK/build-tools" -type f -name aapt2 -perm -u+x | sort -V | tail -1)"
-          "$AAPT2" dump xmltree "$APK" AndroidManifest.xml > manifest.txt
+          "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
           grep -q "JarvisTileService" manifest.txt
           grep -q "android.service.quicksettings.action.QS_TILE" manifest.txt
           grep -q "android.permission.BIND_QUICK_SETTINGS_TILE" manifest.txt
