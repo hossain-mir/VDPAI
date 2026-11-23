@@ -122,7 +122,10 @@ jobs:
           python3 - <<'PY'
           import zipfile
           with zipfile.ZipFile("android/app/build/outputs/apk/debug/app-debug.apk") as apk:
-              assert b"JarvisTileService" in apk.read("classes.dex"), "tile class missing from dex"
+              dex = [n for n in apk.namelist() if n.endswith(".dex")]
+              assert dex, "APK has no dex files"
+              blobs = b"".join(apk.read(n) for n in dex)
+              assert b"JarvisTileService" in blobs, "tile class missing from dex"
           PY
           echo "Quick Settings tile service, permission and class are present in the APK."
 
