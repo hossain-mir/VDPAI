@@ -7,8 +7,6 @@
  * access tokens are never stored here.
  */
 
-import { Preferences } from "@capacitor/preferences";
-
 const STORAGE_KEY = "jarvis.backendUrl";
 const listeners = new Set();
 let nativeStore = false;
@@ -31,14 +29,35 @@ function isNative() {
   return typeof window !== "undefined" && window.JARVIS_NATIVE_BUILD === true;
 }
 
+/* Resolve Capacitor Preferences through the injected bridge. The frontend is
+ * deliberately unbundled, so a bare `@capacitor/preferences` import would not
+ * resolve in the WebView. Capacitor exposes the same plugin on `Plugins`; the
+ * low-level promise bridge is the fallback used by native.js. */
+function nativePreferences() {
+  if (!isNative() || typeof window === "undefined") return null;
+  const cap = window.Capacitor;
+  if (!cap) return null;
+  const plugin = cap.Plugins?.Preferences;
+  if (plugin && typeof plugin.get === "function" && typeof plugin.set === "function") return plugin;
+  if (typeof cap.nativePromise === "function") {
+    return {
+      get: (options) => cap.nativePromise("Preferences", "get", options),
+      set: (options) => cap.nativePromise("Preferences", "set", options),
+      remove: (options) => cap.nativePromise("Preferences", "remove", options),
+    };
+  }
+  return null;
+}
+
 /** Load the persisted value before the app boots. Safe to call more than once. */
 export async function initSettings() {
   if (ready) return current;
   ready = true;
   let stored = "";
   try {
-    if (isNative()) {
-      const result = await Preferences.get({ key: STORAGE_KEY });
+    const prefs = nativePreferences();
+    if (prefs) {
+      const result = await prefs.get({ key: STORAGE_KEY });
       stored = result?.value || "";
       nativeStore = true;
     } else {
@@ -66,10 +85,11 @@ export function setBackendUrl(value) {
   if (next === current) return current;
   current = next;
   try {
-    if (isNative()) {
+    const prefs = nativePreferences();
+    if (prefs) {
       nativeStore = true;
-      if (next) Preferences.set({ key: STORAGE_KEY, value: next }).catch(() => {});
-      else Preferences.remove({ key: STORAGE_KEY }).catch(() => {});
+      if (next) Promise.resolve(prefs.set({ key: STORAGE_KEY, value: next })).catch(() => {});
+      else Promise.resolve(prefs.remove({ key: STORAGE_KEY })).catch(() => {});
     } else {
       if (next) localStorage.setItem(STORAGE_KEY, next);
       else localStorage.removeItem(STORAGE_KEY);
@@ -92,7 +112,8 @@ export function setBackendUrl(value) {
 export async function clearBackendUrl() {
   setBackendUrl("");
   try {
-    if (isNative()) await Preferences.remove({ key: STORAGE_KEY });
+    const prefs = nativePreferences();
+    if (prefs) await prefs.remove({ key: STORAGE_KEY });
     else localStorage.removeItem(STORAGE_KEY);
   } catch {
     /* ignore */

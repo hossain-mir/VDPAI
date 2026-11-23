@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-23
 **Project:** `/data/user/0/com.termux/files/home/projects/JARVIS-AI`
-**Result:** ✅ **209 / 209 Python checks passed** · ✅ **44 / 44 frontend jsdom checks passed** · ✅ **19 / 19 no-lock jsdom checks passed** · ✅ **8 / 8 offline-startup checks passed** · ✅ compile + syntax checks clean
+**Result:** ✅ **210 / 210 Python checks passed** · ✅ **44 / 44 frontend jsdom checks passed** · ✅ **19 / 19 no-lock jsdom checks passed** · ✅ **12 / 12 native-offline checks passed** · ✅ compile + syntax checks clean
 **Delivered server:** running on `0.0.0.0:8000`
 **APK status:** ✅ **built in GitHub Actions and verified locally from the downloaded artifact** — run [`45140977252`](https://github.com/hossain-mir/JARVIS-AI/actions/runs/45140977252), artifact `jarvis-ai-debug-apk`, file `app-debug.apk` (4.2 MB). It is a valid Android APK containing `AndroidManifest.xml`, seven dex files, `resources.arsc`, the bundled **offline-capable** HUD, `native-config.js` with an empty API base, native Preferences storage, the Disconnect control, the low-glow theme control, and the Quick Settings tile. CI and local inspection confirm no startup form, a visible backend indicator, the tile service/permission/intent-filter, and the Kotlin tile class. No APK was claimed before the artifact existed.
 
@@ -25,7 +25,7 @@ FastAPI was intentionally not used: this image has a broken pydantic v1 and no R
 
 ---
 
-## 1. Backend suite — 209 checks passed
+## 1. Backend suite — 210 checks passed
 
 Command: `python tests/run_tests.py`
 
@@ -53,7 +53,7 @@ Areas verified:
 | Token bootstrap | Missing token is generated (256-bit), persisted to a 0600 `.env`, fingerprinted and reused on subsequent starts |
 | Rate limiting | Quota allowed, overage blocked, retry window reported |
 
-Final output: `RESULT: all 209 checks passed.`
+Final output: `RESULT: all 210 checks passed.`
 
 ---
 
@@ -85,13 +85,13 @@ Result: `RESULT: 19 passed, 0 failed`.
 
 ---
 
-## 2c. Offline startup smoke test — 8 checks passed
+## 2c. Offline startup smoke test — 12 checks passed
 
 Command: `node tests/offline_smoke.mjs`
 
-The real `frontend/index.html` is loaded in jsdom with a fetch stub that always rejects. Verified: the HUD opens immediately, no mandatory backend form exists, the backend indicator reads `OFFLINE`, the core renders `IDLE`, offline guidance is present, settings remain reachable, backend URL/Disconnect controls are usable offline, and there are no uncaught errors. This directly covers the requirement that the interface opens with no backend available.
+The real `frontend/index.html` is loaded in jsdom with a Capacitor bridge stub and a fetch stub that always rejects. Verified: the HUD opens immediately, no mandatory backend form exists, the backend indicator reads `OFFLINE`, the core renders `IDLE`, offline guidance is present, settings remain reachable, backend URL/Disconnect controls are usable offline, the saved URL is read/written/cleared through the native Preferences bridge, no bare package import breaks WebView module loading, and there are no uncaught errors. This directly covers the requirement that the interface opens with no backend available.
 
-Result: `RESULT: 8 passed, 0 failed`.
+Result: `RESULT: 12 passed, 0 failed`.
 
 ---
 
@@ -151,10 +151,11 @@ Server restarted with the trusted-network / no-lock build using `bash scripts/st
 | `npm run build` with `JARVIS_BACKEND_URL=https://jarvis.example.com` | `native-config.js` gets the HTTPS base; `capacitor.config.js` sets `server.url`; verified |
 | `JARVIS_BACKEND_URL=http://example.com` | Rejected with exit code 2 (HTTPS required) |
 | Runtime connection setting | **System → Backend server** only; no startup form; URL saved via Capacitor Preferences (app-private) with browser `localStorage` fallback; validated (HTTPS-only in APK); API/WebSocket rebind on change |
-| Offline startup | `tests/offline_smoke.mjs`: HUD opens, backend shows OFFLINE, no mandatory form, no uncaught errors |
-| Settings dashboard | Backend connect/test/disconnect/clear (Disconnect verified live in jsdom, then Connect resumes), AI providers/keys/models, voice TTS/wake, language, permissions, reduced-motion and low-glow theme controls, Android diagnostics, privacy/data clear and About; all controls wired (209 Python + 44 frontend checks) |
+| WebView module loading | Removed the bare `@capacitor/preferences` import (unresolvable in the unbundled WebView); settings now call the injected Capacitor bridge, with `localStorage` fallback. Python static checks reject bare package imports |
+| Offline startup | `tests/offline_smoke.mjs`: HUD opens, backend shows OFFLINE, no mandatory form, native Preferences read/write/clear works through the bridge, no uncaught errors |
+| Settings dashboard | Backend connect/test/disconnect/clear (Disconnect verified live in jsdom, then Connect resumes), AI providers/keys/models, voice TTS/wake, language, permissions, reduced-motion and low-glow theme controls, Android diagnostics, privacy/data clear and About; all controls wired (210 Python + 44 frontend checks) |
 | Voice commands | Local "stop speaking" / "repeat that" handling works without the backend; wake phrase remains tab-open-only (no false always-on claim) |
-| Cross-origin session support | Backend allows credentialed CORS from `http://localhost` and sends `SameSite=None; Secure` cookies over HTTPS; 209 Python checks pass |
+| Cross-origin session support | Backend allows credentialed CORS from `http://localhost` and sends `SameSite=None; Secure` cookies over HTTPS; 210 Python checks pass |
 | Manifest | `INTERNET`, `RECORD_AUDIO`, `CAMERA`, `MODIFY_AUDIO_SETTINGS`, optional hardware features, HTTPS-only network config, `windowSoftInputMode=adjustResize` |
 | Missing template `values/colors.xml` | Added (the generated Capacitor template referenced `@color/colorPrimary` without defining it — this would have failed AAPT) |
 | Icons / splash | Generated by `scripts/make-android-assets.mjs` at all required density sizes (valid PNG headers checked with `file`) |
@@ -176,5 +177,5 @@ No untested feature is presented as working in the UI or the README.
 * Backend connection is configured only under System → Backend server, saved via app-private native Preferences, and never required to build or launch.
 * Settings dashboard controls are wired: backend, AI providers/keys/models, voice, language, permissions, appearance, Android diagnostics, privacy and About.
 * Quick Settings tile is compiled into the APK and statically verified; physical device interaction remains unverified.
-* All automated checks pass: 209 Python, 44 frontend HUD, 19 no-lock HUD, 8 offline startup.
+* All automated checks pass: 210 Python, 44 frontend HUD, 19 no-lock HUD, 12 offline startup.
 * Final APK artifact: `jarvis-ai-debug-apk` from run `45140977252`; local copy `app-debug.apk` (4.2 MB).

@@ -48,7 +48,7 @@ jobs:
           done
           echo "All JavaScript modules parse."
 
-      - name: Frontend HUD smoke tests (44 + 19 + 8 checks)
+      - name: Frontend HUD smoke tests (44 + 19 + 12 checks)
         run: npm run test:js
 
   build-apk:
@@ -156,6 +156,11 @@ jobs:
               page = apk.read("assets/public/index.html").decode("utf-8")
               assert "bootBackendForm" not in page, "mandatory startup form still present"
               assert 'id="backendStatus"' in page, "HUD backend indicator missing"
+              assert 'id="backendDisconnect"' in page, "backend disconnect control missing"
+              assert 'id="lowGlowToggle"' in page, "low-glow theme control missing"
+              settings = apk.read("assets/public/js/settings.js").decode("utf-8")
+              assert "nativePromise" in settings, "native Preferences bridge missing"
+              assert 'from "@capacitor/preferences"' not in settings, "bare package import would break WebView loading"
               plugins = apk.read("assets/capacitor.plugins.json").decode("utf-8")
               assert "PreferencesPlugin" in plugins, "secure native storage plugin missing"
           PY

@@ -70,7 +70,7 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 ### How it works
 
 * `npm run build` copies the existing `frontend/` into `www/`, generates `www/js/native-config.js`, and injects that script into `www/index.html`. The browser version at `http://127.0.0.1:8000` is untouched: with no configured base it keeps its exact same-origin behaviour.
-* The APK launches directly into the HUD with no startup form and works offline. A small backend indicator in the core shows ONLINE / OFFLINE / LOCAL. Configure, test, connect, disconnect, update or clear the address under **System → Backend server**. Disconnecting keeps the saved address but stops automatic retries until Connect is pressed. The URL is saved through Capacitor Preferences (app-private Android storage; browser falls back to `localStorage`). `frontend/js/settings.js` validates it; `frontend/js/api.js` resolves it on every request and reconnects the WebSocket when it changes. An address is not a credential and is never committed to the repository.
+* The APK launches directly into the HUD with no startup form and works offline. A small backend indicator in the core shows ONLINE / OFFLINE / LOCAL. Configure, test, connect, disconnect, update or clear the address under **System → Backend server**. Disconnecting keeps the saved address but stops automatic retries until Connect is pressed. The URL is saved through Capacitor Preferences via the injected native bridge (app-private Android storage; browser falls back to `localStorage`). The unbundled HUD deliberately has no bare package imports, so it loads in the WebView. `frontend/js/settings.js` validates it; `frontend/js/api.js` resolves it on every request and reconnects the WebSocket when it changes. An address is not a credential and is never committed to the repository.
 * The APK accepts only `https://` addresses: Android requires a secure context for microphone access and the manifest blocks cleartext traffic. The browser HUD still accepts plain HTTP on trusted networks as before. No fake or placeholder production URL is shipped.
 * `capacitor.config.js` only uses `server.url` when `JARVIS_BACKEND_URL` is supplied for a local build; GitHub Actions leaves it empty so the bundled HUD is used.
 * `frontend/js/native.js` registers an Android `backButton` listener through Capacitor's bridge. It first closes the approval dialog or settings sheet; only then does it minimize (or exit) the app. It is a no-op in the browser and is imported by `app.js`.
@@ -180,7 +180,7 @@ JARVIS-AI/
 ├── www/                        generated copy of frontend/ (git-ignored)
 ├── android/                    generated Capacitor Android project (see above)
 ├── .github/workflows/build-apk.yml    tests + debug APK + artifact upload
-├── tests/                      209-check API suite + jsdom HUD, no-lock and offline smoke tests
+├── tests/                      210-check API suite + jsdom HUD, no-lock and offline smoke tests
 └── database/, logs/, workspace/  runtime data (git-ignored)
 ```
 
@@ -301,12 +301,12 @@ Only `/api/health`, `/api/session` and `/api/unlock` are public. All other API c
 ## Tests
 
 ```bash
-bash scripts/test.sh                         # 209 Python checks (real subprocess server)
+bash scripts/test.sh                         # 210 Python checks (real subprocess server)
 
 cd tests && npm install                      # optional jsdom-based HUD tests
 node frontend_smoke.mjs                      # 44 HUD checks, no token
 node no_lock_smoke.mjs                       # 19 checks: no lock screen, HUD boots directly
-node offline_smoke.mjs                       # 8 checks: HUD opens with no backend
+node offline_smoke.mjs                       # 12 checks: native offline HUD + secure storage
 cd ..
 
 npm ci && npm run test:js                    # all three JS test suites from the repo root

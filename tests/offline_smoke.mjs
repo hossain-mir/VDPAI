@@ -64,6 +64,21 @@ async function main() {
   process.on("unhandledRejection", (reason) => errors.push(String(reason)));
   process.on("uncaughtException", (error) => errors.push(error.stack || String(error)));
 
+  // Simulate the Capacitor bridge injected into the Android WebView.
+  const nativeCalls = [];
+  window.JARVIS_NATIVE_BUILD = true;
+  window.Capacitor = {
+    isNativePlatform: () => true,
+    nativeCallback: () => {},
+    nativePromise: async (plugin, method) => {
+      nativeCalls.push(`${plugin}.${method}`);
+      if (plugin === "Preferences" && method === "get") {
+        return { value: "https://native.example:8443" };
+      }
+      return {};
+    },
+  };
+
   for (const key of ["window", "document", "navigator", "location", "localStorage", "HTMLElement", "Event", "CustomEvent", "Node"]) {
     try {
       globalThis[key] = window[key] ?? globalThis[key];
@@ -92,6 +107,22 @@ async function main() {
     "backend settings usable offline",
     !!doc.getElementById("backendForm") && !!doc.getElementById("backendDisconnect") && !!doc.getElementById("backendUrl"),
   );
+
+  const settings = await import(pathToFileURL(path.join(ROOT, "frontend/js/settings.js")).href);
+  check("native backend URL is loaded", settings.getBackendUrl() === "https://native.example:8443");
+  check(
+    "native Preferences is used through the bridge",
+    settings.usesNativeStorage() && nativeCalls.includes("Preferences.get"),
+  );
+  settings.setBackendUrl("https://native.example:9443");
+  await wait(30);
+  check(
+    "native Preferences saves the URL",
+    nativeCalls.includes("Preferences.set") && settings.getBackendUrl() === "https://native.example:9443",
+  );
+  await settings.clearBackendUrl();
+  check("native Preferences clears the URL", nativeCalls.includes("Preferences.remove"));
+
   check("no uncaught errors", errors.length === 0, errors.join(" | ").slice(0, 500));
 }
 

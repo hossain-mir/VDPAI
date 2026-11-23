@@ -17,6 +17,7 @@ import base64
 import glob
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -832,7 +833,18 @@ def main() -> int:
         with open(settings_js, encoding="utf-8") as handle:
             settings = handle.read()
         check("no placeholder production URL in settings", "your-server" not in settings and "your-server" not in page)
-        check("native preferences store the backend URL", "Preferences.set" in settings and "Preferences.get" in settings)
+        check(
+            "native preferences use the injected bridge",
+            "nativePromise" in settings and 'from "@capacitor/preferences"' not in settings,
+        )
+
+        frontend_modules = glob.glob(os.path.join(ROOT, "frontend", "js", "*.js"))
+        bare_imports = []
+        for module in frontend_modules:
+            with open(module, encoding="utf-8") as handle:
+                if re.search(r'\bfrom\s+["\']@', handle.read()):
+                    bare_imports.append(os.path.basename(module))
+        check("frontend avoids bare package imports", not bare_imports, ", ".join(bare_imports))
 
     timed("Android + HUD static structure", android_and_hud_static_test)
 
