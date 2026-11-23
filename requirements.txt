@@ -1,0 +1,12 @@
+# Exact versions verified by tests/run_tests.py (188 checks) on this project.
+starlette==0.27.0
+uvicorn==0.54.0
+httpx==0.27.2
+websockets==17.4
+
+# Optional, NOT required for the basic app:
+# playwright  -> screenshots / interactive browser automation (needs Chromium build)
+#
+# FastAPI is intentionally not used: the Termux/Python image ships a broken
+# pydantic v1 build and has no Rust toolchain for pydantic v2. Starlette is the
+# ASGI framework FastAPI is built on, so the REST/WebSocket API is equivalent.

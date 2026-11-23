@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#02070a">
+  <meta name="description" content="JARVIS AI — a private, voice-enabled AI assistant hosted from Android.">
+  <title>JARVIS AI</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body data-state="idle">
+  <a class="skip-link" href="#chatInput">Skip to command input</a>
+
+  <div id="boot" class="boot" role="status" aria-live="polite">
+    <div class="boot-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p>INITIALISING JARVIS CORE</p>
+    <div class="boot-bar" aria-hidden="true"><i></i></div>
+    <small id="bootHint">connecting to local server…</small>
+  </div>
+
+  <div class="app" id="app" hidden>
+    <header class="topbar glass">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <path d="M20 3 35 11.5v17L20 37 5 28.5v-17Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="20" cy="20" r="6.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="20" cy="20" r="2.1" fill="currentColor"/>
+        </svg>
+        <div class="brand-text">
+          <strong>J.A.R.V.I.S</strong>
+          <small>JUST A RATHER VERY INTELLIGENT SYSTEM</small>
+        </div>
+      </div>
+
+      <div class="chips" id="chips" aria-label="System status">
+        <span class="chip" id="chipCore" data-tone="ok"><i></i>CORE</span>
+        <span class="chip" id="chipAi" data-tone="warn"><i></i>DEMO</span>
+        <span class="chip" id="chipNet" data-tone="ok"><i></i>NET</span>
+        <span class="chip" id="chipWs" data-tone="warn"><i></i>LINK</span>
+      </div>
+
+      <div class="clock">
+        <time id="clock">--:--</time>
+        <small id="dateLabel">—</small>
+      </div>
+    </header>
+
+    <nav class="rail glass" aria-label="Sections">
+      <button class="rail-btn is-active" data-panel="chat" aria-label="Conversation" title="Conversation">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="rail-btn" data-panel="memory" aria-label="Memory" title="Memory">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7zM4 8h3M4 12h3M4 16h3M17 8h3M17 12h3M17 16h3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="rail-btn" data-panel="tools" aria-label="Tools" title="Tools">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6-3 3-6-6zM11 9l-7 7v4h4l7-7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="rail-btn" data-panel="vision" aria-label="Vision" title="Vision">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="rail-btn" data-panel="system" aria-label="System and settings" title="System">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+    </nav>
+
+    <main class="stage">
+      <section class="core-wrap" aria-label="JARVIS core">
+        <canvas id="coreCanvas"></canvas>
+        <div class="state-readout">
+          <span id="stateText" class="state-text">IDLE</span>
+          <small id="stateDetail">awaiting command</small>
+        </div>
+        <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </section>
+
+      <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
+
+      <section class="transcript" id="transcript" aria-live="polite" aria-label="Conversation"></section>
+
+      <div class="quick" id="quickActions" aria-label="Quick commands">
+        <button type="button" data-quick="What can you do?">Capabilities</button>
+        <button type="button" data-quick="What time is it?">Time</button>
+        <button type="button" data-quick="Search the web for AI news">Search</button>
+        <button type="button" data-quick="Report system status">Status</button>
+      </div>
+    </main>
+
+    <aside class="infopanel glass" aria-label="System information">
+      <h2>SYSTEM</h2>
+      <dl class="facts">
+        <div><dt>Provider</dt><dd id="factProvider">demo</dd></div>
+        <div><dt>Model</dt><dd id="factModel">demo</dd></div>
+        <div><dt>Memory</dt><dd id="factMemory">0 msgs</dd></div>
+        <div><dt>Link</dt><dd id="factLink">connecting…</dd></div>
+        <div><dt>Session</dt><dd id="factSession">—</dd></div>
+        <div><dt>Uptime</dt><dd id="factUptime">—</dd></div>
+      </dl>
+      <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+      <p class="hint" id="securityHint">Local network only. Do not tunnel publicly without access protection.</p>
+      <button class="btn small wide" id="openSystem" type="button">Configure core</button>
+    </aside>
+
+    <footer class="dock glass">
+      <button id="micBtn" class="mic" type="button" aria-label="Start voice input" aria-pressed="false">
+        <span class="mic-halo" aria-hidden="true"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+
+      <form id="chatForm" class="composer" autocomplete="off">
+        <label class="sr-only" for="chatInput">Command</label>
+        <input id="chatInput" type="text" placeholder="Speak or type a command…" maxlength="8000" enterkeyhint="send">
+        <button id="attachBtn" class="icon-btn" type="button" aria-label="Attach an image" title="Attach image">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-2h4l2 2h4v12H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <button class="send" type="submit" aria-label="Send command">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+      </form>
+
+      <div class="voice-tools">
+        <button id="voiceToggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Spoken replies">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <label class="sr-only" for="langSelect">Language</label>
+        <select id="langSelect">
+          <option value="en-US">EN</option>
+          <option value="bn-BD">বাং</option>
+          <option value="hi-IN">हिं</option>
+        </select>
+      </div>
+    </footer>
+  </div>
+
+  <div id="attachment" class="attachment" hidden>
+    <img id="attachmentPreview" alt="Attachment preview">
+    <button id="attachmentClear" type="button" aria-label="Remove attachment">×</button>
+    <span id="attachmentName"></span>
+  </div>
+
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-backdrop" data-close="1"></div>
+    <section class="sheet-card glass" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <header class="sheet-head">
+        <h2 id="sheetTitle">Conversation</h2>
+        <button class="icon-btn" type="button" data-close="1" aria-label="Close">×</button>
+      </header>
+      <div class="sheet-body" id="sheetBody">
+        <section data-view="chat">
+          <div class="row between">
+            <p class="hint">Stored locally in SQLite. Only the messages you send reach your configured AI provider.</p>
+            <button class="btn small danger-ghost" id="clearHistory" type="button">Clear history</button>
+          </div>
+          <div id="fullTranscript" class="full-transcript"></div>
+        </section>
+
+        <section data-view="memory" hidden>
+          <form id="noteForm" class="stack">
+            <label class="field"><span>Title</span><input id="noteTitle" maxlength="120" required></label>
+            <label class="field"><span>Content</span><textarea id="noteContent" rows="3" maxlength="4000"></textarea></label>
+            <label class="field"><span>Tags</span><input id="noteTags" maxlength="120" placeholder="personal, project"></label>
+            <div class="row">
+              <button class="btn primary" type="submit">Save note</button>
+              <button class="btn" id="memoryBackup" type="button">Backup DB</button>
+              <a class="btn" id="memoryExport" href="/api/memory/export" download>Export</a>
+            </div>
+            <p class="hint" id="memoryStats"></p>
+          </form>
+
+          <form class="row" id="memorySearchForm">
+            <label class="sr-only" for="memorySearch">Search memory</label>
+            <input id="memorySearch" placeholder="Search notes and messages" maxlength="200">
+            <button class="btn" type="submit">Search</button>
+          </form>
+          <div id="noteList" class="list"></div>
+          <div id="memoryMessages" class="list mono small"></div>
+        </section>
+
+        <section data-view="tools" hidden>
+          <p class="hint">Every tool call is validated, timed out if slow, logged, and audited. Destructive tools require explicit approval.</p>
+          <div class="row">
+            <label class="sr-only" for="toolSelect">Tool</label>
+            <select id="toolSelect"></select>
+            <button class="btn small" id="toolRefresh" type="button">Refresh</button>
+          </div>
+          <label class="field"><span>Arguments (JSON)</span><textarea id="toolArgs" class="mono" rows="4" spellcheck="false"></textarea></label>
+          <button class="btn primary" id="toolRun" type="button">Run tool</button>
+          <pre id="toolResult" class="result" hidden></pre>
+          <h3>Pending approvals</h3>
+          <div id="pendingList" class="list"></div>
+        </section>
+
+        <section data-view="vision" hidden>
+          <p class="hint" id="visionNote">Checking vision support…</p>
+          <div class="row">
+            <button class="btn" id="visionPick" type="button">Choose image</button>
+            <button class="btn" id="visionCamera" type="button">Use camera</button>
+          </div>
+          <img id="visionPreview" class="preview" alt="Selected image preview" hidden>
+          <label class="field"><span>Question (optional)</span><textarea id="visionPrompt" rows="2" maxlength="1000" placeholder="Describe this image and note anything actionable."></textarea></label>
+          <button class="btn primary" id="visionAnalyze" type="button" disabled>Analyse image</button>
+          <pre id="visionResult" class="result" hidden></pre>
+        </section>
+
+        <section data-view="system" hidden>
+          <div class="grid2">
+            <div>
+              <h3>Connection</h3>
+              <dl class="facts" id="sysFacts"></dl>
+            </div>
+            <div>
+              <h3>Security</h3>
+              <dl class="facts" id="secFacts"></dl>
+            </div>
+          </div>
+
+          <h3>AI provider</h3>
+          <div class="row">
+            <label class="sr-only" for="providerSelect">Provider</label>
+            <select id="providerSelect"></select>
+            <button class="btn small" id="providerTest" type="button">Test</button>
+          </div>
+          <label class="field"><span>Model</span><input id="modelInput" maxlength="120" list="modelSuggestions"></label>
+          <datalist id="modelSuggestions"></datalist>
+          <div class="row">
+            <button class="btn primary small" id="providerUse" type="button">Use provider</button>
+            <span id="providerTestResult" class="hint"></span>
+          </div>
+
+          <details>
+            <summary>Add or replace an API key</summary>
+            <form id="keyForm" class="stack">
+              <p class="hint">Saved to the server's <code>.env</code> (owner-only permissions). Keys are never returned to this page.</p>
+              <label class="field"><span>Provider</span><select id="keyProvider"></select></label>
+              <label class="field"><span>API key</span><input id="keyValue" type="password" autocomplete="off" placeholder="Paste key"></label>
+              <label class="field"><span>Base URL (Ollama/custom)</span><input id="keyBaseUrl" maxlength="400" placeholder="http://127.0.0.1:11434/v1"></label>
+              <label class="field"><span>Default model</span><input id="keyModel" maxlength="120" placeholder="llama3.2"></label>
+              <button class="btn primary" type="submit">Save configuration</button>
+              <p class="hint" id="keyResult"></p>
+            </form>
+          </details>
+
+          <h3>Voice</h3>
+          <label class="check"><input type="checkbox" id="wakeToggle"> Wake phrase "Hey Jarvis" while this tab is open</label>
+          <p class="hint" id="voiceNote"></p>
+
+          <h3>Session &amp; URLs</h3>
+          <ul id="urlList" class="list mono small"></ul>
+          <div class="row">
+            <button class="btn small" id="auditToggle" type="button">Show audit log</button>
+            <button class="btn small" id="statusRefresh" type="button">Refresh status</button>
+          </div>
+          <pre id="auditLog" class="result" hidden></pre>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div id="approvalModal" class="modal" hidden>
+    <div class="modal-card glass" role="alertdialog" aria-modal="true" aria-labelledby="approvalTitle" aria-describedby="approvalBody">
+      <span class="kicker">PERMISSION REQUIRED</span>
+      <h2 id="approvalTitle">Approve action</h2>
+      <p id="approvalBody">JARVIS wants to run a tool that can change data.</p>
+      <pre id="approvalArgs" class="result mono"></pre>
+      <div class="row end">
+        <button class="btn" id="rejectBtn" type="button">Cancel</button>
+        <button class="btn danger" id="approveBtn" type="button">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <input id="imageInput" type="file" accept="image/*" hidden>
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script type="module" src="/js/app.js"></script>
+  <noscript><p class="noscript">JARVIS needs JavaScript for voice and live updates.</p></noscript>
+</body>
+</html>

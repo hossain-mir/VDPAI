@@ -1,0 +1,80 @@
+# ---------------------------------------------------------------- secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+google-services.json
+credentials/
+secrets/
+certificates/
+*access_token*
+*api_key*
+
+# ------------------------------------------------------------------ Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --------------------------------------------------------- Node / Capacitor
+node_modules/
+npm-debug.log*
+yarn-error.log*
+www/
+capacitor.config.json
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/.idea/
+*.iml
+
+# ------------------------------------------------------------ runtime data
+database/*.db
+database/*.db-wal
+database/*.db-shm
+database/backups/
+*.sqlite
+*.sqlite3
+logs/
+*.log
+workspace/*
+!workspace/.gitkeep
+tmp/
+temp/
+*.tmp
+*.swp
+*.bak
+
+# --------------------------------------------------------------- build out
+*.apk
+*.aab
+*.ipa
+dist/
+build/
+
+# ------------------------------------------------ optional test dependencies
+tests/node_modules/
+tests/package-lock.json
+
+# ------------------------------------------------------------- OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
