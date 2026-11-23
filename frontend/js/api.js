@@ -68,37 +68,48 @@ async function request(path, { method = "GET", body, signal } = {}) {
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET" && csrf) headers["X-Jarvis-CSRF"] = csrf;
 
-  let response;
-  try {
-    response = await fetch(apiUrl(path), {
-      method,
-      headers,
-      credentials: apiCredentials(),
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
-    });
-  } catch (error) {
-    if (error.name === "AbortError") throw new ApiError("Request timed out.", "timeout", 0);
-    throw new ApiError("Cannot reach the JARVIS server. Is it still running?", "network", 0);
-  }
+  // Only retry safe idempotent reads; a POST may never be repeated blindly.
+  const attempts = method === "GET" ? 2 : 1;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    let response;
+    try {
+      response = await fetch(apiUrl(path), {
+        method,
+        headers,
+        credentials: apiCredentials(),
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal,
+      });
+    } catch (error) {
+      if (error.name === "AbortError") throw new ApiError("Request timed out.", "timeout", 0);
+      if (attempt === attempts) {
+        throw new ApiError("Cannot reach the JARVIS server. Is it still running?", "network", 0);
+      }
+      continue;
+    }
 
-  const payload = await parse(response);
-  if (!response.ok || (payload && payload.ok === false)) {
-    throw errorFrom(payload, response);
+    const payload = await parse(response);
+    if (response.ok && !(payload && payload.ok === false)) return payload || {};
+    if (attempt === attempts || response.status < 500) throw errorFrom(payload, response);
   }
-  return payload || {};
+  return {};
 }
 
 /** Start a session and keep the module-level CSRF token in sync. */
 export async function startSession() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
   let response;
   try {
     response = await fetch(apiUrl("/api/session"), {
       credentials: apiCredentials(),
       headers: { Accept: "application/json" },
+      signal: controller.signal,
     });
   } catch {
     throw new ApiError("Cannot reach the JARVIS server.", "network", 0);
+  } finally {
+    clearTimeout(timer);
   }
   const payload = await parse(response);
   if (!response.ok || !payload) throw errorFrom(payload, response);

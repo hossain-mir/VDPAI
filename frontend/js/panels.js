@@ -1,7 +1,7 @@
 /* JARVIS AI — sheet panels: memory, tools, vision, system/provider setup. */
 
 import { api, startSession } from "./api.js";
-import { getBackendUrl, onBackendUrlChange, setBackendUrl, validateBackendUrl } from "./settings.js";
+import { getBackendUrl, onBackendUrlChange, setBackendUrl, validateBackendUrl, usesNativeStorage } from "./settings.js";
 import * as ui from "./ui.js";
 
 const $ = ui.$;
@@ -11,6 +11,7 @@ let ctx = {
   requestApproval: () => {},
   refreshStatus: async () => {},
   reconnectBackend: async () => {},
+  clearLocalSettings: async () => {},
   getLanguage: () => "en-US",
   setState: () => {},
 };
@@ -32,6 +33,8 @@ export function initPanels(context) {
   bindSystem();
   onBackendUrlChange(syncBackendForm);
   syncBackendForm();
+  fillNativeInfo();
+  fillAboutInfo();
 }
 
 export async function loadPanels() {
@@ -370,8 +373,8 @@ function syncBackendForm() {
   const hint = $("#backendHint");
   if (hint) {
     hint.textContent = getBackendUrl()
-      ? `Connected to ${getBackendUrl()}. The address is stored on this device only.`
-      : "Leave the address empty to use this page's own origin.";
+      ? `Saved: ${getBackendUrl()} · stored ${usesNativeStorage() ? "in app-private Android storage" : "in this browser"}.`
+      : "No backend configured — the HUD still opens. Same-origin mode is used in a browser.";
   }
 }
 
@@ -440,8 +443,86 @@ async function testBackend() {
 function clearBackend() {
   setBackendUrl("");
   syncBackendForm();
-  backendResult("Saved server cleared.");
-  ctx.reconnectBackend().catch((error) => ui.toast(error.message, "warn"));
+  backendResult("Saved server cleared. The HUD works offline.");
+  ctx.reconnectBackend().catch(() => {});
+}
+
+/* ---------------------------------------------------------- device settings */
+function permissionResult(message) {
+  const el = $("#permissionResult");
+  if (el) el.textContent = message;
+}
+
+async function checkPermission(kind) {
+  const name = kind === "camera" ? "camera" : "microphone";
+  try {
+    const status = navigator.permissions?.query ? await navigator.permissions.query({ name }) : null;
+    permissionResult(`${name}: ${status ? status.state : "permission API unavailable"}.`);
+  } catch {
+    permissionResult(`${name}: permission status unavailable on this browser.`);
+  }
+}
+
+async function requestPermission(kind) {
+  const constraints = kind === "camera" ? { video: true } : { audio: true };
+  const name = kind === "camera" ? "Camera" : "Microphone";
+  try {
+    const stream = await navigator.mediaDevices?.getUserMedia?.(constraints);
+    if (!stream) throw new Error("getUserMedia is not available");
+    for (const track of stream.getTracks()) track.stop();
+    permissionResult(`${name} access granted.`);
+    ui.toast(`${name} permission granted.`, "ok", 2200);
+  } catch (error) {
+    permissionResult(`${name} access was not granted: ${error.message}`);
+    ui.toast(error.message, "warn", 5000);
+  }
+}
+
+function fillNativeInfo() {
+  const cap = window.Capacitor;
+  const native = typeof window !== "undefined" && window.JARVIS_NATIVE_BUILD === true;
+  ui.fillFacts($("#nativeInfo"), [
+    ["Platform", cap?.getPlatform?.() || (native ? "android (bridge)" : "browser")],
+    ["Packaged HUD", native ? "yes" : "no"],
+    ["Back button", window.JARVIS_NATIVE_BRIDGE ? "native handler active" : "browser default"],
+    ["Backend storage", usesNativeStorage() ? "app-private preferences" : "browser local storage"],
+    ["Quick tile", native ? "com.jarvis.ai/.JarvisTileService" : "available in APK"],
+  ]);
+}
+
+async function testNativeBridge() {
+  const result = $("#nativeResult");
+  const cap = window.Capacitor;
+  if (!cap || typeof cap.nativePromise !== "function") {
+    if (result) result.textContent = "No native bridge in this browser — expected outside the APK.";
+    return;
+  }
+  if (result) result.textContent = "Contacting native bridge…";
+  try {
+    const info = await cap.nativePromise("App", "getInfo", {});
+    if (result) result.textContent = `Native OK · ${info.platform || "android"} · ${info.osVersion || "?"}`;
+    ui.toast("Native bridge responded.", "ok", 2000);
+  } catch (error) {
+    if (result) result.textContent = `Native bridge error: ${error.message}`;
+  }
+}
+
+function fillAboutInfo() {
+  ui.fillFacts($("#aboutInfo"), [
+    ["Name", "J.A.R.V.I.S."],
+    ["Version", "1.0 (debug build)"],
+    ["Providers", "OpenAI · Gemini · Groq · OpenRouter · Ollama"],
+    ["Languages", "English · বাংলা · हिन्दी"],
+    ["Interface", "Liquid Glass HUD"],
+  ]);
+}
+
+async function clearAllLocal() {
+  if (!window.confirm("Clear backend URL and all local preferences on this device?")) return;
+  await ctx.clearLocalSettings();
+  syncBackendForm();
+  backendResult("Local settings cleared. The HUD remains open.");
+  ui.toast("Local settings cleared.", "ok", 2400);
 }
 
 function bindSystem() {
@@ -455,11 +536,17 @@ function bindSystem() {
   $("#keyProvider")?.addEventListener("change", () => fillKeyPlaceholders());
   $("#auditToggle")?.addEventListener("click", toggleAudit);
   $("#statusRefresh")?.addEventListener("click", () => ctx.refreshStatus({ manual: true }));
+  $("#permissionMic")?.addEventListener("click", () => requestPermission("microphone"));
+  $("#permissionCamera")?.addEventListener("click", () => requestPermission("camera"));
+  $("#nativeTest")?.addEventListener("click", testNativeBridge);
+  $("#clearLocalData")?.addEventListener("click", clearAllLocal);
 }
 
 async function loadSystem() {
   const [status, providers] = await Promise.all([api.get("/api/status"), api.get("/api/providers")]);
   syncBackendForm();
+  fillNativeInfo();
+  fillAboutInfo();
   applyStatus(status);
   applyProviders(providers);
   return { status, providers };
@@ -591,7 +678,7 @@ function fillKeyPlaceholders() {
   if (!provider) return;
   const base = $("#keyBaseUrl");
   const model = $("#keyModel");
-  if (base) base.placeholder = provider.base_url || "https://api.example.com/v1";
+  if (base) base.placeholder = provider.base_url || "https://";
   if (model) model.placeholder = provider.default_model || "model name";
 }
 

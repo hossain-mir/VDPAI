@@ -742,6 +742,40 @@ def main() -> int:
 
     timed("rate limiter unit behaviour", limiter_test)
 
+    def android_and_hud_static_test():
+        html = os.path.join(ROOT, "frontend", "index.html")
+        manifest = os.path.join(ROOT, "android", "app", "src", "main", "AndroidManifest.xml")
+        package = os.path.join(ROOT, "package.json")
+        settings_js = os.path.join(ROOT, "frontend", "js", "settings.js")
+
+        with open(html, encoding="utf-8") as handle:
+            page = handle.read()
+        check("startup backend form removed", "bootBackendForm" not in page and "INITIALISING JARVIS CORE" not in page)
+        check("backend status visible in HUD", 'id="backendStatus"' in page and 'id="chipBackend"' in page)
+        required = [
+            'id="backendForm"', "AI providers", "Voice settings", "Language settings",
+            "Permissions", "Appearance", "Android integration", "Privacy &amp; security",
+            "About J.A.R.V.I.S.",
+        ]
+        check("settings dashboard sections present", all(item in page for item in required))
+
+        with open(manifest, encoding="utf-8") as handle:
+            xml = handle.read()
+        check("tile service registered", ".JarvisTileService" in xml)
+        check("tile binding permission", "android.permission.BIND_QUICK_SETTINGS_TILE" in xml)
+        check("tile intent filter", "android.service.quicksettings.action.QS_TILE" in xml)
+        check("keyboard handling configured", "windowSoftInputMode" in xml)
+
+        with open(package, encoding="utf-8") as handle:
+            pkg = handle.read()
+        check("secure native storage dependency", "@capacitor/preferences" in pkg)
+
+        with open(settings_js, encoding="utf-8") as handle:
+            settings = handle.read()
+        check("no placeholder production URL in settings", "your-server" not in settings and "your-server" not in page)
+
+    timed("Android + HUD static structure", android_and_hud_static_test)
+
     print()
     total = len(PASSED) + len(FAILED)
     if FAILED:

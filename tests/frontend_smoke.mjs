@@ -266,6 +266,10 @@ try {
   }
   doc.querySelector("#sheet .sheet-head .icon-btn").click();
   check("sheet closes", doc.querySelector("#sheet").hidden === true);
+  check("no mandatory startup form", doc.querySelector("#bootBackendForm") === null);
+  check("HUD shows backend status", !!doc.querySelector("#backendStatus") && !!doc.querySelector("#chipBackend"));
+  const settingIds = ["backendForm", "ttsToggle", "reduceMotionToggle", "permissionMic", "nativeTest", "clearLocalData", "aboutInfo"];
+  check("settings dashboard controls present", settingIds.every((id) => !!doc.getElementById(id)));
 
   const settings = await import(SETTINGS);
   check("browser backend default is same origin", settings.getBackendUrl() === "");
@@ -280,6 +284,17 @@ try {
   else window.JARVIS_NATIVE_BUILD = previousNative;
   check("APK refuses plaintext backend URLs", !nativeHttp.ok && /HTTPS/i.test(nativeHttp.error));
   check("APK accepts HTTPS backend URLs", nativeHttps.ok && nativeHttps.url === "https://jarvis.example:8000");
+  settings.setBackendUrl("https://jarvis.local:8443");
+  check(
+    "backend URL persists locally",
+    settings.getBackendUrl() === "https://jarvis.local:8443" &&
+      window.localStorage.getItem("jarvis.backendUrl") === "https://jarvis.local:8443",
+  );
+  await settings.clearBackendUrl();
+  check(
+    "backend URL can be cleared",
+    settings.getBackendUrl() === "" && window.localStorage.getItem("jarvis.backendUrl") === null,
+  );
 } catch (error) {
   errors.push(error.stack || String(error));
   console.error("HARNESS ERROR:", error);

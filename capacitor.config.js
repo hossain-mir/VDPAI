@@ -1,8 +1,8 @@
 /* Capacitor configuration for the JARVIS AI Android wrapper.
  *
  * The Python backend is NOT bundled into the APK.  Normally this variable is
- * left empty: the HUD in www/ is packaged locally and the owner enters the
- * backend URL in the app on first launch.
+ * left empty: the HUD in www/ is packaged locally and launches offline. The
+ * backend URL is configured later in System → Backend server.
  *
  * For a local build you may optionally set JARVIS_BACKEND_URL to a deployed
  * HTTPS URL.  Then the WebView loads the app from that origin, so API calls,

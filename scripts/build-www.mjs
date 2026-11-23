@@ -4,7 +4,7 @@
  * This is intentionally a copy, not a rewrite: the browser version at
  * http://127.0.0.1:8000 remains byte-for-byte equivalent. A tiny generated
  * `js/native-config.js` carries an optional build-time backend address, and
- * the HUD also exposes a runtime setting stored in WebView localStorage.
+ * the HUD also exposes a runtime setting stored in app-private Preferences.
  * The browser frontend is never modified.
  */
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";

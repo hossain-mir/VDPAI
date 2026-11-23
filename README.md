@@ -70,13 +70,14 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 ### How it works
 
 * `npm run build` copies the existing `frontend/` into `www/`, generates `www/js/native-config.js`, and injects that script into `www/index.html`. The browser version at `http://127.0.0.1:8000` is untouched: with no configured base it keeps its exact same-origin behaviour.
-* On first launch the APK asks for the backend address and saves it in WebView `localStorage` (`jarvis.backendUrl`). You can change or clear it later under **System → Backend server**. `frontend/js/settings.js` validates the URL; `frontend/js/api.js` resolves it on every request and reconnects the WebSocket when it changes. An address is not a credential and is never committed to the repository.
+* The APK launches directly into the HUD with no startup form and works offline. A small backend indicator in the core shows ONLINE / OFFLINE / LOCAL. Configure, test, update or clear the address under **System → Backend server**. The URL is saved through Capacitor Preferences (app-private Android storage; browser falls back to `localStorage`). `frontend/js/settings.js` validates it; `frontend/js/api.js` resolves it on every request and reconnects the WebSocket when it changes. An address is not a credential and is never committed to the repository.
 * The APK accepts only `https://` addresses: Android requires a secure context for microphone access and the manifest blocks cleartext traffic. The browser HUD still accepts plain HTTP on trusted networks as before. No fake or placeholder production URL is shipped.
 * `capacitor.config.js` only uses `server.url` when `JARVIS_BACKEND_URL` is supplied for a local build; GitHub Actions leaves it empty so the bundled HUD is used.
 * `frontend/js/native.js` registers an Android `backButton` listener through Capacitor's bridge. It first closes the approval dialog or settings sheet; only then does it minimize (or exit) the app. It is a no-op in the browser and is imported by `app.js`.
 * The backend allows credentialed CORS from the APK's `http://localhost` WebView origin and issues `SameSite=None; Secure` session cookies over HTTPS. Requests from your LAN are trusted automatically; if you set `JARVIS_ACCESS_TOKEN`, a publicly hosted backend still requires either a trusted proxy/network or the same-origin mode below.
 * Network security config sets `cleartextTrafficPermitted="false"` for the Android app; `INTERNET`, `RECORD_AUDIO` and `CAMERA` permissions are declared, with camera/microphone marked optional so the app installs on devices without them.
 * A native **Quick Settings tile** named `J.A.R.V.I.S.` is provided by `JarvisTileService.kt` (Kotlin). Open **Quick Settings → Edit tiles → J.A.R.V.I.S.** to add it. Tap launches the existing HUD; a long press opens Android's **App Info** screen (the platform default for third-party tiles, supported on Android 13/16). It uses a Liquid-Glass-style concentric core icon, Android 13+ immutable `PendingIntent` launching, and binds only with `BIND_QUICK_SETTINGS_TILE` — no extra app permission is requested.
+* **System → Settings dashboard** contains working controls for backend connection, AI providers/API keys/model selection, voice TTS/wake phrase, language, permissions, reduced-motion appearance, native bridge diagnostics, privacy (clear local data, audit log), and About. Reduced motion stops the core/waveform animation loops to save battery.
 
 ### Required dependencies for an APK build
 
@@ -94,13 +95,13 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 
 1. Push to `main`, open a pull request, or run the workflow manually from the **Actions** tab → **Build JARVIS AI debug APK** → **Run workflow**. No repository variable is required.
 2. The workflow installs Python and Node dependencies, runs all tests, builds the bundled `www/`, regenerates icons/splash, syncs Capacitor, assembles the debug APK, verifies the file exists and uploads it as the `jarvis-ai-debug-apk` artifact.
-3. Install the APK, open JARVIS, and enter your backend's HTTPS address when prompted. Change it any time under **System → Backend server**. Your backend does not need to exist yet when the APK is built.
+3. Install the APK and open JARVIS — it launches straight into the HUD, even with no backend. Configure your HTTPS address any time under **System → Backend server**. Your backend does not need to exist yet when the APK is built.
 
 ### Build instructions (local machine with Android SDK)
 
 ```bash
 # Node 22+, JDK 21, ANDROID_HOME set, SDK platform 36 + build-tools 36.0.0 installed
-# Optional: export JARVIS_BACKEND_URL="https://your-deployed-backend"  # bakes in a default
+# Optional: export JARVIS_BACKEND_URL="$BACKEND_URL"  # bakes in a default HTTPS address
 npm ci
 npm run build
 npm run assets
@@ -174,12 +175,12 @@ JARVIS-AI/
 │   └── js/*.js                 core, wave, voice, api, settings, panels, ui, state, app, native
 ├── scripts/                    install/start/stop/backup/tunnel/set-token/test
 │                               + build-www.mjs, make-android-assets.mjs
-├── package.json / package-lock.json   Capacitor build manifest (Node 22+)
+├── package.json / package-lock.json   Capacitor build manifest (Node 22+, Preferences plugin)
 ├── capacitor.config.js         app id/name, optional HTTPS default URL, mixed-content policy
 ├── www/                        generated copy of frontend/ (git-ignored)
 ├── android/                    generated Capacitor Android project (see above)
 ├── .github/workflows/build-apk.yml    tests + debug APK + artifact upload
-├── tests/                      188-check API suite + optional jsdom smoke tests
+├── tests/                      198-check API suite + jsdom HUD, no-lock and offline smoke tests
 └── database/, logs/, workspace/  runtime data (git-ignored)
 ```
 

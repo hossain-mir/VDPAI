@@ -4,7 +4,7 @@
 import "./native.js";
 
 import { startSession, api, chat, voiceTurn, EventStream, session } from "./api.js";
-import { getBackendUrl, setBackendUrl, validateBackendUrl } from "./settings.js";
+import { initSettings, getBackendUrl, clearBackendUrl } from "./settings.js";
 import { uiState } from "./state.js";
 import { CoreRenderer } from "./core.js";
 import { Waveform } from "./wave.js";
@@ -15,16 +15,33 @@ import * as ui from "./ui.js";
 const $ = ui.$;
 const $$ = ui.$$;
 
-const LS = { lang: "jarvis.lang", tts: "jarvis.tts", wake: "jarvis.wake" };
+const LS = {
+  lang: "jarvis.lang",
+  tts: "jarvis.tts",
+  wake: "jarvis.wake",
+  motion: "jarvis.reduceMotion",
+};
+const DEFAULT_STATUS = {
+  provider: { label: "demo", model: "demo", demo: true },
+  runtime: {},
+  memory: {},
+  security: {},
+  browser: {},
+  voice: {},
+  urls: [],
+};
 const app = {
   config: null,
-  status: null,
+  status: DEFAULT_STATUS,
   busy: false,
   entered: false,
   attached: null,
   approval: null,
   approvals: new Set(),
   stream: null,
+  lastResponse: null,
+  retryTimer: null,
+  retryDelay: 4000,
 };
 
 let core = null;
@@ -59,144 +76,153 @@ function nativeBuild() {
   return typeof window !== "undefined" && window.JARVIS_NATIVE_BUILD === true;
 }
 
-let setupBound = false;
-function showBackendSetup(message) {
-  const bootEl = $("#boot");
-  const form = $("#bootBackendForm");
-  if (!bootEl || !form) return false;
-  bootEl.classList.add("is-setup");
-  form.hidden = false;
-  const bootHint = $("#bootHint");
-  if (bootHint) bootHint.hidden = true;
-  const input = $("#bootBackendUrl");
-  if (input && !input.value) input.value = getBackendUrl();
-  const result = $("#bootBackendResult");
-  if (result) result.textContent = message || "Enter the address of your JARVIS server.";
-  if (setupBound) return true;
-  setupBound = true;
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const checked = validateBackendUrl(input?.value || "");
-    if (!checked.ok) {
-      if (result) result.textContent = checked.error;
-      return;
-    }
-    if (nativeBuild() && !checked.url) {
-      if (result) result.textContent = "The APK needs an HTTPS server address.";
-      return;
-    }
-    const button = form.querySelector('button[type="submit"]');
-    if (button) button.disabled = true;
-    if (result) result.textContent = "Connecting…";
-    setBackendUrl(checked.url);
-    try {
-      await startSession();
-      await boot();
-    } catch (error) {
-      if (result) result.textContent = `${error.message} — check the address and try again.`;
-    } finally {
-      if (button) button.disabled = false;
-    }
-  });
-  return true;
+/** Small, always-visible backend indicator inside the HUD. */
+function setBackendState(state, detail = "") {
+  const labels = { checking: "CONNECTING", online: "ONLINE", local: "LOCAL", offline: "OFFLINE" };
+  const tones = { checking: "warn", online: "ok", local: "ok", offline: "bad" };
+  const label = labels[state] || "OFFLINE";
+  const pill = $("#backendStatus");
+  if (pill) {
+    pill.dataset.tone = tones[state] || "bad";
+    const text = $("#backendStatusText");
+    if (text) text.textContent = label;
+    pill.title = detail || label;
+  }
+  ui.setChip("chipBackend", tones[state] || "bad", label);
 }
 
-async function boot() {
-  try {
-    // The APK has no backend bundled; ask once, then remember the answer.
-    if (nativeBuild() && !getBackendUrl()) {
-      showBackendSetup();
+function scheduleBackendRetry() {
+  if (app.retryTimer) return;
+  app.retryTimer = setTimeout(async () => {
+    app.retryTimer = null;
+    if (!app.entered || document.hidden) {
+      app.retryDelay = 4000;
       return;
     }
+    await connectBackend({ silent: true });
+    app.retryDelay = Math.min(app.retryDelay * 1.8, 30000);
+  }, app.retryDelay);
+}
+
+/** Handshake + status refresh. The HUD is already visible when this runs. */
+async function connectBackend({ silent = false } = {}) {
+  try {
     await startSession();
-    await enter();
+    const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
+    app.config = configResponse.config || {};
+    app.status = statusResponse || DEFAULT_STATUS;
+    applyStatus(app.status);
+    updateChips(app.status);
+    applyFacts(app.status);
+    setBackendState(getBackendUrl() ? "online" : "local", getBackendUrl() || "same origin");
+    connectStream();
+    await loadPanels();
+    if (app.retryTimer) {
+      clearTimeout(app.retryTimer);
+      app.retryTimer = null;
+    }
+    app.retryDelay = 4000;
+    if (!silent) ui.toast("Backend connected.", "ok", 2200);
+    return true;
   } catch (error) {
-    const hint = $("#bootHint");
-    if (hint) hint.textContent = `${error.message} — retrying…`;
-    if (nativeBuild() && showBackendSetup(`${error.message} — check the server address.`)) return;
-    setTimeout(boot, 4000);
+    setBackendState("offline", error?.message || "backend unavailable");
+    if (!silent) handleError(error);
+    scheduleBackendRetry();
+    return false;
   }
 }
 
-/** Rebind the whole app after the owner changes the server in System. */
+/** Rebind after the owner changes the server in System → Backend server. */
 async function reconnectBackend() {
-  await startSession();
-  const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
-  app.config = configResponse.config;
-  app.status = statusResponse;
-  applyStatus(statusResponse);
-  updateChips(statusResponse);
-  applyFacts(statusResponse);
-  await loadPanels();
-  app.stream?.ensureConnected();
-  refreshStatus({ silent: true });
+  const ok = await connectBackend({ silent: true });
+  if (!ok) throw new Error("The backend did not respond. The address was saved; try again when it is online.");
   transcript?.add("system", `BACKEND RECONNECTED · ${getBackendUrl() || "same origin"}`);
 }
 
+/** Restore local preferences (non-secret UI choices) and the backend URL. */
+async function resetLocalSettings() {
+  for (const key of Object.values(LS)) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  }
+  await clearBackendUrl();
+  document.body.classList.remove("reduce-motion");
+  if (core) {
+    core.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (core.reduced) {
+      core.stop();
+      core.draw();
+    } else {
+      core.start();
+    }
+  }
+  syncPreferenceUi();
+  return connectBackend({ silent: true });
+}
+
+async function boot() {
+  await initSettings();
+  await enter();
+  await connectBackend({ silent: true });
+}
+
 function hideBoot() {
-  const bootEl = $("#boot");
-  if (!bootEl) return;
-  bootEl.classList.add("is-done");
-  setTimeout(() => {
-    bootEl.hidden = true;
-  }, 450);
+  // Kept for callers/tests; the startup overlay no longer exists.
 }
 
 async function enter() {
   if (app.entered || app.entering) return;
   app.entering = true;
   try {
-  const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
-  app.config = configResponse.config;
-  app.status = statusResponse;
+    app.status = DEFAULT_STATUS;
+    $("#app").hidden = false;
+    uiState.bind($("#stateText"), $("#stateDetail"));
+    core = new CoreRenderer($("#coreCanvas"));
+    wave = new Waveform($("#waveCanvas"), { getLevel: () => (voice ? voice.level() : 0) });
+    transcript = new ui.Transcript($("#transcript"), $("#fullTranscript"));
+    uiState.on((state) => {
+      core?.setState(state);
+      wave?.setState(state);
+    });
 
-  $("#app").hidden = false;
-  uiState.bind($("#stateText"), $("#stateDetail"));
-  core = new CoreRenderer($("#coreCanvas"));
-  wave = new Waveform($("#waveCanvas"), { getLevel: () => (voice ? voice.level() : 0) });
-  transcript = new ui.Transcript($("#transcript"), $("#fullTranscript"));
-  uiState.on((state) => {
-    core?.setState(state);
-    wave?.setState(state);
-  });
+    initVoice();
+    initPanels({
+      transcript,
+      voice,
+      requestApproval,
+      refreshStatus: (options) => refreshStatus(options),
+      reconnectBackend: () => reconnectBackend(),
+      clearLocalSettings: () => resetLocalSettings(),
+      getLanguage: language,
+      setState: (state, detail) => uiState.set(state, detail),
+    });
+    wireInteractive();
+    syncPreferenceUi();
+    setBackendState(getBackendUrl() ? "checking" : "offline");
 
-  initVoice();
-  initPanels({
-    transcript,
-    voice,
-    requestApproval,
-    refreshStatus: (options) => refreshStatus(options),
-    reconnectBackend: () => reconnectBackend(),
-    getLanguage: language,
-    setState: (state, detail) => uiState.set(state, detail),
-  });
-  wireInteractive();
-  syncPreferenceUi();
+    applyStatus(app.status);
+    updateChips(app.status);
+    applyFacts(app.status);
+    transcript.add(
+      "system",
+      "CORE ONLINE · HUD ready offline · configure a backend in System when available",
+    );
 
-  applyStatus(statusResponse);
-  updateChips(statusResponse);
-  applyFacts(statusResponse);
-  transcript.add(
-    "system",
-    `CORE ONLINE · ${statusResponse.provider.label} · ${statusResponse.provider.model}` +
-      (statusResponse.provider.demo ? " · DEMO MODE — no AI provider key configured" : "") +
-      " · local SQLite memory ready",
-  );
+    bootStatus();
 
-  connectStream();
-  await loadPanels();
-  bootStatus();
-
-  if (!voice.available) {
-    const button = $("#micBtn");
-    if (button) {
-      button.disabled = true;
-      button.title = voice.unsupportedReason();
+    if (!voice.available) {
+      const button = $("#micBtn");
+      if (button) {
+        button.disabled = true;
+        button.title = voice.unsupportedReason();
+      }
+      transcript.add("system", voice.unsupportedReason());
     }
-    transcript.add("system", voice.unsupportedReason());
-  }
-  app.entered = true;
-  hideBoot();
+    app.entered = true;
+    hideBoot();
   } finally {
     app.entering = false;
   }
@@ -246,11 +272,28 @@ function initVoice() {
 
 async function handleVoiceCommand(text) {
   if (!text) return;
+  const command = text.trim();
+  // Local commands work even when the backend is offline.
+  if (/^(stop|stop speaking|cancel|shut up)[.,!?\s]*$/i.test(command)) {
+    voice?.cancelSpeech();
+    voice?.stopListening({ keepWake: true });
+    uiState.set("IDLE", "speech stopped");
+    transcript.add("system", "Speech stopped.");
+    return;
+  }
+  if (/^(repeat|repeat that|say that again)[.,!?\s]*$/i.test(command)) {
+    if (app.lastResponse && voice?.ttsAvailable && stored(LS.tts, "1") === "1") {
+      voice.speak(app.lastResponse, language());
+    } else {
+      ui.toast("No previous reply to repeat.", "warn");
+    }
+    return;
+  }
   if (app.busy) {
     ui.toast("Core is busy — voice command ignored.", "warn");
     return;
   }
-  await send(text, { source: "voice" });
+  await send(command, { source: "voice" });
 }
 
 /* ----------------------------------------------------------------------- send */
@@ -289,6 +332,7 @@ async function send(raw, { source = "text" } = {}) {
 
 function renderResponse(response) {
   const meta = `${response.provider_label || response.provider} · ${response.model}${response.demo ? " · demo" : ""}`;
+  app.lastResponse = response.reply || "";
   transcript.add("jarvis", response.reply, meta);
 
   if (Array.isArray(response.actions) && response.actions.length) {
@@ -376,14 +420,19 @@ async function refreshStatus({ silent = false, manual = false } = {}) {
     applyStatus(status);
     updateChips(status);
     applyFacts(status);
+    setBackendState(getBackendUrl() ? "online" : "local", getBackendUrl() || "same origin");
+    if (app.retryTimer) {
+      clearTimeout(app.retryTimer);
+      app.retryTimer = null;
+    }
+    app.retryDelay = 4000;
     if (manual) ui.toast("Status refreshed.", "ok", 2200);
     return status;
   } catch (error) {
-    if (silent) {
-      ui.setChip("chipNet", "bad", "NET");
-      return null;
-    }
-    handleError(error);
+    setBackendState("offline", error?.message || "backend unavailable");
+    ui.setChip("chipNet", navigator.onLine ? "ok" : "bad", "NET");
+    if (!silent) handleError(error);
+    scheduleBackendRetry();
     return null;
   }
 }
@@ -417,6 +466,10 @@ function updateChips(status) {
 
 /* ----------------------------------------------------------------------- live */
 function connectStream() {
+  if (app.stream) {
+    app.stream.ensureConnected();
+    return;
+  }
   app.stream = new EventStream({
     onStatus: (status) => {
       if (status === "online") {
@@ -501,7 +554,25 @@ function wireInteractive() {
     $("#voiceToggle").setAttribute("aria-pressed", String(enabled));
     $("#voiceToggle").setAttribute("aria-label", enabled ? "Spoken replies on" : "Spoken replies off");
     if (!enabled) voice?.cancelSpeech();
+    const settingToggle = $("#ttsToggle");
+    if (settingToggle) settingToggle.checked = enabled;
     ui.toast(enabled ? "Spoken replies on." : "Spoken replies off.", "", 2000);
+  });
+
+  $("#ttsToggle")?.addEventListener("change", (event) => {
+    const enabled = event.target.checked;
+    store(LS.tts, enabled ? "1" : "0");
+    voice?.setTtsEnabled(enabled);
+    if (!enabled) voice?.cancelSpeech();
+    $("#voiceToggle")?.setAttribute("aria-pressed", String(enabled));
+    ui.toast(enabled ? "Spoken replies on." : "Spoken replies off.", "", 2000);
+  });
+
+  $("#reduceMotionToggle")?.addEventListener("change", (event) => {
+    const reduced = event.target.checked;
+    store(LS.motion, reduced ? "1" : "0");
+    applyAppearance(reduced);
+    ui.toast(reduced ? "Reduced motion enabled." : "Full motion enabled.", "", 2000);
   });
 
   $("#langSelect").addEventListener("change", (event) => {
@@ -608,9 +679,12 @@ function wireInteractive() {
 
   window.addEventListener("online", () => {
     ui.setChip("chipNet", "ok", "NET");
-    app.stream?.connect();
+    connectBackend({ silent: true });
   });
-  window.addEventListener("offline", () => ui.setChip("chipNet", "bad", "NET"));
+  window.addEventListener("offline", () => {
+    ui.setChip("chipNet", "bad", "NET");
+    setBackendState("offline", "device is offline");
+  });
   window.addEventListener("beforeunload", () => {
     app.stream?.close();
     voice?.stopListening();
@@ -636,16 +710,34 @@ function clearAttachment() {
   if (input) input.value = "";
 }
 
+function applyAppearance(reduced) {
+  document.body.classList.toggle("reduce-motion", reduced);
+  if (!core) return;
+  core.reduced = reduced || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (core.reduced) {
+    core.stop();
+    core.draw();
+  } else {
+    core.start();
+  }
+}
+
 function syncPreferenceUi() {
   const lang = stored(LS.lang, app.config?.default_language || "en-US");
   const select = $("#langSelect");
   if (select) select.value = lang;
   const ttsEnabled = stored(LS.tts, "1") === "1";
-  $("#voiceToggle").setAttribute("aria-pressed", String(ttsEnabled));
-  $("#voiceToggle").setAttribute("aria-label", ttsEnabled ? "Spoken replies on" : "Spoken replies off");
+  $("#voiceToggle")?.setAttribute("aria-pressed", String(ttsEnabled));
+  $("#voiceToggle")?.setAttribute("aria-label", ttsEnabled ? "Spoken replies on" : "Spoken replies off");
+  const ttsToggle = $("#ttsToggle");
+  if (ttsToggle) ttsToggle.checked = ttsEnabled;
   if (voice) voice.setTtsEnabled(ttsEnabled);
   const wake = $("#wakeToggle");
-  if (wake) wake.checked = false;
+  if (wake) wake.checked = stored(LS.wake, "0") === "1";
+  const reduced = stored(LS.motion, "0") === "1";
+  const motionToggle = $("#reduceMotionToggle");
+  if (motionToggle) motionToggle.checked = reduced;
+  applyAppearance(reduced);
 }
 
 function tickClock() {

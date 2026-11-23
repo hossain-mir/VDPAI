@@ -13,7 +13,7 @@
     "cap:sync": "node node_modules/@capacitor/cli/bin/capacitor sync android",
     "cap:doctor": "node node_modules/@capacitor/cli/bin/capacitor doctor",
     "assets": "node scripts/make-android-assets.mjs",
-    "test:js": "node tests/frontend_smoke.mjs && node tests/no_lock_smoke.mjs"
+    "test:js": "node tests/frontend_smoke.mjs && node tests/no_lock_smoke.mjs && node tests/offline_smoke.mjs"
   },
   "devDependencies": {
     "@capacitor/android": "8.6.2",
@@ -21,5 +21,8 @@
     "@capacitor/cli": "8.6.2",
     "@capacitor/core": "8.6.2",
     "jsdom": "^27.0.0"
+  },
+  "dependencies": {
+    "@capacitor/preferences": "^8.0.1"
   }
 }

@@ -13,20 +13,6 @@
 <body data-state="idle">
   <a class="skip-link" href="#chatInput">Skip to command input</a>
 
-  <div id="boot" class="boot" role="status" aria-live="polite">
-    <div class="boot-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-    <p>INITIALISING JARVIS CORE</p>
-    <div class="boot-bar" aria-hidden="true"><i></i></div>
-    <small id="bootHint">connecting to local server…</small>
-    <form id="bootBackendForm" class="boot-connect glass stack" hidden>
-      <strong>Connect to your JARVIS server</strong>
-      <small id="bootBackendHint">Enter the address of the Python backend. It is saved on this device only.</small>
-      <label class="field"><span>Server URL</span><input id="bootBackendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server:8000"></label>
-      <button class="btn primary" type="submit">Connect</button>
-      <small id="bootBackendResult" class="hint" role="status"></small>
-    </form>
-  </div>
-
   <div class="app" id="app" hidden>
     <header class="topbar glass">
       <div class="brand">
@@ -46,6 +32,7 @@
         <span class="chip" id="chipAi" data-tone="warn"><i></i>DEMO</span>
         <span class="chip" id="chipNet" data-tone="ok"><i></i>NET</span>
         <span class="chip" id="chipWs" data-tone="warn"><i></i>LINK</span>
+        <span class="chip" id="chipBackend" data-tone="warn"><i></i>BACKEND</span>
       </div>
 
       <div class="clock">
@@ -78,6 +65,9 @@
         <div class="state-readout">
           <span id="stateText" class="state-text">IDLE</span>
           <small id="stateDetail">awaiting command</small>
+        </div>
+        <div id="backendStatus" class="backend-status" data-tone="warn" role="status" aria-label="Backend connection">
+          <i aria-hidden="true"></i><span id="backendStatusText">CONNECTING</span>
         </div>
         <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       </section>
@@ -211,31 +201,19 @@
         </section>
 
         <section data-view="system" hidden>
-          <div class="grid2">
-            <div>
-              <h3>Connection</h3>
-              <dl class="facts" id="sysFacts"></dl>
+          <h3>Backend server</h3>
+          <form id="backendForm" class="stack">
+            <p class="hint" id="backendHint">Leave the address empty to use this page's own origin.</p>
+            <label class="field"><span>Server URL</span><input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://"></label>
+            <div class="row">
+              <button class="btn primary small" type="submit">Connect</button>
+              <button class="btn small" id="backendTest" type="button">Test</button>
+              <button class="btn small" id="backendClear" type="button">Clear</button>
             </div>
-            <div>
-              <h3>Backend server</h3>
-              <form id="backendForm" class="stack">
-                <p class="hint" id="backendHint">Leave the address empty to use this page's own origin.</p>
-                <label class="field"><span>Server URL</span><input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server:8000"></label>
-                <div class="row">
-                  <button class="btn primary small" type="submit">Connect</button>
-                  <button class="btn small" id="backendTest" type="button">Test</button>
-                  <button class="btn small" id="backendClear" type="button">Clear</button>
-                </div>
-                <p class="hint" id="backendResult" role="status"></p>
-              </form>
-            </div>
-            <div>
-              <h3>Security</h3>
-              <dl class="facts" id="secFacts"></dl>
-            </div>
-          </div>
+            <p class="hint" id="backendResult" role="status"></p>
+          </form>
 
-          <h3>AI provider</h3>
+          <h3>AI providers &amp; API configuration</h3>
           <div class="row">
             <label class="sr-only" for="providerSelect">Provider</label>
             <select id="providerSelect"></select>
@@ -251,7 +229,7 @@
           <details>
             <summary>Add or replace an API key</summary>
             <form id="keyForm" class="stack">
-              <p class="hint">Saved to the server's <code>.env</code> (owner-only permissions). Keys are never returned to this page.</p>
+              <p class="hint">Saved to the server's <code>.env</code> (owner-only permissions). Keys are never returned to this page or saved in the APK.</p>
               <label class="field"><span>Provider</span><select id="keyProvider"></select></label>
               <label class="field"><span>API key</span><input id="keyValue" type="password" autocomplete="off" placeholder="Paste key"></label>
               <label class="field"><span>Base URL (Ollama/custom)</span><input id="keyBaseUrl" maxlength="400" placeholder="http://127.0.0.1:11434/v1"></label>
@@ -261,17 +239,47 @@
             </form>
           </details>
 
-          <h3>Voice</h3>
+          <h3>Voice settings</h3>
+          <label class="check"><input type="checkbox" id="ttsToggle"> Spoken replies</label>
           <label class="check"><input type="checkbox" id="wakeToggle"> Wake phrase "Hey Jarvis" while this tab is open</label>
           <p class="hint" id="voiceNote"></p>
+          <p class="hint">Say “stop speaking” to interrupt replies or “repeat that” to hear the last answer again.</p>
 
-          <h3>Session &amp; URLs</h3>
-          <ul id="urlList" class="list mono small"></ul>
+          <h3>Language settings</h3>
+          <p class="hint" id="languageNote">Choose EN, বাং (Bengali) or हिं (Hindi) in the dock selector.</p>
+
+          <h3>Permissions</h3>
+          <div class="row">
+            <button class="btn small" id="permissionMic" type="button">Check / request microphone</button>
+            <button class="btn small" id="permissionCamera" type="button">Check / request camera</button>
+          </div>
+          <p class="hint" id="permissionResult" role="status">No permission check yet.</p>
+
+          <h3>Appearance</h3>
+          <label class="check"><input type="checkbox" id="reduceMotionToggle"> Reduced motion (saves battery)</label>
+
+          <h3>Android integration</h3>
+          <dl class="facts" id="nativeInfo"></dl>
+          <div class="row">
+            <button class="btn small" id="nativeTest" type="button">Test native bridge</button>
+          </div>
+          <p class="hint" id="nativeResult" role="status"></p>
+
+          <h3>Privacy &amp; security</h3>
+          <dl class="facts" id="secFacts"></dl>
+          <p class="hint" id="securityHint">Trusted local/LAN access · do not expose publicly without authentication.</p>
           <div class="row">
             <button class="btn small" id="auditToggle" type="button">Show audit log</button>
             <button class="btn small" id="statusRefresh" type="button">Refresh status</button>
+            <button class="btn small danger-ghost" id="clearLocalData" type="button">Clear local settings</button>
           </div>
           <pre id="auditLog" class="result" hidden></pre>
+
+          <h3>About J.A.R.V.I.S.</h3>
+          <dl class="facts" id="aboutInfo"></dl>
+          <h3>Connection details</h3>
+          <dl class="facts" id="sysFacts"></dl>
+          <ul id="urlList" class="list mono small"></ul>
         </section>
       </div>
     </section>
