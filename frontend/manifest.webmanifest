@@ -1,6 +1,6 @@
 {
-  "name": "HSAI 2.0",
-  "short_name": "HSAI",
+  "name": "VDPAI",
+  "short_name": "VDPAI",
   "description": "Private voice-enabled AI assistant for Android.",
   "start_url": "/",
   "scope": "/",

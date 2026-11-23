@@ -1,4 +1,4 @@
-/* JARVIS AI — animated core (Canvas 2D, ~30fps, cheap on Android). */
+/* VDPAI — animated core (Canvas 2D, ~30fps, cheap on Android). */
 
 const PALETTE = {
   IDLE: ["#58e7ff", "#2aa8c4"],
@@ -30,7 +30,7 @@ export class CoreRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-    this.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.reduced = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
     this.state = "IDLE";
     this.level = 0;
     this.smooth = 0;
@@ -49,8 +49,9 @@ export class CoreRenderer {
 
     this.resize = this.resize.bind(this);
     this.resize();
-    if (window.ResizeObserver) {
-      this.observer = new ResizeObserver(this.resize);
+    const RO = typeof ResizeObserver !== "undefined" ? ResizeObserver : (typeof window !== "undefined" ? window.ResizeObserver : null);
+    if (RO) {
+      this.observer = new RO(this.resize);
       this.observer.observe(canvas.parentElement || canvas);
     }
     window.addEventListener("resize", this.resize, { passive: true });
@@ -73,7 +74,9 @@ export class CoreRenderer {
     this.height = height;
     this.canvas.width = Math.round(width * dpr);
     this.canvas.height = Math.round(height * dpr);
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (typeof this.ctx?.setTransform === "function") {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     if (this.reduced) this.draw();
   }
 

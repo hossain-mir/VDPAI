@@ -1,19 +1,21 @@
 {
-  "name": "hsai-2-android",
-  "version": "2.0.0",
+  "name": "vdpai",
+  "version": "1.0.0",
   "private": true,
-  "description": "HSAI 2.0 Capacitor Android assistant. The optional Python backend stays separate.",
+  "description": "VDPAI — private personal AI assistant with a local Android interface, provider configuration, native voice and conversation history.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "build": "node scripts/build-www.mjs",
+    "check": "node scripts/check-frontend.mjs",
+    "test:js": "node tests/static_checks.mjs && node tests/hsai_smoke.mjs",
+    "test": "npm run check && npm run test:js",
     "build:android": "npm run build && node node_modules/@capacitor/cli/bin/capacitor sync android",
     "cap:add": "node node_modules/@capacitor/cli/bin/capacitor add android",
     "cap:sync": "node node_modules/@capacitor/cli/bin/capacitor sync android",
     "cap:doctor": "node node_modules/@capacitor/cli/bin/capacitor doctor",
-    "assets": "node scripts/make-android-assets.mjs",
-    "test:js": "node tests/frontend_smoke.mjs && node tests/no_lock_smoke.mjs && node tests/offline_smoke.mjs"
+    "assets": "node scripts/make-android-assets.mjs"
   },
   "devDependencies": {
     "@capacitor/android": "8.6.2",

@@ -1,547 +1,612 @@
-/* JARVIS AI — application bootstrap and interaction wiring. */
+/* VDPAI — HUD bootstrap, chat orchestration and interaction wiring. */
 
-// No-op in the browser; registers Android back-button handling in the APK.
 import "./native.js";
 
-import { startSession, api, chat, voiceTurn, EventStream, session } from "./api.js";
-import { initSettings, getBackendUrl, clearBackendUrl } from "./settings.js";
-import { uiState } from "./state.js";
+import {
+  APP_ID,
+  APP_NAME,
+  APP_VERSION,
+  createConversation,
+  ensureConversation,
+  getActiveConversation,
+  getActiveProvider,
+  getConversations,
+  getSettings,
+  initStore,
+  saveNow,
+  setActiveConversation,
+  subscribe,
+  updateSettings,
+  usesNativeStorage,
+} from "./store.js";
+import { providerReady, sendChat } from "./ai.js";
+import { testBackend } from "./backend.js";
 import { CoreRenderer } from "./core.js";
 import { Waveform } from "./wave.js";
 import { VoiceEngine } from "./voice.js";
-import { initPanels, loadPanels, applyStatus } from "./panels.js";
+import { uiState } from "./state.js";
 import * as ui from "./ui.js";
+import {
+  attachVoice,
+  closeControlCenter,
+  initControlCenter,
+  isControlCenterOpen,
+  openControlCenter,
+  refreshControlCenter,
+  setBackendStatus,
+} from "./control.js";
+import { closeHistory, initHistory, isHistoryOpen, openHistory, renderHistory } from "./history.js";
+import { initAssistant } from "./assistant.js";
+import { initIntegrations } from "./integrations.js";
+import { initMemory } from "./memory.js";
+import { initProfiles } from "./profiles.js";
 
 const $ = ui.$;
 const $$ = ui.$$;
 
-const LS = {
-  lang: "jarvis.lang",
-  tts: "jarvis.tts",
-  wake: "jarvis.wake",
-  motion: "jarvis.reduceMotion",
-  glow: "jarvis.lowGlow",
-};
-const DEFAULT_STATUS = {
-  provider: { label: "demo", model: "demo", demo: true },
-  runtime: {},
-  memory: {},
-  security: {},
-  browser: {},
-  voice: {},
-  urls: [],
-};
 const app = {
-  config: null,
-  status: DEFAULT_STATUS,
+  core: null,
+  wave: null,
+  voice: null,
+  transcript: null,
   busy: false,
-  entered: false,
-  attached: null,
-  approval: null,
-  approvals: new Set(),
-  stream: null,
-  lastResponse: null,
-  retryTimer: null,
-  retryDelay: 4000,
-  paused: false,
+  controller: null,
+  lastAnswer: "",
+  lastMeta: "",
+  liveBubble: null,
+  booted: false,
+  backendOnline: false,
 };
 
-let core = null;
-let wave = null;
-let voice = null;
-let transcript = null;
-const approvalQueue = [];
-
-function stored(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value === null ? fallback : value;
-  } catch {
-    return fallback;
-  }
-}
-
-function store(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    /* private mode */
-  }
-}
-
-function language() {
-  return $("#langSelect")?.value || stored(LS.lang, "en-US");
-}
-
-/* ------------------------------------------------------------------ bootstrap */
-function nativeBuild() {
-  return typeof window !== "undefined" && window.JARVIS_NATIVE_BUILD === true;
-}
-
-/** Small, always-visible backend indicator inside the HUD. */
-function setBackendState(state, detail = "") {
-  const labels = { checking: "CONNECTING", online: "ONLINE", local: "LOCAL", offline: "OFFLINE" };
-  const tones = { checking: "warn", online: "ok", local: "ok", offline: "bad" };
-  const label = labels[state] || "OFFLINE";
-  const pill = $("#backendStatus");
-  if (pill) {
-    pill.dataset.tone = tones[state] || "bad";
-    const text = $("#backendStatusText");
-    if (text) text.textContent = label;
-    pill.title = detail || label;
-  }
-  ui.setChip("chipBackend", tones[state] || "bad", label);
-}
-
-function scheduleBackendRetry() {
-  if (app.paused || app.retryTimer) return;
-  app.retryTimer = setTimeout(async () => {
-    app.retryTimer = null;
-    if (app.paused || !app.entered || document.hidden) {
-      app.retryDelay = 4000;
-      return;
-    }
-    await connectBackend({ silent: true });
-    app.retryDelay = Math.min(app.retryDelay * 1.8, 30000);
-  }, app.retryDelay);
-}
-
-/** Handshake + status refresh. The HUD is already visible when this runs. */
-async function connectBackend({ silent = false, force = false } = {}) {
-  if (app.paused && !force) return false;
-  app.paused = false;
-  try {
-    await startSession();
-    const [configResponse, statusResponse] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
-    app.config = configResponse.config || {};
-    app.status = statusResponse || DEFAULT_STATUS;
-    applyStatus(app.status);
-    updateChips(app.status);
-    applyFacts(app.status);
-    setBackendState(getBackendUrl() ? "online" : "local", getBackendUrl() || "same origin");
-    connectStream();
-    await loadPanels();
-    if (app.retryTimer) {
-      clearTimeout(app.retryTimer);
-      app.retryTimer = null;
-    }
-    app.retryDelay = 4000;
-    if (!silent) ui.toast("Backend connected.", "ok", 2200);
-    return true;
-  } catch (error) {
-    setBackendState("offline", error?.message || "backend unavailable");
-    if (!silent) handleError(error);
-    scheduleBackendRetry();
-    return false;
-  }
-}
-
-/** Rebind after the owner changes the server in System → Backend server. */
-async function reconnectBackend() {
-  const ok = await connectBackend({ silent: true, force: true });
-  if (!ok) throw new Error("The backend did not respond. The address was saved; try again when it is online.");
-  transcript?.add("system", `BACKEND RECONNECTED · ${getBackendUrl() || "same origin"}`);
-}
-
-/** Stop talking to the backend without deleting the saved address. */
-function disconnectBackend() {
-  app.paused = true;
-  if (app.retryTimer) {
-    clearTimeout(app.retryTimer);
-    app.retryTimer = null;
-  }
-  app.stream?.close();
-  app.stream = null;
-  setBackendState("offline", "disconnected — press Connect to resume");
-  uiState.set("IDLE", "backend disconnected");
-  transcript?.add("system", "BACKEND DISCONNECTED · HUD stays available; press Connect in System → Backend server.");
-  return true;
-}
-
-/** Restore local preferences (non-secret UI choices) and the backend URL. */
-async function resetLocalSettings() {
-  for (const key of Object.values(LS)) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
-  }
-  await clearBackendUrl();
-  app.paused = false;
-  document.body.classList.remove("reduce-motion", "low-glow");
-  applyAppearance();
-  syncPreferenceUi();
-  return connectBackend({ silent: true });
-}
-
+/* ---------------------------------------------------------------- bootstrap */
 async function boot() {
-  await initSettings();
-  await enter();
-  await connectBackend({ silent: true });
+  await initStore();
+  app.transcript = new ui.Transcript($("#transcript"));
+  uiState.bind($("#stateText"), $("#stateDetail"));
+
+  applyAppearance();
+  app.core = new CoreRenderer($("#coreCanvas"));
+  app.wave = new Waveform($("#waveCanvas"), { getLevel: () => micLevel() });
+  uiState.on((state) => {
+    app.core?.setState(state);
+    app.wave?.setState(state);
+  });
+
+  initVoice();
+  initControlCenter({
+    voice: app.voice,
+    onSettingsChanged: () => {
+      applyAppearance();
+      syncVoiceButtons();
+      renderResponseStatus();
+    },
+    onProviderChanged: () => {
+      refreshProviderUi();
+    },
+    onHistoryCleared: () => {
+      renderActiveConversation({ announce: true });
+      renderHistory();
+      refreshControlCenter();
+    },
+    onDataCleared: () => {
+      resetAfterDataClear();
+    },
+    onBackendChanged: (state) => {
+      app.backendOnline = state?.state === "online";
+      updateBackendChip(state?.state === "online" ? "online" : "offline", state?.detail || "");
+    },
+  });
+  attachVoice(app.voice);
+  initHistory({
+    onOpenConversation: (conversationId) => {
+      setActiveConversation(conversationId);
+      renderActiveConversation({ announce: false });
+      refreshProviderUi();
+    },
+    onNewConversation: () => newConversation(),
+    onChanged: () => {
+      renderActiveConversation({ announce: false });
+      renderHistory();
+      refreshControlCenter();
+      refreshProviderUi();
+    },
+  });
+
+  wireHud();
+  syncQuickToggles();
+  refreshProviderUi();
+  renderActiveConversation({ announce: true });
+  renderVoiceCapabilities();
+
+  initAssistant();
+  initIntegrations({
+    onEmergencyStop: () => handleEmergencyStop(),
+  });
+  initMemory();
+  initProfiles({
+    onProfileSwitched: () => {
+      renderActiveConversation({ announce: false });
+      renderHistory();
+      refreshControlCenter();
+    },
+  });
+
+  wireNavigation();
+  wireLaunchSequence();
+  updateGreeting();
+
+  $("#app").hidden = false;
+  app.booted = true;
+  setBackendStatus({ state: getSettings().backendUrl ? "offline" : "offline", detail: getSettings().backendUrl ? "not checked" : "not configured" });
+  updateBackendChip("offline", getSettings().backendUrl ? "not checked" : "not configured");
+
+  // Optional and fully non-blocking.
+  if (getSettings().backendUrl) probeBackend({ silent: true });
+
+  window.HSAI_READY = true; // Backward-compatible hook for existing browser integrations.
+  window.VDPAI_READY = true;
+  const publicApi = {
+    version: APP_VERSION,
+    send,
+    newConversation,
+    openControlCenter,
+    switchPage,
+    emergencyStop: handleEmergencyStop,
+    getState: () => ({
+      busy: app.busy,
+      lastAnswer: app.lastAnswer,
+      settings: getSettings(),
+      activeConversation: getActiveConversation(),
+    }),
+  };
+  window.HSAI = publicApi;
+  window.VDPAI = publicApi;
 }
 
-function hideBoot() {
-  // Kept for callers/tests; the startup overlay no longer exists.
+function resetAfterDataClear() {
+  closeControlCenter();
+  closeHistory();
+  app.lastAnswer = "";
+  app.lastMeta = "";
+  uiState.set("IDLE", "local data cleared");
+  app.transcript?.clear();
+  $("#responseText").textContent = "All local VDPAI data was deleted. Add a provider in Control Center → AI & API.";
+  $("#responseText").className = "response-text is-muted";
+  $("#responseMeta").textContent = "Local HUD · fresh configuration";
+  refreshProviderUi();
+  applyAppearance();
+  syncQuickToggles();
+  renderVoiceCapabilities();
+  refreshControlCenter();
+  renderHistory();
 }
 
-async function enter() {
-  if (app.entered || app.entering) return;
-  app.entering = true;
-  try {
-    app.status = DEFAULT_STATUS;
-    $("#app").hidden = false;
-    uiState.bind($("#stateText"), $("#stateDetail"));
-    core = new CoreRenderer($("#coreCanvas"));
-    wave = new Waveform($("#waveCanvas"), { getLevel: () => (voice ? voice.level() : 0) });
-    transcript = new ui.Transcript($("#transcript"), $("#fullTranscript"));
-    uiState.on((state) => {
-      core?.setState(state);
-      wave?.setState(state);
-    });
-
-    initVoice();
-    initPanels({
-      transcript,
-      voice,
-      requestApproval,
-      refreshStatus: (options) => refreshStatus(options),
-      reconnectBackend: () => reconnectBackend(),
-      disconnectBackend: () => disconnectBackend(),
-      clearLocalSettings: () => resetLocalSettings(),
-      getLanguage: language,
-      setState: (state, detail) => uiState.set(state, detail),
-    });
-    wireInteractive();
-    syncPreferenceUi();
-    setBackendState(getBackendUrl() ? "checking" : "offline");
-
-    applyStatus(app.status);
-    updateChips(app.status);
-    applyFacts(app.status);
-    transcript.add(
-      "system",
-      "CORE ONLINE · HUD ready offline · configure a backend in System when available",
-    );
-
-    bootStatus();
-
-    if (!voice.available) {
-      const button = $("#micBtn");
-      if (button) {
-        button.disabled = true;
-        button.title = voice.unsupportedReason();
-      }
-      transcript.add("system", voice.unsupportedReason());
-    }
-    app.entered = true;
-    hideBoot();
-  } finally {
-    app.entering = false;
-  }
-}
-
-function bootStatus() {
-  refreshStatus({ silent: true });
-  setInterval(() => {
-    if (!document.hidden) refreshStatus({ silent: true });
-  }, 30000);
-}
-
-/* ---------------------------------------------------------------- voice wiring */
+/* -------------------------------------------------------------------- voice */
 function initVoice() {
-  const ttsEnabled = stored(LS.tts, "1") === "1";
-  voice = new VoiceEngine({
-    getLanguage: language,
-    ttsEnabled,
+  const settings = getSettings();
+  app.voice = new VoiceEngine({
+    getLanguage: () => getSettings().language,
+    getSettings: () => getSettings(),
+    ttsEnabled: settings.ttsEnabled,
     onPartial: (text) => {
       const input = $("#chatInput");
-      if (input) input.value = text;
+      if (input && text) {
+        input.value = text;
+        autoGrow(input);
+      }
     },
     onFinal: (text) => {
       const input = $("#chatInput");
-      if (input) input.value = "";
+      if (input) {
+        input.value = "";
+        autoGrow(input);
+      }
       handleVoiceCommand(text);
     },
-    onError: (message) => {
-      ui.toast(message, "error", 8000);
-      transcript?.add("system", message);
-      uiState.set("ERROR", message.slice(0, 90));
+    onError: (message, code) => {
+      ui.toast(message, "error", 7500);
+      app.transcript?.add("error", message);
+      uiState.set("ERROR", message.slice(0, 100));
+      updateMicChip();
       setTimeout(() => {
-        if (!app.busy && !voice?.isSpeaking) uiState.set("IDLE", "awaiting command");
-      }, 3500);
+        if (!app.busy && !app.voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
+      }, 4200);
+      if (code === "permission") renderVoiceCapabilities();
     },
     onState: (state, detail) => {
-      if (state === "IDLE" && (app.busy || voice?.isSpeaking)) return;
+      if (state === "IDLE" && (app.busy || app.voice?.isSpeaking)) return;
       uiState.set(state, detail);
+      if (state === "LISTENING") {
+        updateMicChip("listening");
+        setResponseStatus("LISTENING", "busy");
+      }
+      if (state === "SPEAKING") {
+        updateMicChip("ready");
+        setResponseStatus("SPEAKING", "busy");
+      }
+      if (state === "IDLE") {
+        updateMicChip();
+        if (!app.busy) setResponseStatus(app.lastAnswer ? "ANSWER READY" : "IDLE");
+      }
     },
     onListening: (listening) => {
-      const button = $("#micBtn");
-      button?.setAttribute("aria-pressed", String(listening));
+      $("#micBtn")?.setAttribute("aria-pressed", String(listening));
+      $("#micLabel").textContent = listening ? "LISTENING" : "MIC";
+      updateMicChip(listening ? "listening" : undefined);
     },
+    onSpeaking: (speaking) => {
+      const stop = $("#voiceStopBtn");
+      if (stop) stop.hidden = !speaking;
+      if (speaking) setResponseStatus("SPEAKING", "busy");
+      else if (!app.busy) setResponseStatus(app.lastAnswer ? "ANSWER READY" : "IDLE");
+      updateVoiceChip();
+    },
+    onVoices: () => {},
   });
-  voice.setTtsEnabled(ttsEnabled);
+  syncQuickToggles();
+}
+
+function renderVoiceCapabilities() {
+  if (!app.voice) return;
+  const input = app.voice.inputAvailable;
+  const output = app.voice.outputAvailable;
+  const chip = $("#chipMic");
+  if (chip) {
+    if (!input) {
+      chip.dataset.tone = "bad";
+      chip.textContent = "";
+      chip.appendChild(document.createElement("i"));
+      chip.appendChild(document.createTextNode("MIC N/A"));
+      chip.title = app.voice.unsupportedInputReason() || "Voice input unavailable";
+    } else {
+      updateMicChip();
+      chip.title = "Microphone ready";
+    }
+  }
+  const mic = $("#micBtn");
+  if (mic) mic.setAttribute("aria-disabled", input ? "false" : "true");
+  const capabilities = $("#voiceCapabilities");
+  if (capabilities) {
+    capabilities.dataset.tone = input && output ? "ok" : "warn";
+    capabilities.textContent = `${input ? "Speech input ready." : `Speech input unavailable: ${app.voice.unsupportedInputReason()}`} ${
+      output ? "Voice output ready." : `Voice output unavailable: ${app.voice.unsupportedOutputReason()}`
+    }`;
+  }
+}
+
+function updateMicChip(mode) {
+  if (!app.voice?.inputAvailable) return;
+  const chip = $("#chipMic");
+  if (!chip) return;
+  const label = mode === "listening" ? "MIC LIVE" : app.voice.isListening ? "MIC LIVE" : "MIC";
+  ui.setChip(chip, mode === "listening" ? "ok" : "ok", label);
+  chip.title = mode === "listening" ? "Listening" : "Microphone ready";
+}
+
+function updateVoiceChip() {
+  const settings = getSettings();
+  const chip = $("#chipVoice");
+  const output = app.voice?.outputAvailable;
+  if (!chip) return;
+  if (!output) ui.setChip(chip, "bad", "TTS N/A");
+  else ui.setChip(chip, settings.ttsEnabled ? "ok" : "warn", settings.ttsEnabled ? "VOICE ON" : "VOICE OFF");
+  const quick = $("#ttsQuickBtn");
+  if (quick) {
+    quick.setAttribute("aria-pressed", String(settings.ttsEnabled));
+    quick.setAttribute("aria-label", settings.ttsEnabled ? "Spoken replies on" : "Spoken replies off");
+    quick.title = settings.ttsEnabled ? "Spoken replies on" : "Spoken replies off";
+  }
+  const toggle = $("#ttsToggle");
+  if (toggle) toggle.checked = settings.ttsEnabled;
+}
+
+function syncVoiceButtons() {
+  updateVoiceChip();
+  updateMicChip();
+  renderResponseStatus();
 }
 
 async function handleVoiceCommand(text) {
-  if (!text) return;
-  const command = text.trim();
-  // Local commands work even when the backend is offline.
-  if (/^(stop|stop speaking|cancel|shut up)[.,!?\s]*$/i.test(command)) {
-    voice?.cancelSpeech();
-    voice?.stopListening({ keepWake: true });
+  const command = String(text || "").trim();
+  if (!command) return;
+  if (/^(stop|stop speaking|cancel|quiet)[.,!?\s]*$/i.test(command)) {
+    app.voice?.stopSpeaking();
     uiState.set("IDLE", "speech stopped");
-    transcript.add("system", "Speech stopped.");
+    app.transcript?.add("system", "Speech stopped.");
     return;
   }
-  if (/^(repeat|repeat that|say that again)[.,!?\s]*$/i.test(command)) {
-    if (app.lastResponse && voice?.ttsAvailable && stored(LS.tts, "1") === "1") {
-      voice.speak(app.lastResponse, language());
-    } else {
-      ui.toast("No previous reply to repeat.", "warn");
+  if (/^(repeat|repeat that|say that again|replay)[.,!?\s]*$/i.test(command)) {
+    if (!app.lastAnswer) {
+      ui.toast("There is no previous answer to replay.", "warn");
+      return;
     }
+    replayAnswer();
     return;
   }
-  if (app.busy) {
-    ui.toast("Core is busy — voice command ignored.", "warn");
+  if (/^(new chat|new conversation|start over)[.,!?\s]*$/i.test(command)) {
+    newConversation();
     return;
   }
   await send(command, { source: "voice" });
 }
 
-/* ----------------------------------------------------------------------- send */
+/* --------------------------------------------------------------------- chat */
 async function send(raw, { source = "text" } = {}) {
   const message = String(raw || "").trim();
   if (!message) return;
   if (app.busy) {
-    ui.toast("Wait for the current response to finish.", "warn");
+    ui.toast("VDPAI is still answering. Stop the current response first.", "warn");
     return;
   }
-  app.busy = true;
-  transcript.add("user", message, source === "voice" ? "voice" : "");
-  uiState.set("THINKING", source === "voice" ? "interpreting voice command" : "reasoning");
+  const ready = providerReady();
+  if (!ready.ok) {
+    showConfigError(ready.reason);
+    return;
+  }
 
-  const images = source === "text" && app.attached ? [app.attached.dataUrl] : null;
-  clearAttachment();
+  app.busy = true;
+  app.lastAnswer = "";
+  app.lastMeta = "";
+  app.controller = new AbortController();
+  const conversation = ensureConversation();
+  const provider = ready.provider;
+
+  $("#chatInput").value = "";
+  autoGrow($("#chatInput"));
+  setComposerBusy(true);
+  uiState.set("THINKING", source === "voice" ? "interpreting voice command" : "reasoning");
+  setResponseStatus("THINKING", "busy");
+  setResponseText("", { muted: true });
+  $("#responseMeta").textContent = `${provider.name} · ${provider.model} · receiving response…`;
+  $("#stopGenBtn").hidden = false;
+  app.transcript?.add("user", message, source === "voice" ? "voice" : "");
+  app.liveBubble = app.transcript?.add("assistant", "", `${provider.name} · ${provider.model}`);
 
   try {
-    const response =
-      source === "voice"
-        ? await voiceTurn({ transcript: message, language: language() })
-        : await chat(images ? { message, language: language(), images } : { message, language: language() });
-    renderResponse(response);
+    const result = await sendChat({
+      text: message,
+      conversationId: conversation.id,
+      signal: app.controller.signal,
+      onDelta: (_delta, full) => {
+        setResponseText(full || "");
+        if (app.liveBubble) {
+          const textNode = app.liveBubble.firstChild;
+          if (textNode) textNode.nodeValue = full || "…";
+        }
+        const panel = $("#responseText");
+        if (panel) panel.scrollTop = panel.scrollHeight;
+      },
+    });
+
+    app.lastAnswer = result.text;
+    app.lastMeta = `${result.provider} · ${result.model}`;
+    setResponseText(result.text);
+    $("#responseMeta").textContent = result.stopped ? `${app.lastMeta} · stopped by user` : app.lastMeta;
+    setResponseStatus(result.stopped ? "STOPPED" : "ANSWER READY", result.stopped ? "error" : "");
+    if (app.liveBubble) {
+      const textNode = app.liveBubble.firstChild;
+      if (textNode) textNode.nodeValue = result.text;
+      const meta = app.liveBubble.querySelector(".meta");
+      if (meta) meta.textContent = `${app.lastMeta} · ${ui.timeLabel()}`;
+    }
+    uiState.set("IDLE", result.stopped ? "response stopped" : "answer ready");
+    refreshProviderUi();
+    renderHistory();
+    refreshControlCenter();
+    saveNow().catch(() => {});
+
+    if (!result.stopped && getSettings().ttsEnabled && app.voice?.outputAvailable) {
+      speakAnswer(result.text);
+    }
   } catch (error) {
-    handleError(error);
+    const aborted = app.controller?.signal.aborted || error?.code === "aborted";
+    const message = aborted ? "Response generation stopped." : error?.message || "The AI request failed.";
+    if (app.liveBubble?.parentNode) app.liveBubble.remove();
+    app.liveBubble = null;
+    setResponseText(message, { error: !aborted, muted: aborted });
+    $("#responseMeta").textContent = aborted ? "Stopped by user" : "Request failed";
+    setResponseStatus(aborted ? "STOPPED" : "ERROR", aborted ? "" : "error");
+    app.transcript?.add(aborted ? "system" : "error", message);
+    uiState.set(aborted ? "IDLE" : "ERROR", aborted ? "response stopped" : message.slice(0, 100));
+    if (!aborted) ui.toast(message, "error", 7500);
+    setTimeout(() => {
+      if (!app.busy && !app.voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
+    }, 4200);
   } finally {
     app.busy = false;
-    if (!voice?.isSpeaking && uiState.current === "THINKING") uiState.set("IDLE", "awaiting command");
-    refreshStatus({ silent: true });
-    loadPanels().catch(() => {});
-    if (voice?.wakeEnabled && !voice?.isSpeaking) {
-      setTimeout(() => voice?.resumeWake?.(), 500);
+    app.controller = null;
+    setComposerBusy(false);
+    $("#stopGenBtn").hidden = true;
+    if (!app.voice?.isSpeaking) {
+      updateMicChip();
+      if (uiState.current !== "ERROR") uiState.set("IDLE", "awaiting command");
     }
+    renderHistory();
+    refreshControlCenter();
+    renderVoiceCapabilities();
   }
 }
 
-function renderResponse(response) {
-  const meta = `${response.provider_label || response.provider} · ${response.model}${response.demo ? " · demo" : ""}`;
-  app.lastResponse = response.reply || "";
-  transcript.add("jarvis", response.reply, meta);
-
-  if (Array.isArray(response.actions) && response.actions.length) {
-    const summary = response.actions
-      .map((action) => `${action.ok ? "✓" : "✕"} ${action.tool}${action.summary ? `: ${action.summary}` : ""}`)
-      .join("\n");
-    transcript.add("system", summary);
-  }
-
-  for (const action of response.pending_approvals || []) requestApproval(action);
-
-  if (response.reply && stored(LS.tts, "1") === "1" && voice?.ttsAvailable) {
-    voice.speak(response.reply, response.language || language());
-  }
+function showConfigError(reason) {
+  const message = `${reason} Open Control Center → AI & API to configure a provider. The HUD stays available offline.`;
+  setResponseText(message, { error: true });
+  $("#responseMeta").textContent = "No usable AI provider";
+  setResponseStatus("NO API", "error");
+  app.transcript?.add("error", message);
+  uiState.set("ERROR", "AI provider not configured");
+  ui.toast(reason, "warn", 7000);
 }
 
-/* ----------------------------------------------------------------- approvals */
-function requestApproval(action) {
-  if (!action || !action.token || app.approvals.has(action.token)) return;
-  app.approvals.add(action.token);
-  approvalQueue.push(action);
-  if (!app.approval) showNextApproval();
-}
-
-function showNextApproval() {
-  const next = approvalQueue.shift();
-  if (!next) {
-    app.approval = null;
-    return;
-  }
-  app.approval = next;
-  ui.showApproval(next);
-}
-
-async function resolveApproval(approve) {
-  const action = app.approval;
-  if (!action) return;
-  const approveButton = $("#approveBtn");
-  const rejectButton = $("#rejectBtn");
-  approveButton.disabled = true;
-  rejectButton.disabled = true;
-  ui.hideApproval();
-  uiState.set("EXECUTING", `tool: ${action.tool}`);
-  try {
-    if (approve) {
-      const data = await api.post(`/api/tools/approve/${action.token}`, {});
-      transcript.add("system", `APPROVED · ${action.tool}\n${data.summary || "completed"}`);
-      ui.toast(`${action.tool} completed.`, "ok");
-    } else {
-      await api.post(`/api/tools/reject/${action.token}`, {});
-      transcript.add("system", `CANCELLED · ${action.tool}`);
-      ui.toast("Action cancelled.", "");
+function speakAnswer(text) {
+  app.voice?.speak(text).then((result) => {
+    if (!result.ok) {
+      setResponseStatus("TEXT READY", "error");
+      app.transcript?.add("error", result.error || "Voice output failed.", "");
+      ui.toast(result.error || "Voice output failed. The answer is still on screen.", "warn", 6500);
     }
-  } catch (error) {
-    handleError(error);
-  } finally {
-    approveButton.disabled = false;
-    rejectButton.disabled = false;
-    app.approvals.delete(action.token);
-    uiState.set("IDLE", "awaiting command");
-    loadPanels().catch(() => {});
-    showNextApproval();
-  }
-}
-
-/* ---------------------------------------------------------------------- state */
-function handleError(error) {
-  const message = error?.message || "Unknown error";
-  ui.toast(message, error?.status === 429 ? "warn" : "error", 7500);
-  if (error?.code === "auth_required") {
-    ui.toast("This network requires an access token. Use the local/LAN URL or contact the owner.", "warn", 8000);
-    return;
-  }
-  transcript?.add("system", message);
-  uiState.set("ERROR", message.slice(0, 90));
-  setTimeout(() => {
-    if (!app.busy && !voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
-  }, 3500);
-}
-
-async function refreshStatus({ silent = false, manual = false } = {}) {
-  if (app.paused) {
-    if (manual) ui.toast("Backend is disconnected. Press Connect in System → Backend server.", "warn", 5000);
-    return null;
-  }
-  try {
-    const status = await api.get("/api/status");
-    app.status = status;
-    applyStatus(status);
-    updateChips(status);
-    applyFacts(status);
-    setBackendState(getBackendUrl() ? "online" : "local", getBackendUrl() || "same origin");
-    if (app.retryTimer) {
-      clearTimeout(app.retryTimer);
-      app.retryTimer = null;
-    }
-    app.retryDelay = 4000;
-    if (manual) ui.toast("Status refreshed.", "ok", 2200);
-    return status;
-  } catch (error) {
-    setBackendState("offline", error?.message || "backend unavailable");
-    ui.setChip("chipNet", navigator.onLine ? "ok" : "bad", "NET");
-    if (!silent) handleError(error);
-    scheduleBackendRetry();
-    return null;
-  }
-}
-
-function applyFacts(status) {
-  if (!status) return;
-  const provider = status.provider || {};
-  const runtime = status.runtime || {};
-  const memory = status.memory || {};
-  $("#factProvider").textContent = provider.label || "demo";
-  $("#factModel").textContent = provider.model || "demo";
-  $("#factMemory").textContent = `${memory.messages || 0} msgs · ${memory.notes || 0} notes`;
-  $("#factUptime").textContent = ui.formatUptime(runtime.uptime_seconds);
-  $("#factSession").textContent = session.id ? `${session.id.slice(0, 10)}…` : "—";
-  const meter = $("#meterFill");
-  if (meter) {
-    const activity = Math.min(100, 8 + (runtime.messages_handled || 0) * 6);
-    meter.style.width = `${activity}%`;
-  }
-}
-
-function updateChips(status) {
-  ui.setChip("chipCore", "ok", "CORE");
-  const provider = status?.provider || {};
-  if (provider.demo) ui.setChip("chipAi", "warn", "DEMO");
-  else ui.setChip("chipAi", "ok", String(provider.provider || "AI").toUpperCase());
-  ui.setChip("chipNet", navigator.onLine ? "ok" : "bad", "NET");
-  const open = app.stream?.socket?.readyState === WebSocket.OPEN;
-  ui.setChip("chipWs", open ? "ok" : "warn", "LINK");
-}
-
-/* ----------------------------------------------------------------------- live */
-function connectStream() {
-  if (app.stream) {
-    app.stream.ensureConnected();
-    return;
-  }
-  app.stream = new EventStream({
-    onStatus: (status) => {
-      if (status === "online") {
-        ui.setChip("chipWs", "ok", "LINK");
-        $("#factLink").textContent = "live";
-      } else if (status === "error") {
-        ui.setChip("chipWs", "bad", "LINK");
-        $("#factLink").textContent = "error";
-      } else {
-        ui.setChip("chipWs", "warn", "LINK");
-        $("#factLink").textContent = "offline";
-      }
-    },
-    onEvent: handleEvent,
   });
-  app.stream.connect();
 }
 
-function handleEvent(event) {
-  const data = event.data || {};
-  switch (event.type) {
-    case "state":
-      if (data.state === "THINKING" || data.state === "EXECUTING") {
-        uiState.set(data.state, data.detail || "");
-      } else if (data.state === "IDLE") {
-        if (!app.busy && !voice?.isSpeaking && uiState.current !== "ERROR") {
-          uiState.set("IDLE", data.detail || "awaiting command");
-        }
-      }
-      break;
-    case "tool.start":
-      uiState.set("EXECUTING", `tool: ${data.tool}`);
-      break;
-    case "tool.done":
-      if (!data.ok) ui.toast(`Tool ${data.tool} failed: ${data.summary || "error"}`, "error", 6000);
-      break;
-    case "approval":
-      if (data.action) requestApproval(data.action);
-      break;
-    case "provider.fallback":
-      ui.toast(`Fallback provider engaged: ${data.to || "backup"}`, "warn", 6000);
-      break;
-    case "vision.start":
-      uiState.set("THINKING", "vision model processing image");
-      break;
-    case "hello":
-      refreshStatus({ silent: true });
-      break;
-    default:
-      break;
+function replayAnswer() {
+  if (!app.lastAnswer) {
+    ui.toast("There is no answer to replay yet.", "warn");
+    return;
+  }
+  if (!app.voice?.outputAvailable) {
+    ui.toast(app.voice?.unsupportedOutputReason() || "Voice output is unavailable.", "warn");
+    return;
+  }
+  speakAnswer(app.lastAnswer);
+}
+
+function setResponseText(value, { error = false, muted = false } = {}) {
+  const node = $("#responseText");
+  if (!node) return;
+  node.textContent = value;
+  node.className = `response-text${error ? " is-error" : muted ? " is-muted" : ""}`;
+}
+
+function setResponseStatus(label, tone = "") {
+  ui.setMiniStatus($("#responseStatus"), label, tone);
+}
+
+function renderResponseStatus() {
+  if (app.voice?.isSpeaking) setResponseStatus("SPEAKING", "busy");
+  else if (app.busy) setResponseStatus("THINKING", "busy");
+  else if (app.lastAnswer) setResponseStatus("ANSWER READY");
+  else setResponseStatus("IDLE");
+}
+
+function setComposerBusy(busy) {
+  const send = $(".send");
+  if (send) send.disabled = Boolean(busy);
+  const input = $("#chatInput");
+  if (input) input.disabled = Boolean(busy);
+}
+
+function newConversation() {
+  if (app.busy) {
+    ui.toast("Stop the current response before starting a new conversation.", "warn");
+    return;
+  }
+  const current = getActiveConversation();
+  if (current && current.messages.length === 0) {
+    closeHistory();
+    app.transcript?.clear();
+    setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
+    $("#responseMeta").textContent = "Local HUD · no backend required";
+    app.lastAnswer = "";
+    setResponseStatus("IDLE");
+    return;
+  }
+  const provider = getActiveProvider();
+  createConversation({ providerId: provider?.id || null, model: provider?.model || "" });
+  saveNow().catch(() => {});
+  closeHistory();
+  app.lastAnswer = "";
+  app.lastMeta = "";
+  renderActiveConversation({ announce: true });
+  setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
+  $("#responseMeta").textContent = "Local HUD · no backend required";
+  setResponseStatus("IDLE");
+  renderHistory();
+  refreshControlCenter();
+}
+
+function renderActiveConversation({ announce = false } = {}) {
+  const conversation = getActiveConversation();
+  if (!conversation || !conversation.messages.length) {
+    app.transcript?.clear();
+    if (announce) {
+      app.transcript?.add("system", "VDPAI READY · local HUD · configure an AI provider in Control Center");
+    }
+    const lastAssistant = [...(conversation?.messages || [])].reverse().find((message) => message.role === "assistant");
+    if (lastAssistant) {
+      app.lastAnswer = lastAssistant.content;
+      setResponseText(lastAssistant.content);
+      $("#responseMeta").textContent = conversation?.model || "assistant";
+    } else {
+      app.lastAnswer = "";
+      setResponseText("VDPAI is ready. Configure an AI provider, or use a quick command below.", { muted: true });
+      $("#responseMeta").textContent = "Local HUD · no backend required";
+    }
+    setResponseStatus("IDLE");
+    renderResponseStatus();
+    return;
+  }
+  app.transcript?.renderConversation(conversation, { announce });
+  const lastAssistant = [...conversation.messages].reverse().find((message) => message.role === "assistant");
+  if (lastAssistant) {
+    app.lastAnswer = lastAssistant.content.replace(/\n\n\[stopped\]$/, "");
+    app.lastMeta = conversation.model || "assistant";
+    setResponseText(app.lastAnswer);
+    $("#responseMeta").textContent = conversation.model || "assistant";
+    setResponseStatus("ANSWER READY");
+  } else {
+    app.lastAnswer = "";
+    setResponseText("Conversation restored. Ask your next question.", { muted: true });
+    $("#responseMeta").textContent = conversation.title;
+    setResponseStatus("IDLE");
   }
 }
 
-/* ------------------------------------------------------------- static wiring */
-function wireInteractive() {
+/* ------------------------------------------------------------------- provider */
+function refreshProviderUi() {
+  const provider = getActiveProvider();
+  const badge = $("#providerBadge");
+  const model = $("#providerModel");
+  if (provider) {
+    ui.setChip("chipProvider", "ok", truncate(provider.name.toUpperCase(), 14));
+    if (badge) badge.textContent = provider.name;
+    if (model) model.textContent = `${provider.model} · ${provider.apiKey || provider.type === "custom" ? "credential ready" : "no key"}`;
+  } else {
+    ui.setChip("chipProvider", "bad", "NO API");
+    if (badge) badge.textContent = "Not configured";
+    if (model) model.textContent = "Add a provider in Control Center";
+  }
+  updateVoiceChip();
+}
+
+function truncate(value, length) {
+  const text = String(value || "");
+  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+}
+
+/* --------------------------------------------------------------------- backend */
+async function probeBackend({ silent = false } = {}) {
+  const settings = getSettings();
+  if (!settings.backendUrl) {
+    app.backendOnline = false;
+    setBackendStatus({ state: "offline", detail: "not configured" });
+    updateBackendChip("offline", "not configured");
+    if (!silent) ui.toast("No backend configured. VDPAI works locally.", "warn");
+    return { ok: false, empty: true };
+  }
+  updateBackendChip("checking", "testing");
+  setBackendStatus({ state: "offline", detail: "checking…" });
+  const result = await testBackend(settings.backendUrl);
+  app.backendOnline = Boolean(result.ok);
+  setBackendStatus({
+    state: result.ok ? "online" : "offline",
+    detail: result.ok ? `${result.health} · ${result.url}` : result.error,
+    latency: result.latency || 0,
+    checkedAt: Date.now(),
+  });
+  updateBackendChip(result.ok ? "online" : "offline", result.ok ? result.url : result.error);
+  if (!silent) ui.toast(result.ok ? "Backend replied successfully." : result.error, result.ok ? "ok" : "error", 5000);
+  return result;
+}
+
+function updateBackendChip(state, detail) {
+  const labels = { online: "BACKEND ON", offline: "OFFLINE", checking: "BACKEND…" };
+  const tones = { online: "ok", offline: "warn", checking: "warn" };
+  ui.setChip("chipBackend", tones[state] || "warn", labels[state] || "OFFLINE");
+  const chip = $("#chipBackend");
+  if (chip) chip.title = detail || labels[state] || "";
+}
+
+/* --------------------------------------------------------------- interactions */
+function wireHud() {
   if ($("#app").dataset.wired === "1") return;
   $("#app").dataset.wired = "1";
 
@@ -550,224 +615,324 @@ function wireInteractive() {
     const input = $("#chatInput");
     const text = input.value.trim();
     if (!text) return;
-    input.value = "";
     send(text);
   });
 
+  const input = $("#chatInput");
+  input.addEventListener("input", () => autoGrow(input));
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      $("#chatForm").requestSubmit();
+    }
+  });
+
   $("#micBtn").addEventListener("click", async () => {
-    if (!voice) return;
-    if (!voice.available) {
-      ui.toast(voice.unsupportedReason(), "warn", 8000);
-      transcript.add("system", voice.unsupportedReason());
+    if (!app.voice) return;
+    if (!app.voice.inputAvailable) {
+      ui.toast(app.voice.unsupportedInputReason() || "Voice input is unavailable.", "warn", 7000);
       return;
     }
-    await voice.toggleMic();
+    await app.voice.toggleListening();
   });
 
-  $("#voiceToggle").addEventListener("click", () => {
-    const enabled = stored(LS.tts, "1") !== "1";
-    store(LS.tts, enabled ? "1" : "0");
-    voice?.setTtsEnabled(enabled);
-    $("#voiceToggle").setAttribute("aria-pressed", String(enabled));
-    $("#voiceToggle").setAttribute("aria-label", enabled ? "Spoken replies on" : "Spoken replies off");
-    if (!enabled) voice?.cancelSpeech();
-    const settingToggle = $("#ttsToggle");
-    if (settingToggle) settingToggle.checked = enabled;
-    ui.toast(enabled ? "Spoken replies on." : "Spoken replies off.", "", 2000);
+  $("#ttsQuickBtn").addEventListener("click", () => {
+    const enabled = !getSettings().ttsEnabled;
+    updateSettings({ ttsEnabled: enabled });
+    if (!enabled) app.voice?.stopSpeaking();
+    syncVoiceButtons();
+    refreshControlCenter();
+    saveNow().catch(() => {});
+    ui.toast(enabled ? "Spoken replies on." : "Spoken replies off.", "", 2200);
   });
 
-  $("#ttsToggle")?.addEventListener("change", (event) => {
-    const enabled = event.target.checked;
-    store(LS.tts, enabled ? "1" : "0");
-    voice?.setTtsEnabled(enabled);
-    if (!enabled) voice?.cancelSpeech();
-    $("#voiceToggle")?.setAttribute("aria-pressed", String(enabled));
-    ui.toast(enabled ? "Spoken replies on." : "Spoken replies off.", "", 2000);
+  $("#stopGenBtn").addEventListener("click", () => {
+    if (!app.controller) return;
+    app.controller.abort();
+    ui.toast("Stopping response…", "", 1600);
   });
 
-  $("#reduceMotionToggle")?.addEventListener("change", (event) => {
-    const reduced = event.target.checked;
-    store(LS.motion, reduced ? "1" : "0");
-    applyAppearance();
-    ui.toast(reduced ? "Reduced motion enabled." : "Full motion enabled.", "", 2000);
+  $("#voiceStopBtn").addEventListener("click", () => {
+    app.voice?.stopSpeaking();
+    updateMicChip();
+    ui.toast("Speech stopped.", "", 1800);
   });
 
-  $("#lowGlowToggle")?.addEventListener("change", (event) => {
-    const lowGlow = event.target.checked;
-    store(LS.glow, lowGlow ? "1" : "0");
-    applyAppearance();
-    ui.toast(lowGlow ? "Low-glow HUD enabled." : "Full HUD lighting restored.", "", 2000);
-  });
+  $("#replayBtn").addEventListener("click", replayAnswer);
 
-  $("#langSelect").addEventListener("change", (event) => {
-    store(LS.lang, event.target.value);
-    if (voice?.isListening) {
-      voice.stopListening({ keepWake: voice.wakeEnabled });
-      ui.toast("Language changed. Tap the mic to speak again.", "", 3000);
+  $("#copyBtn").addEventListener("click", async () => {
+    if (!app.lastAnswer) {
+      ui.toast("There is no answer to copy yet.", "warn");
+      return;
     }
+    const ok = await ui.copyText(app.lastAnswer);
+    ui.toast(ok ? "Answer copied." : "Could not access the clipboard.", ok ? "ok" : "warn", 2200);
   });
 
-  $$(".rail-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const panel = button.dataset.panel || "chat";
-      openPanel(panel);
-    });
-  });
-  $("#openSystem").addEventListener("click", () => openPanel("system"));
-
-  $$("[data-close]").forEach((node) => node.addEventListener("click", () => ui.closeSheet()));
-  $("#approveBtn").addEventListener("click", () => resolveApproval(true));
-  $("#rejectBtn").addEventListener("click", () => resolveApproval(false));
-
+  $("#newChatBtn").addEventListener("click", () => newConversation());
+  $("#openSystem")?.addEventListener("click", () => openControlCenter("ai"));
   $("#quickActions").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-quick]");
     if (!button) return;
     send(button.dataset.quick);
   });
 
-  $("#attachBtn").addEventListener("click", () => {
-    if (!app.status?.vision?.available) {
-      ui.toast(
-        "Image input needs a vision-capable provider (OpenAI, Gemini or OpenRouter) selected in Settings.",
-        "warn",
-        7000,
-      );
-      return;
-    }
-    const input = $("#imageInput");
-    input.removeAttribute("capture");
-    input.value = "";
-    input.click();
-  });
-
-  $("#imageInput").addEventListener("change", (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const maxMb = Number(app.config?.max_image_mb) || 8;
-    if (!file.type.startsWith("image/")) {
-      ui.toast("Choose an image file.", "warn");
-      return;
-    }
-    if (file.size > maxMb * 1024 * 1024) {
-      ui.toast(`Image is larger than ${maxMb} MB.`, "warn");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      app.attached = { dataUrl: String(reader.result || ""), name: file.name };
-      const chip = $("#attachment");
-      const preview = $("#attachmentPreview");
-      const label = $("#attachmentName");
-      if (preview) preview.src = app.attached.dataUrl;
-      if (label) label.textContent = file.name;
-      if (chip) chip.hidden = false;
-    };
-    reader.onerror = () => ui.toast("Could not read that image.", "error");
-    reader.readAsDataURL(file);
-  });
-
-  $("#attachmentClear").addEventListener("click", clearAttachment);
-
-  $("#wakeToggle").addEventListener("change", async (event) => {
-    const enabled = event.target.checked;
-    if (enabled && !voice?.available) {
-      event.target.checked = false;
-      ui.toast(voice?.unsupportedReason() || "Voice input is unavailable.", "warn", 8000);
-      return;
-    }
-    store(LS.wake, enabled ? "1" : "0");
-    if (enabled) {
-      const started = await voice.setWakeEnabled(true);
-      if (!started) {
-        event.target.checked = false;
-        store(LS.wake, "0");
-        return;
-      }
-      ui.toast('Wake phrase armed. Keep this tab open; Android pauses the mic in the background.', "ok", 6000);
-    } else {
-      await voice.setWakeEnabled(false);
-      ui.toast("Wake phrase disabled.", "", 2500);
-    }
-  });
-
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      if (!$("#approvalModal").hidden) {
-        ui.hideApproval();
-        return;
-      }
-      ui.closeSheet();
-      voice?.cancelSpeech();
+    if (event.key !== "Escape") return;
+    if (!$("#promptModal").hidden) {
+      $("#promptCancel")?.click();
+      return;
     }
+    if (!$("#confirmModal").hidden) {
+      $("#confirmCancel")?.click();
+      return;
+    }
+    if (!$("#providerModal").hidden) {
+      $("#providerCancelBtn")?.click();
+      return;
+    }
+    if (isControlCenterOpen()) {
+      closeControlCenter();
+      return;
+    }
+    if (isHistoryOpen()) {
+      closeHistory();
+      return;
+    }
+    app.voice?.stopSpeaking();
   });
 
   window.addEventListener("online", () => {
-    ui.setChip("chipNet", "ok", "NET");
-    if (!app.paused) connectBackend({ silent: true });
+    ui.setChip("chipBackend", getSettings().backendUrl ? "warn" : "warn", "OFFLINE");
+    if (getSettings().backendUrl) probeBackend({ silent: true });
   });
   window.addEventListener("offline", () => {
-    ui.setChip("chipNet", "bad", "NET");
-    setBackendState("offline", "device is offline");
+    updateBackendChip("offline", "device offline");
+    if (getSettings().backendUrl) setBackendStatus({ state: "offline", detail: "device offline" });
   });
-  window.addEventListener("beforeunload", () => {
-    app.stream?.close();
-    voice?.stopListening();
-    voice?.cancelSpeech();
+  window.addEventListener("pagehide", () => {
+    saveNow().catch(() => {});
+    app.voice?.stopSpeaking();
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) saveNow().catch(() => {});
+  });
+
+  $("#historyBtn").addEventListener("click", openHistory);
+  $("#controlBtn").addEventListener("click", () => openControlCenter("ai"));
+
+  $("#shareBtn")?.addEventListener("click", async () => {
+    if (!app.lastAnswer) {
+      ui.toast("No response to share.", "warn");
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "VDPAI Intelligence", text: app.lastAnswer });
+        return;
+      } catch {
+        /* fallback to copy */
+      }
+    }
+    const ok = await ui.copyText(app.lastAnswer);
+    ui.toast(ok ? "Copied to clipboard." : "Could not copy.", ok ? "ok" : "warn");
+  });
+
+  $("#attachMediaBtn")?.addEventListener("click", () => {
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = "image/*,.pdf,.txt,.md";
+    picker.addEventListener("change", () => {
+      if (picker.files?.[0]) {
+        const file = picker.files[0];
+        const chatInp = $("#chatInput");
+        if (chatInp) {
+          chatInp.value = `[Attached: ${file.name}] ${chatInp.value}`;
+          chatInp.focus();
+        }
+        ui.toast(`Attached ${file.name}`, "ok");
+      }
+    });
+    picker.click();
+  });
+
+  const persSelect = $("#personalitySelect");
+  if (persSelect) {
+    persSelect.value = getSettings().personalityStyle || "jarvis";
+    persSelect.addEventListener("change", () => {
+      updateSettings({ personalityStyle: persSelect.value });
+      ui.toast(`Personality updated to: ${persSelect.options[persSelect.selectedIndex]?.text}`, "ok");
+    });
+  }
+
+  const userInp = $("#userNameInput");
+  if (userInp) {
+    userInp.value = getSettings().userName || "Sir";
+    userInp.addEventListener("change", () => {
+      updateSettings({ userName: userInp.value.trim() || "Sir" });
+      updateGreeting();
+      ui.toast(`Preferred name updated to: ${userInp.value.trim()}`, "ok");
+    });
+  }
+
+  const launchAnimToggle = $("#launchAnimToggle");
+  if (launchAnimToggle) {
+    launchAnimToggle.checked = getSettings().launchAnimationEnabled !== false;
+    launchAnimToggle.addEventListener("change", () => {
+      updateSettings({ launchAnimationEnabled: launchAnimToggle.checked });
+    });
+  }
 
   setInterval(tickClock, 1000);
   tickClock();
 }
 
-function openPanel(view) {
-  ui.openSheet(view);
-  if (view !== "chat") {
-    loadPanels().catch((error) => ui.toast(error.message, "warn"));
+let activePageIndex = 0;
+const PAGES = ["home", "assistant", "control", "settings"];
+
+function switchPage(pageId) {
+  const index = PAGES.indexOf(pageId);
+  if (index < 0) return;
+  activePageIndex = index;
+
+  const slider = $("#pagesSlider");
+  if (slider) {
+    slider.style.transform = `translateX(-${index * 25}%)`;
   }
+
+  $$(".page-view").forEach((view) => {
+    view.classList.toggle("is-active", view.dataset.page === pageId);
+  });
+
+  $$(".nav-pill-btn").forEach((btn) => {
+    const isCurrent = btn.dataset.page === pageId;
+    btn.classList.toggle("is-active", isCurrent);
+    btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
+  });
 }
 
-function clearAttachment() {
-  app.attached = null;
-  const chip = $("#attachment");
-  if (chip) chip.hidden = true;
-  const input = $("#imageInput");
-  if (input) input.value = "";
-}
-
-function applyAppearance() {
-  const reduced = stored(LS.motion, "0") === "1";
-  const lowGlow = stored(LS.glow, "0") === "1";
-  document.body.classList.toggle("reduce-motion", reduced);
-  document.body.classList.toggle("low-glow", lowGlow);
-  if (!core) return;
-  core.reduced = reduced || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (core.reduced) {
-    core.stop();
-    core.draw();
-  } else {
-    core.start();
+function handleEmergencyStop() {
+  if (app.controller) {
+    app.controller.abort();
+    app.controller = null;
   }
+  if (app.voice) {
+    app.voice.stopSpeaking();
+    app.voice.stopListening();
+  }
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  app.busy = false;
+  uiState.set("IDLE", "ready");
+  const stopGen = $("#stopGenBtn");
+  if (stopGen) stopGen.hidden = true;
+  const stopVoice = $("#voiceStopBtn");
+  if (stopVoice) stopVoice.hidden = true;
+  ui.toast("EMERGENCY STOP: Active processes terminated.", "error", 4000);
 }
 
-function syncPreferenceUi() {
-  const lang = stored(LS.lang, app.config?.default_language || "en-US");
-  const select = $("#langSelect");
-  if (select) select.value = lang;
-  const ttsEnabled = stored(LS.tts, "1") === "1";
-  $("#voiceToggle")?.setAttribute("aria-pressed", String(ttsEnabled));
-  $("#voiceToggle")?.setAttribute("aria-label", ttsEnabled ? "Spoken replies on" : "Spoken replies off");
-  const ttsToggle = $("#ttsToggle");
-  if (ttsToggle) ttsToggle.checked = ttsEnabled;
-  if (voice) voice.setTtsEnabled(ttsEnabled);
-  const wake = $("#wakeToggle");
-  if (wake) wake.checked = stored(LS.wake, "0") === "1";
-  const reduced = stored(LS.motion, "0") === "1";
-  const motionToggle = $("#reduceMotionToggle");
-  if (motionToggle) motionToggle.checked = reduced;
-  const lowGlow = stored(LS.glow, "0") === "1";
-  const glowToggle = $("#lowGlowToggle");
-  if (glowToggle) glowToggle.checked = lowGlow;
-  applyAppearance();
+function updateGreeting() {
+  const settings = getSettings();
+  const hour = new Date().getHours();
+  let salute = "Good evening";
+  if (hour < 12) salute = "Good morning";
+  else if (hour < 17) salute = "Good afternoon";
+
+  const user = settings.userName || "Sir";
+  const saluteEl = $("#greetingSalute");
+  if (saluteEl) saluteEl.textContent = `${salute}, ${user}.`;
+}
+
+function wireNavigation() {
+  $$("#bottomNavBar .nav-pill-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      switchPage(btn.dataset.page);
+    });
+  });
+
+  const viewport = $("#pagesViewport");
+  let startX = 0;
+  let startY = 0;
+  viewport?.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  viewport?.addEventListener("touchend", (e) => {
+    if (e.changedTouches.length === 1) {
+      const diffX = e.changedTouches[0].clientX - startX;
+      const diffY = e.changedTouches[0].clientY - startY;
+      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+        if (diffX < 0 && activePageIndex < PAGES.length - 1) {
+          switchPage(PAGES[activePageIndex + 1]);
+        } else if (diffX > 0 && activePageIndex > 0) {
+          switchPage(PAGES[activePageIndex - 1]);
+        }
+      }
+    }
+  }, { passive: true });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) {
+      if (e.key === "Escape") handleEmergencyStop();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === "1") { e.preventDefault(); switchPage("home"); }
+      else if (e.key === "2") { e.preventDefault(); switchPage("assistant"); }
+      else if (e.key === "3") { e.preventDefault(); switchPage("control"); }
+      else if (e.key === "4") { e.preventDefault(); switchPage("settings"); }
+      else if (e.key === "n" || e.key === "N") { e.preventDefault(); newConversation(); }
+      else if (e.key === "k" || e.key === "K") { e.preventDefault(); openHistory(); }
+    } else if (e.key === "Escape") {
+      handleEmergencyStop();
+    }
+  });
+}
+
+function wireLaunchSequence() {
+  const splash = $("#splashScreen");
+  if (!splash) return;
+
+  const settings = getSettings();
+  if (settings.launchAnimationEnabled === false || typeof window === "undefined" || window.HSAI_TEST) {
+    splash.hidden = true;
+    return;
+  }
+
+  const fill = $("#splashProgress");
+  const status = $("#splashStatusText");
+  const skip = $("#splashSkipBtn");
+
+  const dismiss = () => {
+    splash.classList.add("fade-out");
+    setTimeout(() => { splash.hidden = true; }, 400);
+  };
+
+  skip?.addEventListener("click", dismiss);
+  splash.addEventListener("click", dismiss);
+
+  if (fill) fill.style.width = "40%";
+  setTimeout(() => {
+    if (fill) fill.style.width = "75%";
+    if (status) status.textContent = "SYNCHRONIZING PERSONAL MEMORY…";
+  }, 350);
+
+  setTimeout(() => {
+    if (fill) fill.style.width = "100%";
+    if (status) status.textContent = "VDPAI CORE ONLINE";
+  }, 750);
+
+  setTimeout(dismiss, 1200);
+}
+
+function autoGrow(input) {
+  if (!input) return;
+  input.style.height = "auto";
+  input.style.height = `${Math.min(120, Math.max(42, input.scrollHeight))}px`;
 }
 
 function tickClock() {
@@ -782,10 +947,53 @@ function tickClock() {
   }
 }
 
-/* ------------------------------------------------------------------ start-up */
+/* ----------------------------------------------------------------- appearance */
+function applyAppearance() {
+  const settings = getSettings();
+  document.body.dataset.theme = settings.theme;
+  document.body.classList.toggle("low-glow", settings.lowGlow);
+  document.body.classList.toggle("reduce-motion", settings.reduceMotion);
+  document.body.classList.toggle("no-grid", !settings.showGrid);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", "#02070a");
+  if (!app.core) return;
+  const reduced = settings.reduceMotion || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  app.core.reduced = Boolean(reduced);
+  if (reduced) {
+    app.core.stop();
+    app.core.draw();
+  } else {
+    app.core.start();
+  }
+}
+
+function syncQuickToggles() {
+  updateVoiceChip();
+  updateMicChip();
+  refreshProviderUi();
+}
+
+function micLevel() {
+  if (!app.voice) return 0;
+  if (app.voice.isSpeaking) return 0.55;
+  if (app.voice.isListening) return 0.38;
+  if (app.busy) return 0.16;
+  return 0;
+}
+
+/* ---------------------------------------------------------------------- start */
 function start() {
   tickClock();
-  boot();
+  boot().catch((error) => {
+    const appNode = $("#app");
+    if (appNode) appNode.hidden = false;
+    const response = $("#responseText");
+    if (response) {
+      response.textContent = `VDPAI could not finish starting: ${error?.message || error}`;
+      response.className = "response-text is-error";
+    }
+    ui.toast(`Startup error: ${error?.message || error}`, "error", 9000);
+  });
 }
 
 if (document.readyState === "loading") {
@@ -793,3 +1001,5 @@ if (document.readyState === "loading") {
 } else {
   start();
 }
+
+export { app };

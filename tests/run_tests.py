@@ -205,7 +205,7 @@ def main() -> int:
             check("HUD is HTML", "text/html" in response.headers.get("content-type", ""))
             text = response.text
             check("HUD contains the app shell", 'id="app"' in text and "/js/app.js" in text)
-            check("HUD loads one external module", text.count("<script") == 1 and 'src="/js/app.js"' in text)
+            check("HUD loads local config and app modules", 'src="/js/native-config.js"' in text and 'src="/js/app.js"' in text)
 
         timed("GET / serves the frontend", index_test)
 
@@ -657,7 +657,16 @@ def main() -> int:
 
             page = secure.get("/")
             assets = [page.text]
-            for asset in ("/js/api.js", "/js/app.js", "/js/panels.js", "/index.html"):
+            for asset in (
+                "/js/app.js",
+                "/js/store.js",
+                "/js/providers.js",
+                "/js/ai.js",
+                "/js/control.js",
+                "/js/history.js",
+                "/js/voice.js",
+                "/index.html",
+            ):
                 assets.append(secure.get(asset).text)
             check("token is absent from HTML and frontend JS", all(token not in item for item in assets))
 
@@ -751,50 +760,96 @@ def main() -> int:
         package = os.path.join(ROOT, "package.json")
         android_build = os.path.join(ROOT, "android", "app", "build.gradle")
         capacitor = os.path.join(ROOT, "capacitor.config.js")
-        tile_service = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "hsai", "assistant", "JarvisTileService.kt")
-        settings_js = os.path.join(ROOT, "frontend", "js", "settings.js")
-        panels_js = os.path.join(ROOT, "frontend", "js", "panels.js")
+        tile_service = os.path.join(
+            ROOT, "android", "app", "src", "main", "java", "com", "hsai", "assistant", "HsaiTileService.kt"
+        )
+        voice_plugin = os.path.join(
+            ROOT, "android", "app", "src", "main", "java", "com", "hsai", "assistant", "HsaiVoicePlugin.java"
+        )
         app_js = os.path.join(ROOT, "frontend", "js", "app.js")
+        store_js = os.path.join(ROOT, "frontend", "js", "store.js")
+        providers_js = os.path.join(ROOT, "frontend", "js", "providers.js")
         strings = os.path.join(ROOT, "android", "app", "src", "main", "res", "values", "strings.xml")
+        native_config = os.path.join(ROOT, "frontend", "js", "native-config.js")
+        icon_readme = os.path.join(ROOT, "assets", "icon", "README.md")
+        workflow = os.path.join(ROOT, ".github", "workflows", "build-apk.yml")
 
         with open(html, encoding="utf-8") as handle:
             page = handle.read()
         check("startup backend form removed", "bootBackendForm" not in page and "INITIALISING JARVIS CORE" not in page)
-        check("backend status visible in HUD", 'id="backendStatus"' in page and 'id="chipBackend"' in page)
+        check("HUD branding is VDPAI", "<title>VDPAI</title>" in page and "<strong>VDPAI</strong>" in page)
+        check("backend status visible in HUD", 'id="chipBackend"' in page and 'id="backendUrl"' in page)
         required = [
-            'id="backendForm"', "AI providers", "Voice settings", "Language settings",
-            "Permissions", "Theme &amp; appearance", "Android integration", "Privacy &amp; security",
-            "About HSAI 2.0",
+            'id="providerForm"', "AI &amp; API Management", "Voice &amp; Language",
+            "Backend Server", "Privacy &amp; Local Data", "Appearance", "App Information",
+            'id="systemPrompt"', 'id="ttsToggle"', 'id="languageSelect"', 'id="lowGlowToggle"',
         ]
-        check("settings dashboard sections present", all(item in page for item in required))
+        check("HSAI settings sections present", all(item in page for item in required))
+        check(
+            "provider add/test/edit/delete controls",
+            all(f'id="{name}"' in page for name in (
+                "addProviderBtn", "providerTestBtn", "providerSaveBtn", "providerList",
+                "toggleKeyBtn", "providerError",
+            )),
+        )
         check(
             "backend connect/test/disconnect/clear controls",
-            all(f'id="{name}"' in page for name in ("backendForm", "backendTest", "backendDisconnect", "backendClear")),
+            all(f'id="{name}"' in page for name in (
+                "backendForm", "backendTestBtn", "backendDisconnectBtn", "backendClearBtn",
+            )),
         )
-
-        with open(panels_js, encoding="utf-8") as handle:
-            panels = handle.read()
-        check("disconnect is wired to the app", 'id="backendDisconnect"' in page and "disconnectBackend" in panels)
+        check(
+            "conversation history controls",
+            all(f'id="{name}"' in page for name in (
+                "historySheet", "historySearch", "historyList", "newChatBtn2",
+            )),
+        )
+        check(
+            "destructive actions are confirmed",
+            'id="confirmModal"' in page and 'id="confirmOk"' in page and 'id="promptModal"' in page,
+        )
 
         with open(app_js, encoding="utf-8") as handle:
             application = handle.read()
         check(
-            "disconnect pauses retries and keeps HUD open",
-            "paused" in application and "scheduleBackendRetry" in application and "BACKEND DISCONNECTED" in application,
+            "HUD auto-speaks only when voice output is available",
+            "getSettings().ttsEnabled && app.voice?.outputAvailable" in application,
         )
         check(
-            "local UI preferences persist",
-            all(key in application for key in ("jarvis.reduceMotion", "jarvis.lowGlow"))
-            and "localStorage" in application,
+            "active conversation is re-rendered after history changes",
+            "renderActiveConversation({ announce: false })" in application,
         )
-        check("theme controls present", 'id="lowGlowToggle"' in page and "low-glow" in application)
+
+        with open(store_js, encoding="utf-8") as handle:
+            storage = handle.read()
+        check("local storage document is versioned", '"hsai.store.v2"' in storage)
+        check(
+            "exports redact stored API keys",
+            'apiKey: provider.apiKey ? "[redacted]" : ""' in storage,
+        )
+        with open(providers_js, encoding="utf-8") as handle:
+            providers = handle.read()
+        check(
+            "real provider calls and SSE streaming exist",
+            all(token in providers for token in ("fetch(", "readSSE", "Authorization", "x-api-key")),
+        )
+        check("no demo/mock provider engine", "demo" not in providers.lower() or "no demo mode" in providers.lower())
+        with open(native_config, encoding="utf-8") as handle:
+            native_defaults = handle.read()
+        check("no backend URL is hardcoded", 'window.HSAI_DEFAULT_BACKEND_URL = window.HSAI_DEFAULT_BACKEND_URL || "";' in native_defaults)
 
         with open(manifest, encoding="utf-8") as handle:
             xml = handle.read()
-        check("tile service registered", ".JarvisTileService" in xml)
+        check("tile service registered", ".HsaiTileService" in xml and "JarvisTileService" not in xml)
         check("tile binding permission", "android.permission.BIND_QUICK_SETTINGS_TILE" in xml)
         check("tile intent filter", "android.service.quicksettings.action.QS_TILE" in xml)
         check("keyboard handling configured", "windowSoftInputMode" in xml)
+        check(
+            "speech recognition and TTS package visibility declared",
+            "android.speech.RecognitionService" in xml and "android.intent.action.TTS_SERVICE" in xml,
+        )
+        check("camera and external storage are not requested", "CAMERA" not in xml and "EXTERNAL_STORAGE" not in xml)
+        check("FileProvider removed", "FileProvider" not in xml)
 
         android_ns = {"android": "http://schemas.android.com/apk/res/android"}
         tree = ET.parse(manifest)
@@ -816,8 +871,8 @@ def main() -> int:
 
         with open(strings, encoding="utf-8") as handle:
             labels = handle.read()
-        check("application name is HSAI 2.0", '<string name="app_name">HSAI 2.0</string>' in labels)
-        check("tile label is HSAI 2.0", '<string name="tile_label">HSAI 2.0</string>' in labels)
+        check("application name is VDPAI", '<string name="app_name">VDPAI</string>' in labels)
+        check("tile label is VDPAI", '<string name="tile_label">VDPAI</string>' in labels)
 
         with open(android_build, encoding="utf-8") as handle:
             gradle = handle.read()
@@ -825,13 +880,28 @@ def main() -> int:
             cap_config = handle.read()
         with open(tile_service, encoding="utf-8") as handle:
             tile_source = handle.read()
+        with open(voice_plugin, encoding="utf-8") as handle:
+            voice_source = handle.read()
         check(
             "Android package ID is consistent",
             'applicationId "com.hsai.assistant"' in gradle
             and 'namespace = "com.hsai.assistant"' in gradle
             and 'appId: "com.hsai.assistant"' in cap_config
             and '<string name="package_name">com.hsai.assistant</string>' in labels
-            and tile_source.startswith("package com.hsai.assistant"),
+            and tile_source.startswith("package com.hsai.assistant")
+            and voice_source.startswith("package com.hsai.assistant"),
+        )
+        check(
+            "Android version is 1.0.0 (versionCode 3)",
+            'versionName "1.0.0"' in gradle and "versionCode 3" in gradle,
+        )
+        check(
+            "native voice uses Android SpeechRecognizer and TextToSpeech",
+            all(token in voice_source for token in ("SpeechRecognizer", "TextToSpeech", "UtteranceProgressListener")),
+        )
+        check(
+            "tile uses the API 34 PendingIntent overload safely",
+            "Build.VERSION_CODES.UPSIDE_DOWN_CAKE" in tile_source,
         )
 
         res_dir = os.path.join(ROOT, "android", "app", "src", "main", "res")
@@ -845,16 +915,10 @@ def main() -> int:
         check("all Android XML resources parse", parsed and len(resource_files) > 0, f"{len(resource_files)} files")
 
         with open(package, encoding="utf-8") as handle:
-            pkg = handle.read()
-        check("secure native storage dependency", "@capacitor/preferences" in pkg)
-
-        with open(settings_js, encoding="utf-8") as handle:
-            settings = handle.read()
-        check("no placeholder production URL in settings", "your-server" not in settings and "your-server" not in page)
-        check(
-            "native preferences use the injected bridge",
-            "nativePromise" in settings and 'from "@capacitor/preferences"' not in settings,
-        )
+            pkg = json.load(handle)
+        check("secure native storage dependency", "@capacitor/preferences" in pkg.get("dependencies", {}))
+        check("package metadata is VDPAI", pkg.get("name") == "vdpai" and pkg.get("version") == "1.0.0")
+        check("icon import is documented, not fabricated", os.path.exists(icon_readme))
 
         frontend_modules = glob.glob(os.path.join(ROOT, "frontend", "js", "*.js"))
         bare_imports = []
@@ -863,6 +927,16 @@ def main() -> int:
                 if re.search(r'\bfrom\s+["\']@', handle.read()):
                     bare_imports.append(os.path.basename(module))
         check("frontend avoids bare package imports", not bare_imports, ", ".join(bare_imports))
+
+        with open(workflow, encoding="utf-8") as handle:
+            ci = handle.read()
+        check(
+            "CI verifies and uploads the VDPAI APK artifact",
+            "assembleDebug" in ci
+            and "VDPAI-Android-APK" in ci
+            and 'if [ ! -s "$APK" ]' in ci
+            and "HsaiTileService" in ci,
+        )
 
     timed("Android + HUD static structure", android_and_hud_static_test)
 

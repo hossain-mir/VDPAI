@@ -1,4 +1,4 @@
-/* JARVIS AI — lightweight waveform driven by the real microphone analyser
+/* VDPAI — lightweight waveform driven by the real microphone analyser
    (or the real speaking/listening state when audio analysis is unavailable). */
 
 export class Waveform {
@@ -11,12 +11,13 @@ export class Waveform {
     this.last = 0;
     this.raf = null;
     this.visible = !document.hidden;
-    this.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.reduced = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
     this.resize = this.resize.bind(this);
     this.resize();
-    if (window.ResizeObserver) {
-      this.observer = new ResizeObserver(this.resize);
+    const RO = typeof ResizeObserver !== "undefined" ? ResizeObserver : (typeof window !== "undefined" ? window.ResizeObserver : null);
+    if (RO) {
+      this.observer = new RO(this.resize);
       this.observer.observe(canvas);
     }
     window.addEventListener("resize", this.resize, { passive: true });
@@ -38,7 +39,9 @@ export class Waveform {
     this.height = height;
     this.canvas.width = Math.round(width * dpr);
     this.canvas.height = Math.round(height * dpr);
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (typeof this.ctx?.setTransform === "function") {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     if (this.reduced) this.draw();
   }
 

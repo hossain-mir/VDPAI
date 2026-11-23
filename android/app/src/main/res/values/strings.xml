@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">HSAI 2.0</string>
-    <string name="title_activity_main">HSAI 2.0</string>
-    <string name="tile_label">HSAI 2.0</string>
-    <string name="tile_content_description">Open HSAI 2.0 assistant</string>
+    <string name="app_name">VDPAI</string>
+    <string name="title_activity_main">VDPAI</string>
+    <string name="tile_label">VDPAI</string>
+    <string name="tile_content_description">Open VDPAI assistant</string>
     <string name="package_name">com.hsai.assistant</string>
     <string name="custom_url_scheme">com.hsai.assistant</string>
 </resources>

@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "private": true,
+  "description": "Marks the browser modules as ES modules when Node imports them in tests."
+}

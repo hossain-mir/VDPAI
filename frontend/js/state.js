@@ -1,4 +1,4 @@
-/* JARVIS AI — HUD state machine (drives CSS + labels). */
+/* VDPAI — HUD state machine (drives CSS + labels). */
 
 const LABELS = {
   IDLE: ["IDLE", "awaiting command"],

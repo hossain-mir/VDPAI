@@ -4,306 +4,887 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#02070a">
-  <meta name="description" content="HSAI 2.0 — a private, voice-enabled AI assistant for Android.">
-  <title>HSAI 2.0</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="VDPAI — futuristic personal AI assistant. Intelligent voice, personal memory, and app integrations.">
+  <title>VDPAI</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body data-state="idle">
-  <a class="skip-link" href="#chatInput">Skip to command input</a>
+<body data-state="idle" data-theme="cyan">
+  <a class="skip-link" href="#chatInput">Skip to message input</a>
+
+  <!-- ------------------------------------------------ Launch Animation Sequence (Section 12) -->
+  <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Launch Sequence">
+    <div class="splash-content">
+      <div class="splash-logo-wrap">
+        <img src="/assets/vdpai_icon.jpg" alt="VDPAI" class="splash-logo" onerror="this.src='/assets/icon.png'">
+        <div class="splash-pulse-ring"></div>
+        <div class="splash-reactor-ring"></div>
+      </div>
+      <h1 class="splash-title">VDPAI</h1>
+      <p class="splash-subtitle">PERSONAL INTELLIGENCE CORE</p>
+      <div class="splash-progress-track">
+        <div class="splash-progress-fill" id="splashProgress"></div>
+      </div>
+      <span class="splash-status-text" id="splashStatusText">INITIALIZING SYSTEM CORE…</span>
+      <button type="button" class="btn tiny splash-skip-btn" id="splashSkipBtn">Skip Sequence ➔</button>
+    </div>
+  </div>
 
   <div class="app" id="app" hidden>
-    <header class="topbar glass">
+    <!-- Top HUD Header -->
+    <header class="topbar">
       <div class="brand">
-        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-          <path d="M20 3 35 11.5v17L20 37 5 28.5v-17Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
-          <circle cx="20" cy="20" r="6.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
-          <circle cx="20" cy="20" r="2.1" fill="currentColor"/>
-        </svg>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44"><path d="M22 3 39 12.5v19L22 41 5 31.5v-19Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M15 28V16l14 12V16" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        </span>
         <div class="brand-text">
-          <strong>HSAI 2.0</strong>
-          <small>JUST A RATHER VERY INTELLIGENT SYSTEM</small>
+          <strong>VDPAI</strong>
+          <small>PERSONAL AI ASSISTANT</small>
         </div>
       </div>
 
-      <div class="chips" id="chips" aria-label="System status">
-        <span class="chip" id="chipCore" data-tone="ok"><i></i>CORE</span>
-        <span class="chip" id="chipAi" data-tone="warn"><i></i>DEMO</span>
-        <span class="chip" id="chipNet" data-tone="ok"><i></i>NET</span>
-        <span class="chip" id="chipWs" data-tone="warn"><i></i>LINK</span>
-        <span class="chip" id="chipBackend" data-tone="warn"><i></i>BACKEND</span>
+      <div class="status-chips" aria-label="System status">
+        <span class="chip" id="chipProvider" data-tone="bad" title="Selected AI provider"><i></i>NO API</span>
+        <span class="chip" id="chipMic" data-tone="warn" title="Microphone status"><i></i>MIC</span>
+        <span class="chip" id="chipVoice" data-tone="ok" title="Voice output status"><i></i>VOICE</span>
+        <span class="chip" id="chipBackend" data-tone="warn" title="Optional backend status"><i></i>OFFLINE</span>
+        <span class="chip" id="hudNetworkStatus" data-tone="ok" title="Network status"><i></i>ONLINE</span>
       </div>
 
-      <div class="clock">
-        <time id="clock">--:--</time>
-        <small id="dateLabel">—</small>
+      <div class="hud-telemetry" aria-label="Local telemetry">
+        <div class="clock" aria-label="Local time">
+          <time id="clock">--:--</time>
+          <small id="dateLabel">—</small>
+        </div>
+        <div class="battery-readout" id="hudBatteryText" title="Device battery">100%</div>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="historyBtn" type="button" aria-label="Conversation history" title="History">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 9h8M8 12.5h5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <button class="icon-btn" id="controlBtn" type="button" aria-label="Control Center" title="Control Center">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
       </div>
     </header>
 
-    <nav class="rail glass" aria-label="Sections">
-      <button class="rail-btn is-active" data-panel="chat" aria-label="Conversation" title="Conversation">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    <!-- Main Viewport containing the Four Main Swipeable Pages -->
+    <div class="pages-viewport" id="pagesViewport">
+      <div class="pages-slider" id="pagesSlider">
+
+        <!-- ============================================================ PAGE 1: AI Home -->
+        <section class="page-view is-active" id="pageHome" data-page="home" aria-label="Page 1: AI Home">
+          <main class="hud">
+            <!-- Greeting Banner -->
+            <div class="greeting-banner" id="greetingBanner">
+              <span class="greeting-salute" id="greetingSalute">Good evening, Sir.</span>
+              <span class="greeting-sub" id="greetingSub">All systems nominal. How may I assist you?</span>
+            </div>
+
+            <!-- Central Arc Reactor Core -->
+            <section class="core-stage" aria-label="Assistant core">
+              <div class="core-frame">
+                <canvas id="coreCanvas"></canvas>
+                <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                <div class="core-readout">
+                  <span id="stateText" class="state-text">IDLE</span>
+                  <small id="stateDetail">awaiting command</small>
+                </div>
+                <div class="mic-orb-wrap">
+                  <button id="micBtn" class="mic-orb" type="button" aria-label="Start voice input" aria-pressed="false">
+                    <span class="mic-halo" aria-hidden="true"></span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </button>
+                  <span class="mic-label" id="micLabel">MIC</span>
+                </div>
+              </div>
+              <div class="core-provider">
+                <span class="kicker">ACTIVE PROVIDER</span>
+                <strong id="providerBadge">Not configured</strong>
+                <small id="providerModel">Configure an AI provider in Control Center</small>
+              </div>
+            </section>
+
+            <!-- Latest Response Card -->
+            <section class="response-panel glass" aria-label="Latest assistant response">
+              <header class="panel-head">
+                <span class="kicker">ASSISTANT RESPONSE</span>
+                <span id="responseStatus" class="mini-status">IDLE</span>
+              </header>
+              <div id="responseText" class="response-text">VDPAI is ready. Configure an AI provider, or use a quick command below.</div>
+              <div class="response-foot">
+                <span id="responseMeta" class="response-meta">Local HUD · Bring your own API keys</span>
+                <div class="row-actions">
+                  <button class="btn tiny" id="copyBtn" type="button">Copy</button>
+                  <button class="btn tiny" id="replayBtn" type="button">Replay</button>
+                  <button class="btn tiny" id="stopGenBtn" type="button" hidden>Stop</button>
+                  <button class="btn tiny danger-ghost" id="voiceStopBtn" type="button" hidden>Stop voice</button>
+                  <button class="btn tiny" id="shareBtn" type="button">Share</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Real-time Voice Waveform & Transcript -->
+            <section class="activity-wrap" aria-label="Conversation activity">
+              <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
+              <div class="activity" id="transcript" role="log" aria-live="polite"></div>
+            </section>
+
+            <!-- Quick Commands -->
+            <div class="quick" id="quickActions" aria-label="Quick commands">
+              <button type="button" data-quick="Give me a short status briefing.">Status Briefing</button>
+              <button type="button" data-quick="Help me plan my day in five concise steps.">Plan Day</button>
+              <button type="button" data-quick="What are your full capabilities as VDPAI?">Capabilities</button>
+              <button type="button" data-quick="কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।">বাংলা (Bengali)</button>
+              <button type="button" data-quick="नमस्ते VDPAI, आज की मुख्य योजना क्या है?">हिन्दी (Hindi)</button>
+            </div>
+          </main>
+
+          <!-- Input Pill Dock (Images 1 & 4) -->
+          <footer class="dock glass">
+            <form id="chatForm" class="composer-pill" autocomplete="off">
+              <button type="button" class="pill-btn attach-btn" id="attachMediaBtn" title="Attach image or file" aria-label="Attach file">
+                <svg viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+              <label class="sr-only" for="chatInput">Message</label>
+              <textarea id="chatInput" rows="1" placeholder="Ask VDPAI anything…" maxlength="8000" enterkeyhint="send"></textarea>
+              <button class="send-pill-btn" type="submit" aria-label="Send message" title="Send">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+              </button>
+            </form>
+            <div class="dock-tools">
+              <button id="ttsQuickBtn" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Spoken replies">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+              </button>
+              <button id="newChatBtn" class="icon-btn" type="button" aria-label="New conversation" title="New conversation">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+          </footer>
+        </section>
+
+        <!-- ============================================================ PAGE 2: Personal Assistant -->
+        <section class="page-view" id="pageAssistant" data-page="assistant" aria-label="Page 2: Personal Assistant">
+          <div class="page-scroll-content">
+            <header class="section-banner">
+              <h2>PERSONAL ASSISTANT</h2>
+              <p>Tasks, notes, reminders, agenda, and daily intelligence overview.</p>
+            </header>
+
+            <!-- Daily Activity Summary Grid -->
+            <div class="metrics-grid">
+              <div class="metric-card glass-soft">
+                <span class="metric-val" id="summaryMessageCount">0</span>
+                <span class="metric-lbl">MESSAGES</span>
+              </div>
+              <div class="metric-card glass-soft">
+                <span class="metric-val" id="summaryTaskCount">0/0</span>
+                <span class="metric-lbl">TASKS DONE</span>
+              </div>
+              <div class="metric-card glass-soft">
+                <span class="metric-val" id="summaryReminderCount">0</span>
+                <span class="metric-lbl">REMINDERS</span>
+              </div>
+              <div class="metric-card glass-soft">
+                <span class="metric-val" id="summaryUptime">ONLINE</span>
+                <span class="metric-lbl">CORE STATUS</span>
+              </div>
+            </div>
+
+            <!-- Tasks Manager -->
+            <div class="card glass-soft">
+              <div class="card-head-row">
+                <h3>Tasks &amp; Action Items</h3>
+                <div class="filter-pills">
+                  <button type="button" class="task-filter-btn active" data-filter="all">All</button>
+                  <button type="button" class="task-filter-btn" data-filter="pending">Pending</button>
+                  <button type="button" class="task-filter-btn" data-filter="completed">Done</button>
+                </div>
+              </div>
+              <form id="taskForm" class="add-item-form">
+                <input id="taskInput" placeholder="Add a new task…" maxlength="200" required>
+                <select id="taskPriority" aria-label="Priority">
+                  <option value="normal">Normal</option>
+                  <option value="med">Medium</option>
+                  <option value="high">High</option>
+                </select>
+                <button type="submit" class="btn primary small">+ Add</button>
+              </form>
+              <div id="taskList" class="items-list"></div>
+            </div>
+
+            <!-- Notes Scratchpad -->
+            <div class="card glass-soft">
+              <div class="card-head-row">
+                <h3>Notes &amp; Intelligence Scratchpad</h3>
+                <input id="noteSearchInput" class="inline-search" placeholder="Search notes…" maxlength="80">
+              </div>
+              <form id="noteForm" class="add-note-form">
+                <div class="row">
+                  <input id="noteTitleInput" placeholder="Note title" maxlength="120" required>
+                  <input id="noteCategoryInput" placeholder="Category (e.g. Work)" maxlength="40">
+                </div>
+                <textarea id="noteContentInput" rows="2" placeholder="Note content…" maxlength="8000" required></textarea>
+                <div class="row end">
+                  <button type="submit" class="btn primary small">+ Save Note</button>
+                </div>
+              </form>
+              <div id="noteList" class="notes-grid"></div>
+            </div>
+
+            <!-- Reminders -->
+            <div class="card glass-soft">
+              <h3>Reminders &amp; Alerts</h3>
+              <form id="reminderForm" class="add-item-form">
+                <input id="reminderTitleInput" placeholder="Reminder title…" maxlength="140" required>
+                <input id="reminderTimeInput" type="datetime-local">
+                <button type="submit" class="btn primary small">+ Set</button>
+              </form>
+              <div id="reminderList" class="items-list"></div>
+            </div>
+
+            <!-- Calendar & Agenda -->
+            <div class="card glass-soft">
+              <h3>Daily Schedule &amp; Calendar Agenda</h3>
+              <div id="calendarAgenda" class="agenda-timeline"></div>
+            </div>
+
+            <!-- Quick Tools (Image 5 style) -->
+            <div class="card glass-soft">
+              <h3>Quick Assistant Tools</h3>
+              <div class="tools-grid">
+                <!-- Calculator -->
+                <div class="tool-box calculator-box">
+                  <span class="tool-title">Quick Calculator</span>
+                  <input id="calcDisplay" readonly placeholder="0" class="calc-display">
+                  <div class="calc-grid">
+                    <button type="button" class="calc-btn" data-val="7">7</button>
+                    <button type="button" class="calc-btn" data-val="8">8</button>
+                    <button type="button" class="calc-btn" data-val="9">9</button>
+                    <button type="button" class="calc-btn op" data-val="/">÷</button>
+                    <button type="button" class="calc-btn" data-val="4">4</button>
+                    <button type="button" class="calc-btn" data-val="5">5</button>
+                    <button type="button" class="calc-btn" data-val="6">6</button>
+                    <button type="button" class="calc-btn op" data-val="*">×</button>
+                    <button type="button" class="calc-btn" data-val="1">1</button>
+                    <button type="button" class="calc-btn" data-val="2">2</button>
+                    <button type="button" class="calc-btn" data-val="3">3</button>
+                    <button type="button" class="calc-btn op" data-val="-">-</button>
+                    <button type="button" class="calc-btn danger" data-val="C">C</button>
+                    <button type="button" class="calc-btn" data-val="0">0</button>
+                    <button type="button" class="calc-btn op" data-val="+">+</button>
+                    <button type="button" class="calc-btn primary" data-val="=">=</button>
+                  </div>
+                </div>
+
+                <!-- World Clocks -->
+                <div class="tool-box clocks-box">
+                  <span class="tool-title">World Clocks</span>
+                  <div class="world-clocks-list">
+                    <div class="world-clock-item" id="clockDhaka">Dhaka: --:--</div>
+                    <div class="world-clock-item" id="clockLondon">London: --:--</div>
+                    <div class="world-clock-item" id="clockNYC">New York: --:--</div>
+                    <div class="world-clock-item" id="clockTokyo">Tokyo: --:--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ PAGE 3: Control Center -->
+        <section class="page-view" id="pageControl" data-page="control" aria-label="Page 3: Control Center">
+          <div class="page-scroll-content">
+            <header class="section-banner">
+              <h2>COMMAND &amp; CONTROL CENTER</h2>
+              <p>App integrations, hardware toggles, system telemetry, and emergency controls.</p>
+            </header>
+
+            <!-- Emergency Stop Control (Section 8) -->
+            <div class="card emergency-card glass">
+              <div class="emergency-head">
+                <span class="emergency-tag">SAFETY FIRST</span>
+                <h3>Emergency Process Halt</h3>
+                <p>Stops active assistant speech and listening, aborts the current AI request, and turns off VDPAI's camera torch stream.</p>
+              </div>
+              <button type="button" class="emergency-stop-btn" id="emergencyStopBtn">
+                <svg viewBox="0 0 24 24" width="28" height="28"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+                <span>EMERGENCY STOP</span>
+              </button>
+            </div>
+
+            <!-- Glassmorphic App Shortcuts Grid (Image 2 style) -->
+            <div class="card glass-soft">
+              <h3>App &amp; Phone Integrations</h3>
+              <p class="hint">External actions always prompt for user confirmation before launching.</p>
+              <div class="app-grid-shortcuts">
+                <button type="button" class="app-tile glass" id="shortcutWhatsapp" title="WhatsApp">
+                  <span class="app-tile-icon">💬</span>
+                  <span class="app-tile-label">WhatsApp</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutPhone" title="Phone Dialer">
+                  <span class="app-tile-icon">📞</span>
+                  <span class="app-tile-label">Phone</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutSms" title="SMS Messages">
+                  <span class="app-tile-icon">✉️</span>
+                  <span class="app-tile-label">SMS</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutEmail" title="Email Composer">
+                  <span class="app-tile-icon">📧</span>
+                  <span class="app-tile-label">Email</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutCamera" title="Camera">
+                  <span class="app-tile-icon">📷</span>
+                  <span class="app-tile-label">Camera</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutMaps" title="Maps">
+                  <span class="app-tile-icon">🗺️</span>
+                  <span class="app-tile-label">Maps</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutYoutube" title="YouTube">
+                  <span class="app-tile-icon">▶️</span>
+                  <span class="app-tile-label">YouTube</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutBrowser" title="Web Browser">
+                  <span class="app-tile-icon">🌐</span>
+                  <span class="app-tile-label">Browser</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutMusic" title="Music Player">
+                  <span class="app-tile-icon">🎵</span>
+                  <span class="app-tile-label">Music</span>
+                </button>
+                <button type="button" class="app-tile glass" id="shortcutSettings" title="Settings">
+                  <span class="app-tile-icon">⚙️</span>
+                  <span class="app-tile-label">Settings</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Hardware & Device Controls -->
+            <div class="card glass-soft">
+              <h3>Hardware Controls &amp; Toggles</h3>
+              <div class="hardware-controls-grid">
+                <!-- Torch -->
+                <div class="hardware-tile glass">
+                  <div class="hw-head">
+                    <strong>Torch / Flashlight</strong>
+                    <span id="torchStatus" class="mini-status">OFF</span>
+                  </div>
+                  <button type="button" class="btn small" id="toggleTorchBtn">Toggle Flashlight</button>
+                </div>
+                <!-- Ping Latency -->
+                <div class="hardware-tile glass">
+                  <div class="hw-head">
+                    <strong>Network Latency</strong>
+                    <span id="pingTestResult" class="mini-status">-- ms</span>
+                  </div>
+                  <button type="button" class="btn small" id="pingTestBtn">Ping Test</button>
+                </div>
+                <!-- Volume Slider -->
+                <label class="field">
+                  <span>Assistant Volume <output id="controlVolumeVal">100%</output></span>
+                  <input type="range" id="controlVolume" min="0.1" max="1" step="0.05" value="1">
+                </label>
+                <!-- Brightness Slider -->
+                <label class="field">
+                  <span>HUD Display Brightness <output id="controlBrightnessVal">100%</output></span>
+                  <input type="range" id="controlBrightness" min="20" max="100" step="5" value="100">
+                </label>
+              </div>
+            </div>
+
+            <!-- Background Assistant Activator (Section 4) -->
+            <div class="card glass-soft">
+              <div class="card-head-row">
+                <div>
+                  <h3>Background Assistant</h3>
+                  <p class="hint">Persistent background listening is not available in this build. Use the microphone button while VDPAI is open.</p>
+                </div>
+                <span class="mini-status" id="bgAssistantStatus">UNAVAILABLE</span>
+              </div>
+              <button type="button" class="btn" id="activateBackgroundBtn" disabled aria-disabled="true">Background Listening Unavailable</button>
+            </div>
+
+            <!-- System Telemetry -->
+            <div class="card glass-soft">
+              <h3>Device Telemetry</h3>
+              <dl class="facts">
+                <dt>Battery</dt><dd id="ccBatteryText">Checking…</dd>
+                <dt>Network</dt><dd id="ccNetworkText">Online</dd>
+                <dt>Microphone</dt><dd id="ccMicPermText">Permission Required on Use</dd>
+                <dt>Local Storage</dt><dd id="ccStorageText">App-private / not encrypted</dd>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ PAGE 4: AI & Personalization -->
+        <section class="page-view" id="pageSettings" data-page="settings" aria-label="Page 4: AI & Personalization">
+          <div class="page-scroll-content">
+            <header class="section-banner">
+              <h2>AI &amp; PERSONALIZATION</h2>
+              <p>Model selection, voice tuning, memory manager, user profiles, and appearance.</p>
+            </header>
+
+            <!-- User Profiles (Section 11) -->
+            <div class="card glass-soft">
+              <div class="card-head-row">
+                <div>
+                  <h3>Isolated User Profiles</h3>
+                  <p class="hint">Each profile keeps independent memories, conversations, and settings.</p>
+                </div>
+                <span class="mini-status" id="activeProfileBadge">Primary</span>
+              </div>
+              <label class="field">
+                <span>Active Profile</span>
+                <select id="profileSelect"></select>
+              </label>
+              <form id="addProfileForm" class="row">
+                <input id="addProfileInput" placeholder="New profile name" maxlength="40" required>
+                <button type="submit" class="btn small">+ Add Profile</button>
+              </form>
+              <div id="profilesManagerList" class="profiles-list"></div>
+              <div class="row end">
+                <button type="button" class="btn tiny danger-ghost" id="resetProfileBtn">Reset Active Profile Data</button>
+              </div>
+            </div>
+
+            <!-- Personality & Tone Selector (Section 1) -->
+            <div class="card glass-soft">
+              <h3>AI Personality &amp; Style</h3>
+              <p class="hint">Adjust how VDPAI responds and addresses you.</p>
+              <label class="field">
+                <span>Preferred Name / Title</span>
+                <input id="userNameInput" placeholder="e.g. Sir, Alex, Boss" maxlength="40" value="Sir">
+              </label>
+              <label class="field">
+                <span>Personality Persona</span>
+                <select id="personalitySelect">
+                  <option value="jarvis">JARVIS (Calm, confident, and subtly witty)</option>
+                  <option value="professional">Professional (Executive precision, direct)</option>
+                  <option value="friendly">Friendly (Warm, supportive companion)</option>
+                  <option value="concise">Concise (Ultra-brief bullet points)</option>
+                  <option value="creative">Creative (Imaginative and expansive)</option>
+                </select>
+              </label>
+            </div>
+
+            <!-- Personal Memory Management (Section 6) -->
+            <div class="card glass-soft">
+              <div class="card-head-row">
+                <div>
+                  <h3>Personal Memory Manager</h3>
+                  <p class="hint">Information VDPAI remembers locally with your permission.</p>
+                </div>
+                <span class="mini-status" id="memoryCountBadge">0</span>
+              </div>
+              <label class="switch-row">
+                <span><strong>Enable Personal Memory</strong><small>Assistant references remembered facts.</small></span>
+                <input type="checkbox" id="memoryEnabledToggle" checked>
+              </label>
+              <label class="switch-row">
+                <span><strong>Private Conversation Mode</strong><small>Temporarily bypasses memory and history.</small></span>
+                <input type="checkbox" id="privateModeToggle">
+              </label>
+              <form id="memoryForm" class="add-note-form">
+                <div class="row">
+                  <input id="memoryKeyInput" placeholder="Fact / Preference key (e.g. Coffee)" maxlength="80" required>
+                  <select id="memoryCategorySelect">
+                    <option value="preference">Preference</option>
+                    <option value="identity">Identity</option>
+                    <option value="habit">Habit</option>
+                    <option value="custom">Custom Rule</option>
+                  </select>
+                </div>
+                <input id="memoryValueInput" placeholder="Value (e.g. Double Espresso, no sugar)" maxlength="400" required>
+                <div class="row end">
+                  <button type="submit" class="btn primary small">+ Add Memory</button>
+                </div>
+              </form>
+              <input id="memorySearchInput" class="inline-search" placeholder="Search memories…" maxlength="80">
+              <div id="memoryList" class="memories-container"></div>
+              <div class="row end">
+                <button type="button" class="btn tiny danger-ghost" id="clearMemoriesBtn">Clear All Memories</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Dynamic Pill Bottom Navigation Bar (Image 6 style) -->
+    <nav class="bottom-nav-bar" id="bottomNavBar" role="tablist" aria-label="Main Navigation">
+      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.6"/></svg>
+        </span>
+        <span class="nav-label">Home</span>
       </button>
-      <button class="rail-btn" data-panel="memory" aria-label="Memory" title="Memory">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7zM4 8h3M4 12h3M4 16h3M17 8h3M17 12h3M17 16h3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2ZM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        </span>
+        <span class="nav-label">Assistant</span>
       </button>
-      <button class="rail-btn" data-panel="tools" aria-label="Tools" title="Tools">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6-3 3-6-6zM11 9l-7 7v4h4l7-7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </span>
+        <span class="nav-label">Control</span>
       </button>
-      <button class="rail-btn" data-panel="vision" aria-label="Vision" title="Vision">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-      </button>
-      <button class="rail-btn" data-panel="system" aria-label="System and settings" title="System">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        </span>
+        <span class="nav-label">Profile</span>
       </button>
     </nav>
-
-    <main class="stage">
-      <section class="core-wrap" aria-label="HSAI core">
-        <canvas id="coreCanvas"></canvas>
-        <div class="state-readout">
-          <span id="stateText" class="state-text">IDLE</span>
-          <small id="stateDetail">awaiting command</small>
-        </div>
-        <div id="backendStatus" class="backend-status" data-tone="warn" role="status" aria-label="Backend connection">
-          <i aria-hidden="true"></i><span id="backendStatusText">CONNECTING</span>
-        </div>
-        <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      </section>
-
-      <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
-
-      <section class="transcript" id="transcript" aria-live="polite" aria-label="Conversation"></section>
-
-      <div class="quick" id="quickActions" aria-label="Quick commands">
-        <button type="button" data-quick="What can you do?">Capabilities</button>
-        <button type="button" data-quick="What time is it?">Time</button>
-        <button type="button" data-quick="Search the web for AI news">Search</button>
-        <button type="button" data-quick="Report system status">Status</button>
-      </div>
-    </main>
-
-    <aside class="infopanel glass" aria-label="System information">
-      <h2>SYSTEM</h2>
-      <dl class="facts">
-        <div><dt>Provider</dt><dd id="factProvider">demo</dd></div>
-        <div><dt>Model</dt><dd id="factModel">demo</dd></div>
-        <div><dt>Memory</dt><dd id="factMemory">0 msgs</dd></div>
-        <div><dt>Link</dt><dd id="factLink">connecting…</dd></div>
-        <div><dt>Session</dt><dd id="factSession">—</dd></div>
-        <div><dt>Uptime</dt><dd id="factUptime">—</dd></div>
-      </dl>
-      <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
-      <p class="hint" id="securityHint">Local network only. Do not tunnel publicly without access protection.</p>
-      <button class="btn small wide" id="openSystem" type="button">Configure core</button>
-    </aside>
-
-    <footer class="dock glass">
-      <button id="micBtn" class="mic" type="button" aria-label="Start voice input" aria-pressed="false">
-        <span class="mic-halo" aria-hidden="true"></span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-      </button>
-
-      <form id="chatForm" class="composer" autocomplete="off">
-        <label class="sr-only" for="chatInput">Command</label>
-        <input id="chatInput" type="text" placeholder="Speak or type a command…" maxlength="8000" enterkeyhint="send">
-        <button id="attachBtn" class="icon-btn" type="button" aria-label="Attach an image" title="Attach image">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-2h4l2 2h4v12H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-        </button>
-        <button class="send" type="submit" aria-label="Send command">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-        </button>
-      </form>
-
-      <div class="voice-tools">
-        <button id="voiceToggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Spoken replies">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-        </button>
-        <label class="sr-only" for="langSelect">Language</label>
-        <select id="langSelect">
-          <option value="en-US">EN</option>
-          <option value="bn-BD">বাং</option>
-          <option value="hi-IN">हिं</option>
-        </select>
-      </div>
-    </footer>
   </div>
 
-  <div id="attachment" class="attachment" hidden>
-    <img id="attachmentPreview" alt="Attachment preview">
-    <button id="attachmentClear" type="button" aria-label="Remove attachment">×</button>
-    <span id="attachmentName"></span>
-  </div>
+  <!-- Screen Brightness Tint Overlay -->
+  <div id="brightnessOverlay" class="brightness-overlay" aria-hidden="true"></div>
 
-  <div id="sheet" class="sheet" hidden>
-    <div class="sheet-backdrop" data-close="1"></div>
-    <section class="sheet-card glass" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-      <header class="sheet-head">
-        <h2 id="sheetTitle">Conversation</h2>
-        <button class="icon-btn" type="button" data-close="1" aria-label="Close">×</button>
+  <!-- ---------------------------------------------------------- Control Center Overlay (backward-compatible & comprehensive) -->
+  <div id="controlCenter" class="overlay" hidden>
+    <section class="overlay-card control-center" role="dialog" aria-modal="true" aria-labelledby="ccTitle">
+      <header class="overlay-head">
+        <button class="icon-btn back" id="ccClose" type="button" aria-label="Back to HUD">←</button>
+        <div>
+          <h1 id="ccTitle">CONTROL CENTER</h1>
+          <small>VDPAI · settings are saved on this device</small>
+        </div>
+        <span class="overlay-badge">v1.0</span>
       </header>
-      <div class="sheet-body" id="sheetBody">
-        <section data-view="chat">
-          <div class="row between">
-            <p class="hint">Stored locally in SQLite. Only the messages you send reach your configured AI provider.</p>
-            <button class="btn small danger-ghost" id="clearHistory" type="button">Clear history</button>
-          </div>
-          <div id="fullTranscript" class="full-transcript"></div>
-        </section>
 
-        <section data-view="memory" hidden>
-          <form id="noteForm" class="stack">
-            <label class="field"><span>Title</span><input id="noteTitle" maxlength="120" required></label>
-            <label class="field"><span>Content</span><textarea id="noteContent" rows="3" maxlength="4000"></textarea></label>
-            <label class="field"><span>Tags</span><input id="noteTags" maxlength="120" placeholder="personal, project"></label>
-            <div class="row">
-              <button class="btn primary" type="submit">Save note</button>
-              <button class="btn" id="memoryBackup" type="button">Backup DB</button>
-              <a class="btn" id="memoryExport" href="/api/memory/export" download>Export</a>
+      <nav class="cc-tabs" id="ccTabs" aria-label="Settings categories" role="tablist">
+        <button type="button" role="tab" data-tab="ai" class="is-active">AI &amp; API</button>
+        <button type="button" role="tab" data-tab="voice">Voice &amp; Language</button>
+        <button type="button" role="tab" data-tab="backend">Backend Server</button>
+        <button type="button" role="tab" data-tab="privacy">Privacy</button>
+        <button type="button" role="tab" data-tab="appearance">Appearance</button>
+        <button type="button" role="tab" data-tab="about">App Information</button>
+      </nav>
+
+      <div class="cc-body">
+        <!-- AI & API -->
+        <section class="cc-page is-active" data-page="ai" role="tabpanel">
+          <div class="section-head">
+            <div>
+              <h2>AI &amp; API Management</h2>
+              <p>Your keys stay on this device and are sent only to the provider you select.</p>
             </div>
-            <p class="hint" id="memoryStats"></p>
-          </form>
-
-          <form class="row" id="memorySearchForm">
-            <label class="sr-only" for="memorySearch">Search memory</label>
-            <input id="memorySearch" placeholder="Search notes and messages" maxlength="200">
-            <button class="btn" type="submit">Search</button>
-          </form>
-          <div id="noteList" class="list"></div>
-          <div id="memoryMessages" class="list mono small"></div>
-        </section>
-
-        <section data-view="tools" hidden>
-          <p class="hint">Every tool call is validated, timed out if slow, logged, and audited. Destructive tools require explicit approval.</p>
-          <div class="row">
-            <label class="sr-only" for="toolSelect">Tool</label>
-            <select id="toolSelect"></select>
-            <button class="btn small" id="toolRefresh" type="button">Refresh</button>
+            <button class="btn primary" id="addProviderBtn" type="button">+ Add New API</button>
           </div>
-          <label class="field"><span>Arguments (JSON)</span><textarea id="toolArgs" class="mono" rows="4" spellcheck="false"></textarea></label>
-          <button class="btn primary" id="toolRun" type="button">Run tool</button>
-          <pre id="toolResult" class="result" hidden></pre>
-          <h3>Pending approvals</h3>
-          <div id="pendingList" class="list"></div>
-        </section>
-
-        <section data-view="vision" hidden>
-          <p class="hint" id="visionNote">Checking vision support…</p>
-          <div class="row">
-            <button class="btn" id="visionPick" type="button">Choose image</button>
-            <button class="btn" id="visionCamera" type="button">Use camera</button>
+          <div class="active-provider glass-soft" id="activeProviderSummary">
+            <span class="kicker">ACTIVE PROVIDER</span>
+            <strong>Not configured</strong>
+            <small>Add a provider to start chatting.</small>
           </div>
-          <img id="visionPreview" class="preview" alt="Selected image preview" hidden>
-          <label class="field"><span>Question (optional)</span><textarea id="visionPrompt" rows="2" maxlength="1000" placeholder="Describe this image and note anything actionable."></textarea></label>
-          <button class="btn primary" id="visionAnalyze" type="button" disabled>Analyse image</button>
-          <pre id="visionResult" class="result" hidden></pre>
-        </section>
-
-        <section data-view="system" hidden>
-          <h3>Backend server</h3>
-          <form id="backendForm" class="stack">
-            <p class="hint" id="backendHint">Leave the address empty to use this page's own origin.</p>
-            <label class="field"><span>Server URL</span><input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://"></label>
-            <div class="row">
-              <button class="btn primary small" type="submit">Connect</button>
-              <button class="btn small" id="backendTest" type="button">Test</button>
-              <button class="btn small" id="backendDisconnect" type="button">Disconnect</button>
-              <button class="btn small" id="backendClear" type="button">Clear</button>
+          <div id="providerList" class="provider-list"></div>
+          <div class="card glass-soft">
+            <label class="field">
+              <span>System instructions / personality</span>
+              <textarea id="systemPrompt" rows="4" maxlength="4000" placeholder="You are VDPAI, a calm and capable personal assistant…"></textarea>
+            </label>
+            <div class="row end">
+              <span class="hint" id="systemPromptNote"></span>
+              <button class="btn small" id="saveSystemPrompt" type="button">Save instructions</button>
             </div>
-            <p class="hint" id="backendResult" role="status"></p>
+          </div>
+        </section>
+
+        <!-- Voice & language -->
+        <section class="cc-page" data-page="voice" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Voice &amp; Language</h2>
+              <p>Android speech recognition and Text-to-Speech, with a browser fallback.</p>
+            </div>
+          </div>
+          <div class="card glass-soft">
+            <label class="switch-row">
+              <span><strong>Spoken replies</strong><small>Read the actual assistant answer aloud.</small></span>
+              <input type="checkbox" id="ttsToggle">
+            </label>
+            <label class="field">
+              <span>Language</span>
+              <select id="languageSelect">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="bn-BD">বাংলা (Bangladesh)</option>
+                <option value="hi-IN">हिन्दी (India)</option>
+                <option value="es-ES">Español</option>
+                <option value="fr-FR">Français</option>
+                <option value="de-DE">Deutsch</option>
+                <option value="ar-SA">العربية</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Voice <small id="voiceCount"></small></span>
+              <select id="voiceSelect"><option value="">System default</option></select>
+            </label>
+            <label class="field">
+              <span>Speech rate <output id="speechRateValue">1.0×</output></span>
+              <input type="range" id="speechRate" min="0.5" max="1.8" step="0.05" value="1">
+            </label>
+            <label class="field">
+              <span>Volume <output id="speechVolumeValue">100%</output></span>
+              <input type="range" id="speechVolume" min="0.1" max="1" step="0.05" value="1">
+            </label>
+            <div class="row wrap">
+              <button class="btn small" id="testVoiceBtn" type="button">Test voice</button>
+              <button class="btn small danger-ghost" id="stopVoiceBtn2" type="button">Stop speaking</button>
+              <button class="btn small" id="micPermissionBtn" type="button">Check microphone permission</button>
+            </div>
+            <p class="hint" id="voiceCapabilities" role="status"></p>
+            <p class="hint" id="voiceStatus"></p>
+          </div>
+          <div class="card glass-soft">
+            <h3>Microphone status</h3>
+            <dl class="facts" id="voiceFacts"></dl>
+          </div>
+        </section>
+
+        <!-- Backend -->
+        <section class="cc-page" data-page="backend" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Backend Server <span class="optional">optional</span></h2>
+              <p>The HUD never requires a backend. A backend is only used for its health/status endpoint.</p>
+            </div>
+          </div>
+          <form id="backendForm" class="card glass-soft">
+            <label class="field">
+              <span>Backend URL</span>
+              <input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server.example">
+            </label>
+            <p class="hint">HTTPS only in the Android app. No address is hardcoded; leave empty for fully local operation.</p>
+            <div class="row wrap">
+              <button class="btn primary small" type="submit">Save &amp; connect</button>
+              <button class="btn small" id="backendTestBtn" type="button">Test connection</button>
+              <button class="btn small" id="backendDisconnectBtn" type="button">Disconnect</button>
+              <button class="btn small danger-ghost" id="backendClearBtn" type="button">Clear URL</button>
+            </div>
+            <dl class="facts" id="backendFacts"></dl>
+            <p class="hint" id="backendResult" role="status">No backend configured.</p>
           </form>
+        </section>
 
-          <h3>AI providers &amp; API configuration</h3>
-          <div class="row">
-            <label class="sr-only" for="providerSelect">Provider</label>
-            <select id="providerSelect"></select>
-            <button class="btn small" id="providerTest" type="button">Test</button>
+        <!-- Privacy -->
+        <section class="cc-page" data-page="privacy" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Privacy &amp; Local Data</h2>
+              <p>Conversations, personal memories, and credentials are stored locally on this device.</p>
+            </div>
           </div>
-          <label class="field"><span>Model</span><input id="modelInput" maxlength="120" list="modelSuggestions"></label>
-          <datalist id="modelSuggestions"></datalist>
-          <div class="row">
-            <button class="btn primary small" id="providerUse" type="button">Use provider</button>
-            <span id="providerTestResult" class="hint"></span>
+          <div class="card glass-soft">
+            <dl class="facts" id="privacyFacts"></dl>
+            <p class="hint" id="privacyStorageNote"></p>
           </div>
-
-          <details>
-            <summary>Add or replace an API key</summary>
-            <form id="keyForm" class="stack">
-              <p class="hint">Saved to the server's <code>.env</code> (owner-only permissions). Keys are never returned to this page or saved in the APK.</p>
-              <label class="field"><span>Provider</span><select id="keyProvider"></select></label>
-              <label class="field"><span>API key</span><input id="keyValue" type="password" autocomplete="off" placeholder="Paste key"></label>
-              <label class="field"><span>Base URL (Ollama/custom, optional)</span><input id="keyBaseUrl" maxlength="400" placeholder="Provider or Ollama endpoint"></label>
-              <label class="field"><span>Default model</span><input id="keyModel" maxlength="120" placeholder="llama3.2"></label>
-              <button class="btn primary" type="submit">Save configuration</button>
-              <p class="hint" id="keyResult"></p>
-            </form>
-          </details>
-
-          <h3>Voice settings</h3>
-          <label class="check"><input type="checkbox" id="ttsToggle"> Spoken replies</label>
-          <label class="check"><input type="checkbox" id="wakeToggle"> Wake phrase "Hey Jarvis" while this tab is open</label>
-          <p class="hint" id="voiceNote"></p>
-          <p class="hint">Say “stop speaking” to interrupt replies or “repeat that” to hear the last answer again.</p>
-
-          <h3>Language settings</h3>
-          <p class="hint" id="languageNote">Choose EN, বাং (Bengali) or हिं (Hindi) in the dock selector.</p>
-
-          <h3>Permissions</h3>
-          <div class="row">
-            <button class="btn small" id="permissionMic" type="button">Check / request microphone</button>
-            <button class="btn small" id="permissionCamera" type="button">Check / request camera</button>
+          <div class="card glass-soft">
+            <h3>Conversation history</h3>
+            <p class="hint" id="historyStats">No conversations yet.</p>
+            <div class="row wrap">
+              <button class="btn small" id="exportHistoryBtn" type="button">Export JSON</button>
+              <button class="btn small danger-ghost" id="clearHistoryBtn" type="button">Clear all conversations</button>
+            </div>
           </div>
-          <p class="hint" id="permissionResult" role="status">No permission check yet.</p>
-
-          <h3>Theme &amp; appearance</h3>
-          <label class="check"><input type="checkbox" id="reduceMotionToggle"> Reduced motion (saves battery)</label>
-          <label class="check"><input type="checkbox" id="lowGlowToggle"> Low-glow HUD (dims lighting and glass effects)</label>
-
-          <h3>Android integration</h3>
-          <dl class="facts" id="nativeInfo"></dl>
-          <div class="row">
-            <button class="btn small" id="nativeTest" type="button">Test native bridge</button>
+          <div class="card glass-soft">
+            <h3>API credentials</h3>
+            <p class="hint">
+              API keys are stored in this app's private data directory and sent directly to the provider you choose.
+              They are never committed to source control, logged, or embedded in the APK build.
+            </p>
+            <div class="row wrap">
+              <button class="btn small danger-ghost" id="clearAllDataBtn" type="button">Delete all local data</button>
+            </div>
           </div>
-          <p class="hint" id="nativeResult" role="status"></p>
-
-          <h3>Privacy &amp; security</h3>
-          <dl class="facts" id="secFacts"></dl>
-          <p class="hint" id="securityHint">Trusted local/LAN access · do not expose publicly without authentication.</p>
-          <div class="row">
-            <button class="btn small" id="auditToggle" type="button">Show audit log</button>
-            <button class="btn small" id="statusRefresh" type="button">Refresh status</button>
-            <button class="btn small danger-ghost" id="clearLocalData" type="button">Clear local settings</button>
+          <div class="card glass-soft">
+            <h3>Permissions</h3>
+            <p class="hint">VDPAI requests Internet and Microphone only. Speech recognition and TTS are provided by Android.</p>
+            <button class="btn small" id="privacyPermissionBtn" type="button">Check microphone permission</button>
+            <p class="hint" id="privacyPermissionResult" role="status"></p>
           </div>
-          <pre id="auditLog" class="result" hidden></pre>
+        </section>
 
-          <h3>About HSAI 2.0</h3>
-          <dl class="facts" id="aboutInfo"></dl>
-          <h3>Connection details</h3>
-          <dl class="facts" id="sysFacts"></dl>
-          <ul id="urlList" class="list mono small"></ul>
+        <!-- Appearance -->
+        <section class="cc-page" data-page="appearance" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Appearance</h2>
+              <p>Tune the HUD theme without adding unnecessary battery load.</p>
+            </div>
+          </div>
+          <div class="card glass-soft">
+            <label class="field">
+              <span>Accent theme</span>
+              <select id="themeSelect">
+                <option value="cyan">Quantum cyan</option>
+                <option value="emerald">Emerald core</option>
+                <option value="violet">Ion violet</option>
+                <option value="blue">Electric blue</option>
+                <option value="gold">Amber gold</option>
+                <option value="crimson">Crimson red</option>
+              </select>
+            </label>
+            <label class="switch-row">
+              <span><strong>Low-glow mode</strong><small>Dims lighting and glass effects to save battery.</small></span>
+              <input type="checkbox" id="lowGlowToggle">
+            </label>
+            <label class="switch-row">
+              <span><strong>Reduced motion</strong><small>Stops continuous canvas animation.</small></span>
+              <input type="checkbox" id="reduceMotionToggle">
+            </label>
+            <label class="switch-row">
+              <span><strong>HUD grid</strong><small>Show the subtle background grid.</small></span>
+              <input type="checkbox" id="gridToggle">
+            </label>
+            <label class="switch-row">
+              <span><strong>Launch animation</strong><small>Play futuristic launch sequence at startup.</small></span>
+              <input type="checkbox" id="launchAnimToggle" checked>
+            </label>
+          </div>
+        </section>
+
+        <!-- About -->
+        <section class="cc-page" data-page="about" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>App Information</h2>
+              <p>VDPAI · Personal AI Assistant</p>
+            </div>
+          </div>
+          <div class="card glass-soft">
+            <dl class="facts" id="aboutFacts"></dl>
+          </div>
+          <div class="card glass-soft">
+            <h3>Open-source components</h3>
+            <p class="hint">Capacitor (MIT) · AndroidX (Apache-2.0) · Kotlin (Apache-2.0).</p>
+          </div>
+          <div class="card glass-soft">
+            <h3>Privacy &amp; Security Note</h3>
+            <p class="hint">
+              VDPAI stores all conversations, notes, and memory locally. Zero third-party analytics or background data harvesting.
+            </p>
+          </div>
         </section>
       </div>
     </section>
   </div>
 
-  <div id="approvalModal" class="modal" hidden>
-    <div class="modal-card glass" role="alertdialog" aria-modal="true" aria-labelledby="approvalTitle" aria-describedby="approvalBody">
-      <span class="kicker">PERMISSION REQUIRED</span>
-      <h2 id="approvalTitle">Approve action</h2>
-      <p id="approvalBody">JARVIS wants to run a tool that can change data.</p>
-      <pre id="approvalArgs" class="result mono"></pre>
-      <div class="row end">
-        <button class="btn" id="rejectBtn" type="button">Cancel</button>
-        <button class="btn danger" id="approveBtn" type="button">Approve</button>
+  <!-- ------------------------------------------------------------- History Drawer -->
+  <div id="historySheet" class="overlay" hidden>
+    <section class="overlay-card history-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <header class="overlay-head">
+        <button class="icon-btn back" id="historyClose" type="button" aria-label="Back to HUD">←</button>
+        <div>
+          <h1 id="historyTitle">CONVERSATIONS</h1>
+          <small>Stored locally on this device</small>
+        </div>
+        <button class="btn primary small" id="newChatBtn2" type="button">+ New</button>
+      </header>
+      <div class="history-tools">
+        <label class="sr-only" for="historySearch">Search conversations</label>
+        <input id="historySearch" type="search" placeholder="Search conversations…" maxlength="200" autocomplete="off">
       </div>
-    </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
   </div>
 
-  <input id="imageInput" type="file" accept="image/*" hidden>
+  <!-- ----------------------------------------------------- Provider editor modal -->
+  <div id="providerModal" class="modal" hidden>
+    <form id="providerForm" class="modal-card" autocomplete="off">
+      <header class="modal-head">
+        <div>
+          <span class="kicker" id="providerFormKicker">NEW CONFIGURATION</span>
+          <h2 id="providerFormTitle">Add API</h2>
+        </div>
+        <button class="icon-btn" id="providerCancelBtn" type="button" aria-label="Cancel">×</button>
+      </header>
+      <input type="hidden" id="providerId">
+      <div class="modal-body">
+        <label class="field">
+          <span>Provider name</span>
+          <input id="providerName" maxlength="80" required placeholder="My OpenAI key">
+        </label>
+        <label class="field">
+          <span>Provider type</span>
+          <select id="providerType"></select>
+        </label>
+        <label class="field">
+          <span>API key</span>
+          <span class="secret-row">
+            <input id="providerKey" type="password" maxlength="4000" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="Paste API key">
+            <button class="btn tiny" id="toggleKeyBtn" type="button" aria-label="Show API key">Show</button>
+          </span>
+        </label>
+        <label class="field">
+          <span>Model ID</span>
+          <input id="providerModel" maxlength="160" required list="providerModelList" placeholder="gpt-4o-mini">
+          <datalist id="providerModelList"></datalist>
+        </label>
+        <label class="field">
+          <span>Base URL</span>
+          <input id="providerBase" type="url" inputmode="url" maxlength="600" autocapitalize="off" spellcheck="false" placeholder="https://api.openai.com/v1">
+        </label>
+        <label class="field">
+          <span>Custom endpoint path <small>optional</small></span>
+          <input id="providerEndpoint" maxlength="300" autocapitalize="off" spellcheck="false" placeholder="/chat/completions">
+        </label>
+        <p class="hint" id="providerHint"></p>
+        <p class="form-error" id="providerError" role="alert"></p>
+        <pre class="result" id="providerTestOutput" hidden></pre>
+      </div>
+      <footer class="modal-foot">
+        <button class="btn" id="providerTestBtn" type="button">Test connection</button>
+        <div class="row">
+          <button class="btn" id="providerCancelBtn2" type="button">Cancel</button>
+          <button class="btn primary" id="providerSaveBtn" type="submit">Save API</button>
+        </div>
+      </footer>
+    </form>
+  </div>
+
+  <!-- ------------------------------------------------------------ Confirm Modal -->
+  <div id="confirmModal" class="modal" hidden>
+    <section class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <span class="kicker">CONFIRM ACTION</span>
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <p id="confirmText"></p>
+      <footer class="modal-foot">
+        <button class="btn" id="confirmCancel" type="button">Cancel</button>
+        <button class="btn danger" id="confirmOk" type="button">Confirm</button>
+      </footer>
+    </section>
+  </div>
+
+  <!-- ------------------------------------------------------------- Prompt Modal -->
+  <div id="promptModal" class="modal" hidden>
+    <form id="promptForm" class="modal-card confirm-card" role="dialog" aria-modal="true" aria-labelledby="promptTitle">
+      <span class="kicker">EDIT</span>
+      <h2 id="promptTitle">Rename</h2>
+      <p id="promptText"></p>
+      <label class="field">
+        <span class="sr-only">Value</span>
+        <input id="promptInput" maxlength="120" required>
+      </label>
+      <footer class="modal-foot">
+        <button class="btn" id="promptCancel" type="button">Cancel</button>
+        <button class="btn primary" id="promptOk" type="submit">Save</button>
+      </footer>
+    </form>
+  </div>
+
   <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
 
+  <script src="/js/native-config.js"></script>
   <script type="module" src="/js/app.js"></script>
-  <noscript><p class="noscript">HSAI 2.0 needs JavaScript for voice and live updates.</p></noscript>
+  <noscript><p class="noscript">VDPAI needs JavaScript for chat, voice, and personal intelligence.</p></noscript>
 </body>
 </html>

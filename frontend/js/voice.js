@@ -1,285 +1,337 @@
-/* JARVIS AI — browser voice engine.
+/* VDPAI — voice input and text-to-speech.
  *
- * Honest Android behaviour:
- *  - SpeechRecognition (Web Speech API) does not exist in every browser.
- *  - Microphone access requires a secure context: localhost or https://.
- *    A plain http://LAN-IP page cannot use the mic in Chrome.
- *  - Wake-word listening only runs while this tab is open and the screen is on.
- *  - The manual mic button is the reliable fallback.
+ * On Android the VDPAI native plugin (HsaiVoicePlugin) is used for real
+ * SpeechRecognizer input and TextToSpeech output.  In a browser the Web Speech
+ * API is used when available.  Every unavailable path is reported honestly;
+ * nothing is simulated.
  */
 
-const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-const WAKE_PATTERN = /^(?:(?:hey|hi|ok|okay)[\s,]+(?:hsai|jarvis)|জার্ভিস|जार्विस)[\s,.!?-]*/i;
+const NativeRecognition = typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
 
-export class VoiceEngine {
-  constructor({ onPartial, onFinal, onError, onState, onListening, getLanguage, ttsEnabled = true }) {
-    this.onPartial = onPartial || (() => {});
-    this.onFinal = onFinal || (() => {});
-    this.onError = onError || (() => {});
-    this.onState = onState || (() => {});
-    this.onListening = onListening || (() => {});
-    this.getLanguage = getLanguage || (() => "en-US");
-    this.ttsEnabled = ttsEnabled;
+function nativeVoicePlugin() {
+  if (typeof window === "undefined") return null;
+  const cap = window.Capacitor;
+  if (!cap) return null;
+  const direct = cap.Plugins?.HsaiVoice;
+  if (direct && typeof direct.startListening === "function") return direct;
+  if (typeof cap.nativePromise === "function") {
+    return {
+      startListening: (options) => cap.nativePromise("HsaiVoice", "startListening", options),
+      stopListening: (options = {}) => cap.nativePromise("HsaiVoice", "stopListening", options),
+      speak: (options) => cap.nativePromise("HsaiVoice", "speak", options),
+      stop: (options = {}) => cap.nativePromise("HsaiVoice", "stop", options),
+      getVoices: (options = {}) => cap.nativePromise("HsaiVoice", "getVoices", options),
+      requestMic: (options = {}) => cap.nativePromise("HsaiVoice", "requestMic", options),
+      checkMic: (options = {}) => cap.nativePromise("HsaiVoice", "checkMic", options),
+      addListener: (eventName, callback) =>
+        new Promise((resolve) => {
+          cap.nativeCallback("HsaiVoice", "addListener", { eventName }, (data) => callback(data));
+          resolve({ remove() {} });
+        }),
+    };
+  }
+  return null;
+}
 
-    this.synth = window.speechSynthesis || null;
-    this.recognizer = null;
-    this.listen = false;
-    this.wakePref = false;
-    this.wakeMode = false;
-    this.armed = false;
-    this.stopping = false;
-    this.speaking = false;
-    this.restartTimer = null;
-    this.audioCtx = null;
-    this.analyser = null;
-    this.data = null;
-    this.stream = null;
-    this.voices = [];
+const ERROR_TEXT = {
+  "no-speech": "No speech was detected. Tap the microphone and try again.",
+  "audio-capture": "No working microphone was found. Check the device microphone.",
+  "not-allowed": "Microphone permission is denied. Allow it in Android app settings.",
+  "service-not-allowed": "Android speech recognition is unavailable on this device.",
+  network: "Speech recognition needs a network connection on this device.",
+  busy: "Speech recognition is busy. Wait a moment and try again.",
+  timeout: "Speech recognition timed out. Try again.",
+  "language-not-supported": "Android has no speech recognizer for the selected language.",
+  "recognizer-unavailable": "Android speech recognition is not available on this device.",
+};
 
-    this.loadVoices();
-    if (this.synth) {
-      this.synth.addEventListener?.("voiceschanged", () => this.loadVoices());
-      this.loadVoices();
+function splitForSpeech(text, limit = 700) {
+  const flat = String(text || "")
+    .replace(/[\u0000-\u0008\u000b-\u001f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!flat) return [];
+  const sentences = flat.split(/(?<=[.!?।\n])\s+/);
+  const chunks = [];
+  let current = "";
+  const push = (value) => {
+    while (value.length > limit) {
+      let cut = value.lastIndexOf(" ", limit);
+      if (cut < limit * 0.5) cut = limit;
+      chunks.push(value.slice(0, cut).trim());
+      value = value.slice(cut).trim();
+    }
+    if (value) chunks.push(value);
+  };
+  for (const sentence of sentences) {
+    if (!sentence) continue;
+    if (current && current.length + sentence.length + 1 > limit) {
+      push(current);
+      current = sentence;
+    } else {
+      current = current ? `${current} ${sentence}` : sentence;
     }
   }
+  if (current) push(current);
+  return chunks.slice(0, 40);
+}
 
-  get available() {
-    return Boolean(Recognition) && window.isSecureContext !== false;
+export class VoiceEngine {
+  constructor(options = {}) {
+    this.onPartial = options.onPartial || (() => {});
+    this.onFinal = options.onFinal || (() => {});
+    this.onError = options.onError || (() => {});
+    this.onState = options.onState || (() => {});
+    this.onListening = options.onListening || (() => {});
+    this.onSpeaking = options.onSpeaking || (() => {});
+    this.onVoices = options.onVoices || (() => {});
+    this.getLanguage = options.getLanguage || (() => "en-US");
+    this.getSettings = options.getSettings || (() => ({}));
+    this.native = nativeVoicePlugin();
+    this.synth = typeof window !== "undefined" ? window.speechSynthesis || null : null;
+    this.recognizer = null;
+    this.webUtterances = [];
+    this.voices = [];
+    this.speaking = false;
+    this.listening = false;
+    this.stoppingSpeech = false;
+    this.finalDelivered = false;
+    this.nativeListenersBound = false;
+    this.loadWebVoices();
+    if (this.synth && typeof this.synth.addEventListener === "function") {
+      this.synth.addEventListener("voiceschanged", () => this.loadWebVoices());
+    }
+    if (this.native) this.bindNativeEvents();
   }
 
-  get ttsAvailable() {
-    return Boolean(this.synth) && typeof SpeechSynthesisUtterance !== "undefined";
+  get hasNative() {
+    return Boolean(this.native);
+  }
+
+  get inputAvailable() {
+    return Boolean(this.native || NativeRecognition) && (this.native || window.isSecureContext !== false);
+  }
+
+  get outputAvailable() {
+    return Boolean(this.native || (this.synth && typeof SpeechSynthesisUtterance !== "undefined"));
   }
 
   get isListening() {
-    return this.listen;
+    return this.listening;
   }
 
   get isSpeaking() {
     return this.speaking;
   }
 
-  get wakeEnabled() {
-    return this.wakePref;
-  }
-
-  unsupportedReason() {
+  unsupportedInputReason() {
+    if (this.native) return "";
     if (window.isSecureContext === false) {
-      return "Voice needs a secure context. Open the HUD on localhost or an HTTPS tunnel. Plain http://LAN-IP pages cannot access the microphone in Chrome.";
+      return "Microphone access needs a secure page (HTTPS or localhost). The Android app is secure.";
     }
-    if (!Recognition) {
-      return "This browser does not expose speech recognition. Use Chrome on Android, or type your command.";
+    if (!NativeRecognition) {
+      return "Speech recognition is not available in this browser. The Android build uses the native recognizer.";
     }
-    return "Voice input is unavailable.";
+    return "";
   }
 
-  loadVoices() {
+  unsupportedOutputReason() {
+    if (this.native) return "";
+    if (!this.synth) return "Text-to-speech is not available in this browser. The Android build uses native Android TTS.";
+    return "";
+  }
+
+  async bindNativeEvents() {
+    if (this.nativeListenersBound || !this.native) return;
+    this.nativeListenersBound = true;
     try {
-      this.voices = this.synth ? this.synth.getVoices() || [] : [];
+      await this.native.addListener("partial", (event) => {
+        const text = event?.text || event?.value || "";
+        if (text) this.onPartial(text);
+      });
+      await this.native.addListener("result", (event) => {
+        const text = event?.text || event?.value || "";
+        this.finalDelivered = true;
+        this.listening = false;
+        this.onListening(false);
+        this.onState("THINKING", "processing voice command");
+        if (text.trim()) this.onFinal(text.trim());
+      });
+      await this.native.addListener("error", (event) => {
+        const code = event?.code || event?.error || "recognizer-unavailable";
+        const raw = event?.message || "";
+        this.listening = false;
+        this.onListening(false);
+        this.onError(ERROR_TEXT[code] || raw || `Speech recognition error: ${code}`, code);
+      });
+      await this.native.addListener("end", () => {
+        const wasFinal = this.finalDelivered;
+        this.listening = false;
+        this.onListening(false);
+        if (!wasFinal && !this.speaking) this.onState("IDLE", "awaiting command");
+      });
+    } catch {
+      /* Listener failure leaves the mic button honest: startListening surfaces it. */
+    }
+  }
+
+  loadWebVoices() {
+    if (this.native) return;
+    try {
+      this.voices = (this.synth?.getVoices() || []).map((voice) => ({
+        name: voice.name,
+        lang: voice.lang,
+        uri: voice.voiceURI,
+        local: voice.localService,
+      }));
+      this.onVoices(this.voices);
     } catch {
       this.voices = [];
     }
   }
 
-  setTtsEnabled(enabled) {
-    this.ttsEnabled = Boolean(enabled);
-    if (!this.ttsEnabled) this.cancelSpeech();
-  }
-
-  hasWake(text) {
-    return WAKE_PATTERN.test(String(text || "").trim());
-  }
-
-  stripWake(text) {
-    return String(text || "").trim().replace(WAKE_PATTERN, "").trim();
-  }
-
-  async toggleMic() {
-    if (this.listen) {
-      this.wakePref = false;
-      this.stopListening();
-      return;
+  async loadVoices() {
+    if (!this.native) {
+      this.loadWebVoices();
+      return this.voices;
     }
-    await this.startListening({ wake: false });
-  }
-
-  async setWakeEnabled(enabled) {
-    this.wakePref = Boolean(enabled);
-    if (this.wakePref) {
-      const started = await this.startListening({ wake: true });
-      if (!started) this.wakePref = false;
-      return started;
+    try {
+      const result = await this.native.getVoices({});
+      this.voices = Array.isArray(result?.voices)
+        ? result.voices.map((voice) => ({
+            name: voice.name || "",
+            lang: voice.lang || "",
+            uri: voice.name || "",
+            local: !voice.network,
+          }))
+        : [];
+    } catch {
+      this.voices = [];
     }
-    this.stopListening();
-    this.onState("IDLE", "wake phrase disabled");
-    return true;
+    this.onVoices(this.voices);
+    return this.voices;
   }
 
-  /** Resume wake-word listening after a command when no speech output is playing. */
-  async resumeWake() {
-    if (!this.wakePref || this.listen || this.speaking) return false;
-    return this.startListening({ wake: true });
+  voiceFor(language) {
+    if (!this.voices.length) return null;
+    const target = String(language || "").replace("_", "-").toLowerCase();
+    const exact = this.voices.find((voice) => String(voice.lang).replace("_", "-").toLowerCase() === target);
+    if (exact) return exact;
+    const prefix = target.split("-")[0];
+    return this.voices.find((voice) => String(voice.lang).toLowerCase().startsWith(prefix)) || null;
   }
 
-  async startListening({ wake = false } = {}) {
-    if (!this.available) {
-      this.onError(this.unsupportedReason());
+  async requestMic() {
+    if (this.native) {
+      try {
+        await this.native.requestMic({});
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error?.message || "Microphone permission was not granted." };
+      }
+    }
+    try {
+      const stream = await navigator.mediaDevices?.getUserMedia?.({ audio: true });
+      if (!stream) throw new Error("getUserMedia is unavailable.");
+      for (const track of stream.getTracks()) track.stop();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Microphone permission was not granted." };
+    }
+  }
+
+  async startListening() {
+    if (this.listening) return true;
+    if (!this.inputAvailable) {
+      this.onError(this.unsupportedInputReason() || "Voice input is unavailable.", "unavailable");
       return false;
     }
-    if (this.speaking) this.cancelSpeech();
-    clearTimeout(this.restartTimer);
-
-    this.stopping = false;
-    this.wakeMode = Boolean(wake);
-    this.armed = !wake;
-    await this.openStream();
-    this.spawnRecognizer();
-    return true;
+    if (this.speaking) this.stopSpeaking();
+    const permission = await this.requestMic();
+    if (!permission.ok) {
+      this.onError(permission.error, "permission");
+      return false;
+    }
+    this.finalDelivered = false;
+    if (this.native) {
+      try {
+        await this.native.startListening({ language: this.getLanguage() });
+        this.listening = true;
+        this.onListening(true);
+        this.onState("LISTENING", "listening…");
+        return true;
+      } catch (error) {
+        this.listening = false;
+        this.onListening(false);
+        this.onError(error?.message || "Could not start the Android speech recognizer.", "start_failed");
+        return false;
+      }
+    }
+    return this.startWebRecognition();
   }
 
-  spawnRecognizer({ retried = false } = {}) {
-    if (!this.available) return;
-    if (this.recognizer) {
-      try {
-        this.recognizer.onend = null;
-        this.recognizer.onerror = null;
-        this.recognizer.abort();
-      } catch {
-        /* ignore */
-      }
-      this.recognizer = null;
-    }
-
-    let recognition;
+  startWebRecognition() {
     try {
-      recognition = new Recognition();
-    } catch (error) {
-      this.onError(`Could not create the speech recogniser (${error.name}).`);
-      return;
-    }
-    recognition.lang = this.getLanguage();
-    recognition.continuous = this.wakeMode;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      this.listen = true;
-      this.onListening(true);
-      this.onState("LISTENING", this.wakeMode ? 'say "Hey HSAI"' : "listening…");
-    };
-
-    recognition.onspeechstart = () => {
-      if (this.listen) this.onState("LISTENING", this.wakeMode && !this.armed ? "wake phrase armed" : "capturing speech");
-    };
-
-    recognition.onresult = (event) => {
-      let interim = "";
-      let final = "";
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index];
-        const transcript = result[0]?.transcript || "";
-        if (result.isFinal) final += transcript;
-        else interim += transcript;
-      }
-
-      if (interim) {
-        if (this.wakeMode && !this.armed) {
-          if (this.hasWake(interim)) {
-            this.armed = true;
-            const rest = this.stripWake(interim);
-            if (rest) this.onPartial(rest);
-            this.onState("LISTENING", "wake phrase detected — speak now");
-          }
-        } else {
-          this.onPartial(interim);
+      const recognition = new NativeRecognition();
+      recognition.lang = this.getLanguage();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => {
+        this.listening = true;
+        this.onListening(true);
+        this.onState("LISTENING", "listening…");
+      };
+      recognition.onresult = (event) => {
+        let interim = "";
+        let final = "";
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          const transcript = result[0]?.transcript || "";
+          if (result.isFinal) final += transcript;
+          else interim += transcript;
         }
-      }
-
-      if (final && final.trim()) this.handleFinal(final);
-    };
-
-    recognition.onerror = (event) => {
-      const code = event.error || "unknown";
-      if (code === "aborted") return;
-      if (code === "no-speech") {
-        if (!this.wakeMode) this.onState("LISTENING", "no speech detected — try again");
-        return;
-      }
-      if (code === "not-allowed" || code === "service-not-allowed") {
-        this.fatal("Microphone permission denied. Allow the microphone in the browser site settings and try again.");
-        return;
-      }
-      if (code === "audio-capture") {
-        this.closeStream();
-        if (!retried) {
-          this.onState("LISTENING", "audio device busy — retrying");
-          setTimeout(() => {
-            if (this.listen || this.wakeMode) this.spawnRecognizer({ retried: true });
-          }, 500);
-          return;
+        if (interim) this.onPartial(interim);
+        if (final.trim()) {
+          this.finalDelivered = true;
+          this.listening = false;
+          this.onListening(false);
+          this.onState("THINKING", "processing voice command");
+          this.onFinal(final.trim());
         }
-      }
-      if (code === "network") {
-        this.onError("Speech recognition needs a network connection (the browser's speech service). Type instead or check connectivity.");
-      } else {
-        this.onError(`Speech recognition error: ${code}`);
-      }
-    };
-
-    recognition.onend = () => {
-      this.listen = false;
-      this.onListening(false);
-      if (this.wakeMode && this.wakePref && !this.stopping && !this.speaking) {
-        this.restartTimer = setTimeout(() => this.spawnRecognizer(), 450);
-        this.onState("LISTENING", 'say "Hey HSAI"');
-        return;
-      }
-      this.closeStream();
-      if (!this.speaking) this.onState("IDLE", "awaiting command");
-    };
-
-    try {
+      };
+      recognition.onerror = (event) => {
+        const code = event.error || "unknown";
+        if (code === "aborted") return;
+        this.listening = false;
+        this.onListening(false);
+        this.onError(ERROR_TEXT[code] || `Speech recognition error: ${code}`, code);
+      };
+      recognition.onend = () => {
+        this.listening = false;
+        this.onListening(false);
+        if (!this.finalDelivered && !this.speaking) this.onState("IDLE", "awaiting command");
+      };
       recognition.start();
       this.recognizer = recognition;
+      return true;
     } catch (error) {
-      this.onError(`Could not start listening (${error.name}). Tap the microphone again.`);
-      this.closeStream();
+      this.listening = false;
+      this.onListening(false);
+      this.onError(`Could not start listening (${error?.name || "error"}).`, "start_failed");
+      return false;
     }
   }
 
-  handleFinal(text) {
-    const cleaned = text.trim();
-    if (!cleaned) return;
-
-    if (this.wakeMode) {
-      if (!this.armed) {
-        if (this.hasWake(cleaned)) {
-          this.armed = true;
-          const rest = this.stripWake(cleaned);
-          if (rest) this.emitFinal(rest);
-          else this.onState("LISTENING", "wake phrase detected — speak now");
-        }
-        return;
+  async stopListening() {
+    this.finalDelivered = true;
+    if (this.native) {
+      try {
+        await this.native.stopListening({});
+      } catch {
+        /* ignore */
       }
-      this.emitFinal(cleaned);
-      return;
     }
-    this.emitFinal(cleaned);
-  }
-
-  emitFinal(text) {
-    const command = String(text || "").trim();
-    if (!command) return;
-    this.stopListening({ keepWake: true });
-    this.onFinal(command);
-  }
-
-  stopListening({ keepWake = false } = {}) {
-    this.stopping = true;
-    clearTimeout(this.restartTimer);
-    if (!keepWake) this.wakePref = false;
-    this.wakeMode = false;
-    this.armed = false;
     if (this.recognizer) {
       try {
         this.recognizer.onend = null;
@@ -289,177 +341,110 @@ export class VoiceEngine {
       }
       this.recognizer = null;
     }
-    this.listen = false;
+    this.listening = false;
     this.onListening(false);
-    this.closeStream();
     if (!this.speaking) this.onState("IDLE", "awaiting command");
-    setTimeout(() => {
-      this.stopping = false;
-    }, 0);
   }
 
-  async openStream() {
-    if (this.analyser || !navigator.mediaDevices?.getUserMedia) return;
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-      const Context = window.AudioContext || window.webkitAudioContext;
-      if (!Context) return;
-      this.audioCtx = new Context();
-      if (this.audioCtx.state === "suspended") await this.audioCtx.resume().catch(() => {});
-      const source = this.audioCtx.createMediaStreamSource(this.stream);
-      this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.65;
-      source.connect(this.analyser);
-      this.data = new Uint8Array(this.analyser.frequencyBinCount);
-    } catch {
-      this.closeStream();
+  async toggleListening() {
+    if (this.listening) {
+      await this.stopListening();
+      return false;
     }
+    return this.startListening();
   }
 
-  closeStream() {
-    this.analyser = null;
-    this.data = null;
-    if (this.stream) {
-      for (const track of this.stream.getTracks()) {
-        try {
-          track.stop();
-        } catch {
-          /* ignore */
-        }
-      }
-      this.stream = null;
+  async speak(text, options = {}) {
+    const content = String(text || "").trim();
+    if (!content) return { ok: false, error: "There is no answer to read aloud." };
+    if (!this.outputAvailable) {
+      const message = this.unsupportedOutputReason() || "Text-to-speech is unavailable.";
+      this.onError(message, "tts_unavailable");
+      return { ok: false, error: message };
     }
-    if (this.audioCtx) {
-      try {
-        this.audioCtx.close();
-      } catch {
-        /* ignore */
-      }
-      this.audioCtx = null;
-    }
-  }
+    const settings = this.getSettings() || {};
+    const language = options.language || settings.language || this.getLanguage();
+    const rate = Math.min(1.8, Math.max(0.5, Number(options.rate ?? settings.speechRate) || 1));
+    const pitch = Math.min(1.8, Math.max(0.6, Number(options.pitch ?? settings.speechPitch) || 1));
+    const volume = Math.min(1, Math.max(0.1, Number(options.volume ?? settings.volume) || 1));
+    const voiceName = options.voiceName ?? settings.voiceName ?? "";
 
-  level() {
-    if (!this.analyser || !this.data) return 0;
-    try {
-      this.analyser.getByteFrequencyData(this.data);
-    } catch {
-      return 0;
-    }
-    let sum = 0;
-    for (let index = 0; index < this.data.length; index += 1) sum += this.data[index];
-    return Math.min(1, sum / this.data.length / 110);
-  }
-
-  fatal(message) {
-    this.onError(message);
-    this.wakePref = false;
-    this.stopListening();
-  }
-
-  pickVoice(language) {
-    if (!this.voices.length) this.loadVoices();
-    const exact = this.voices.find((voice) => voice.lang?.replace("_", "-").toLowerCase() === language.toLowerCase());
-    if (exact) return exact;
-    const prefix = String(language).split("-")[0].toLowerCase();
-    return this.voices.find((voice) => voice.lang?.toLowerCase().startsWith(prefix)) || null;
-  }
-
-  speak(text, language = "en-US") {
-    if (!this.ttsEnabled || !this.ttsAvailable) return false;
-    const chunks = this.chunk(text);
-    if (!chunks.length) return false;
-
-    this.cancelSpeech();
+    if (this.listening) await this.stopListening();
+    this.stopSpeaking();
     this.speaking = true;
-    this.pauseForSpeech();
+    this.stoppingSpeech = false;
+    this.onSpeaking(true);
     this.onState("SPEAKING", "voice output");
 
-    let index = 0;
-    const next = () => {
-      if (!this.speaking) return;
-      if (index >= chunks.length) {
-        this.finishSpeech();
+    const chunks = splitForSpeech(content);
+    if (!chunks.length) {
+      this.finishSpeaking();
+      return { ok: false, error: "There is no readable text in that answer." };
+    }
+
+    try {
+      for (const chunk of chunks) {
+        if (this.stoppingSpeech) break;
+        if (this.native) {
+          await this.native.speak({ text: chunk, language, rate, pitch, volume, voiceName });
+        } else {
+          await this.speakWeb(chunk, { language, rate, pitch, volume, voiceName });
+        }
+      }
+      const stopped = this.stoppingSpeech;
+      this.finishSpeaking();
+      return { ok: true, stopped };
+    } catch (error) {
+      if (this.stoppingSpeech || error?.code === "stopped" || /stopped/i.test(error?.message || "")) {
+        this.finishSpeaking();
+        return { ok: true, stopped: true };
+      }
+      this.speaking = false;
+      this.onSpeaking(false);
+      this.onState("IDLE", "voice output failed");
+      const message = `Voice output failed: ${error?.message || "Android TTS did not respond."}`;
+      this.onError(message, "tts_failed");
+      return { ok: false, error: message };
+    }
+  }
+
+  speakWeb(text, { language, rate, pitch, volume, voiceName }) {
+    return new Promise((resolve, reject) => {
+      let utterance;
+      try {
+        utterance = new SpeechSynthesisUtterance(text);
+      } catch (error) {
+        reject(error);
         return;
       }
-      const chunk = chunks[index];
-      index += 1;
-      const utterance = new SpeechSynthesisUtterance(chunk);
       utterance.lang = language;
-      utterance.rate = 1.03;
-      utterance.pitch = 1;
-      const voice = this.pickVoice(language);
-      if (voice) utterance.voice = voice;
-      utterance.onend = next;
-      utterance.onerror = () => this.finishSpeech();
-      try {
-        this.synth.speak(utterance);
-      } catch {
-        this.finishSpeech();
+      utterance.rate = rate;
+      utterance.pitch = pitch;
+      utterance.volume = volume;
+      const voice =
+        this.voices.find((item) => item.uri === voiceName || item.name === voiceName) || this.voiceFor(language);
+      if (voice?.uri) {
+        const match = this.synth.getVoices().find((item) => item.voiceURI === voice.uri);
+        if (match) utterance.voice = match;
       }
-    };
-    setTimeout(next, 40);
-    return true;
+      utterance.onend = () => resolve();
+      utterance.onerror = (event) => reject(new Error(event.error || "speech synthesis error"));
+      this.webUtterances.push(utterance);
+      this.synth.speak(utterance);
+    });
   }
 
-  chunk(text, limit = 220) {
-    const flattened = String(text || "")
-      .replace(/[\u0000-\u001f]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!flattened) return [];
-    const sentences = flattened.split(/(?<=[.!?।])\s+/);
-    const chunks = [];
-    let current = "";
-    for (const sentence of sentences) {
-      if (!sentence) continue;
-      if (current && (current + " " + sentence).length > limit) {
-        chunks.push(current);
-        current = sentence;
-      } else {
-        current = current ? `${current} ${sentence}` : sentence;
-      }
-      while (current.length > limit) {
-        chunks.push(current.slice(0, limit));
-        current = current.slice(limit);
-      }
-    }
-    if (current) chunks.push(current);
-    return chunks.slice(0, 12);
-  }
-
-  pauseForSpeech() {
-    this.stopping = true;
-    clearTimeout(this.restartTimer);
-    if (this.recognizer) {
-      try {
-        this.recognizer.onend = null;
-        this.recognizer.abort();
-      } catch {
-        /* ignore */
-      }
-      this.recognizer = null;
-    }
-    this.listen = false;
-    this.onListening(false);
-    this.closeStream();
-  }
-
-  finishSpeech() {
+  finishSpeaking() {
     this.speaking = false;
-    this.stopping = false;
+    this.stoppingSpeech = false;
+    this.webUtterances = [];
+    this.onSpeaking(false);
     this.onState("IDLE", "awaiting command");
-    if (this.wakePref) {
-      this.restartTimer = setTimeout(() => {
-        if (!this.speaking && !this.listen) this.startListening({ wake: true });
-      }, 600);
-    }
   }
 
-  cancelSpeech() {
+  stopSpeaking() {
+    this.stoppingSpeech = true;
+    if (this.native) this.native.stop({}).catch(() => {});
     if (this.synth) {
       try {
         this.synth.cancel();
@@ -467,9 +452,18 @@ export class VoiceEngine {
         /* ignore */
       }
     }
+    this.webUtterances = [];
     if (this.speaking) {
       this.speaking = false;
-      this.onState("IDLE", "speech cancelled");
+      this.onSpeaking(false);
+      this.onState("IDLE", "speech stopped");
     }
   }
+
+  async destroy() {
+    await this.stopListening().catch(() => {});
+    this.stopSpeaking();
+  }
 }
+
+export { splitForSpeech };

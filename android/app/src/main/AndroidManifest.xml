@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The APK is a thin wrapper: all API traffic goes to a deployed HTTPS backend. -->
+    <!-- VDPAI is a local HUD that talks directly to the AI provider selected by
+         the owner. It starts and works without any backend. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Voice input (Web Speech API / getUserMedia analyser). -->
+    <!-- Native SpeechRecognizer input. Audio is handled by the Android speech
+         service, not recorded or stored by VDPAI itself. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- Vision input uses <input type="file" capture="environment">. -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-
-    <!-- The app still works on devices without this hardware. -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- Android 11+ package visibility: without these declarations the device's
+         speech recognizer and TTS engine are invisible to the app. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="false"
@@ -46,11 +50,11 @@
         </activity>
 
         <!-- Native Quick Settings tile. The system binds only this service and
-             only after the user adds "HSAI 2.0" in Edit tiles. No new
+             only after the user adds "VDPAI" in Edit tiles. No new
              uses-permission is needed: BIND_QUICK_SETTINGS_TILE is a system
              permission enforced on this component, not requested by the app. -->
         <service
-            android:name=".JarvisTileService"
+            android:name=".HsaiTileService"
             android:exported="true"
             android:icon="@drawable/ic_tile_core"
             android:label="@string/tile_label"
@@ -60,15 +64,6 @@
             </intent-filter>
         </service>
 
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
-        </provider>
     </application>
 
 </manifest>

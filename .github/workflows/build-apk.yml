@@ -1,7 +1,9 @@
-name: Build HSAI 2.0 Android APK
+name: Build VDPAI Android APK
 
 on:
   push:
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -48,7 +50,10 @@ jobs:
           done
           echo "All JavaScript modules parse."
 
-      - name: Frontend HUD smoke tests (44 + 19 + 12 checks)
+      - name: Frontend checks
+        run: npm run check
+
+      - name: Frontend HUD tests
         run: npm run test:js
 
   build-apk:
@@ -140,7 +145,7 @@ jobs:
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           AAPT2="$(find "$SDK/build-tools" -type f -name aapt2 -perm -u+x | sort -V | tail -1)"
           "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
-          grep -q "JarvisTileService" manifest.txt
+          grep -q "HsaiTileService" manifest.txt
           grep -q "android.service.quicksettings.action.QS_TILE" manifest.txt
           grep -q "android.permission.BIND_QUICK_SETTINGS_TILE" manifest.txt
           python3 - <<'PY'
@@ -149,24 +154,66 @@ jobs:
               dex = [n for n in apk.namelist() if n.endswith(".dex")]
               assert dex, "APK has no dex files"
               blobs = b"".join(apk.read(n) for n in dex)
-              assert b"JarvisTileService" in blobs, "tile class missing from dex"
+              assert b"HsaiTileService" in blobs, "tile class missing from dex"
               page = apk.read("assets/public/index.html").decode("utf-8")
-              assert "bootBackendForm" not in page, "mandatory startup form still present"
-              assert 'id="backendStatus"' in page, "HUD backend indicator missing"
-              assert 'id="backendDisconnect"' in page, "backend disconnect control missing"
+              assert "VDPAI" in page, "VDPAI branding missing"
+              assert 'id="micBtn"' in page, "voice control missing"
+              assert 'id="chatForm"' in page, "chat composer missing"
               assert 'id="lowGlowToggle"' in page, "low-glow theme control missing"
-              settings = apk.read("assets/public/js/settings.js").decode("utf-8")
-              assert "nativePromise" in settings, "native Preferences bridge missing"
-              assert 'from "@capacitor/preferences"' not in settings, "bare package import would break WebView loading"
-              plugins = apk.read("assets/capacitor.plugins.json").decode("utf-8")
-              assert "PreferencesPlugin" in plugins, "secure native storage plugin missing"
+              store = apk.read("assets/public/js/store.js").decode("utf-8")
+              assert "nativePreferences" in store, "native Preferences storage bridge missing"
+              assert 'from "@capacitor/preferences"' not in store, "bare package import would break WebView loading"
+          plugins = apk.read("assets/capacitor.plugins.json").decode("utf-8")
+          assert "PreferencesPlugin" in plugins, "native Preferences plugin missing"
           PY
           echo "Tile, offline HUD and native storage are present in the APK."
+
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          AAPT2="$(find "$SDK/build-tools" -type f -name aapt2 -perm -u+x | sort -V | tail -1)"
+          APKSIGNER="$(find "$SDK/build-tools" -type f -name apksigner -perm -u+x | sort -V | tail -1)"
+          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.hsai.assistant'"
+          "$APKSIGNER" verify --verbose "$APK"
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HSAI-2.0-Android-APK
+          name: VDPAI-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+  publish-prerelease:
+    name: Publish debug-signed test release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: VDPAI-Android-APK
+          path: release-files
+
+      - name: Publish APK as a GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## VDPAI Android test build
+
+          This is a **debug-signed APK** for installation and testing. It is not a production or Play Store release. Android may require allowing installation from the source used to download it. Do not use this package as a trusted production update channel.
+
+          The package includes the VDPAI Android app and its bundled local interface. A configured AI provider is required for cloud-model responses. Review the repository README for current feature limitations and privacy details.
+          EOF
+          gh release create "$TAG" release-files/app-debug.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "VDPAI $TAG (test build)" \
+            --notes-file release-notes.md \
+            --prerelease
