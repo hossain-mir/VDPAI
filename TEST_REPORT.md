@@ -2,9 +2,9 @@
 
 **Date:** 2026-11-23
 **Project:** `/data/user/0/com.termux/files/home/projects/JARVIS-AI`
-**Result:** ✅ **188 / 188 Python checks passed** · ✅ **34 / 34 frontend jsdom checks passed** · ✅ **19 / 19 no-lock jsdom checks passed** · ✅ compile + syntax checks clean
+**Result:** ✅ **198 / 198 Python checks passed** · ✅ **39 / 39 frontend jsdom checks passed** · ✅ **19 / 19 no-lock jsdom checks passed** · ✅ **7 / 7 offline-startup checks passed** · ✅ compile + syntax checks clean
 **Delivered server:** running on `0.0.0.0:8000`
-**APK status:** ✅ **built in GitHub Actions and verified locally from the downloaded artifact** — run [`45123162126`](https://github.com/hossain-mir/JARVIS-AI/actions/runs/45123162126), artifact `jarvis-ai-debug-apk`, file `app-debug.apk` (4.2 MB). It is a valid Android APK containing `AndroidManifest.xml`, seven dex files, `resources.arsc`, the bundled HUD, the connection forms and `native-config.js` with an empty API base. The native Quick Settings tile service is registered in the merged manifest with `BIND_QUICK_SETTINGS_TILE` and the `QS_TILE` intent-filter, and its Kotlin class and icon are present in the APK. No APK was claimed before the artifact existed.
+**APK status:** ✅ **built in GitHub Actions and verified locally from the downloaded artifact** — run [`45130417839`](https://github.com/hossain-mir/JARVIS-AI/actions/runs/45130417839), artifact `jarvis-ai-debug-apk`, file `app-debug.apk` (4.2 MB). It is a valid Android APK containing `AndroidManifest.xml`, seven dex files, `resources.arsc`, the bundled **offline-capable** HUD, `native-config.js` with an empty API base, native Preferences storage, and the Quick Settings tile. CI and local inspection confirm no startup form, a visible backend indicator, the tile service/permission/intent-filter, and the Kotlin tile class. No APK was claimed before the artifact existed.
 
 ---
 
@@ -25,7 +25,7 @@ FastAPI was intentionally not used: this image has a broken pydantic v1 and no R
 
 ---
 
-## 1. Backend suite — 188 checks passed
+## 1. Backend suite — 198 checks passed
 
 Command: `python tests/run_tests.py`
 
@@ -57,7 +57,7 @@ Final output: `RESULT: all 188 checks passed.`
 
 ---
 
-## 2. Frontend smoke test — 34 checks passed
+## 2. Frontend smoke test — 39 checks passed
 
 Command (development-only; Node is **not** needed to run JARVIS):
 
@@ -65,7 +65,7 @@ Command (development-only; Node is **not** needed to run JARVIS):
 cd tests && npm install && node frontend_smoke.mjs
 ```
 
-jsdom drives the real HUD against a real isolated demo server. Verified: page boot, asset loading, session/CSRF handshake, panels open/close, chat send + render, calculator tool path, memory panel, WebSocket event handling, voice fallback when SpeechRecognition is missing, runtime backend URL validation (browser same-origin default, HTTPS normalisation, rejection of malformed URLs, APK plaintext rejection), and **zero console errors / uncaught exceptions**. The jsdom dependency directory was removed after testing to keep the project lean (`npm install` restores it).
+jsdom drives the real HUD against a real isolated demo server. Verified: immediate HUD boot (no startup form), asset loading, session/CSRF handshake, panels open/close, chat send + render, calculator tool path, memory panel, WebSocket event handling, voice fallback when SpeechRecognition is missing, backend indicator, settings dashboard controls, runtime backend URL validation/persistence/clear, and **zero console errors / uncaught exceptions**.
 
 ---
 
@@ -82,6 +82,16 @@ This test starts a **real token-protected server on a trusted loopback address**
 5. Token is absent from served HTML, frontend JS and server logs.
 
 Result: `RESULT: 19 passed, 0 failed`.
+
+---
+
+## 2c. Offline startup smoke test — 7 checks passed
+
+Command: `node tests/offline_smoke.mjs`
+
+The real `frontend/index.html` is loaded in jsdom with a fetch stub that always rejects. Verified: the HUD opens immediately, no mandatory backend form exists, the backend indicator reads `OFFLINE`, the core renders `IDLE`, offline guidance is present, settings remain reachable, and there are no uncaught errors. This directly covers the requirement that the interface opens with no backend available.
+
+Result: `RESULT: 7 passed, 0 failed`.
 
 ---
 
@@ -125,7 +135,7 @@ Server restarted with the trusted-network / no-lock build using `bash scripts/st
 * **Live provider inference**: no real API key was used, so no paid provider call was made. Provider adapters were tested for configuration, selection and error handling only.
 * **Public tunnel**: not opened. `scripts/tunnel.sh` refuses to run without `JARVIS_ACCESS_TOKEN` (unit-verified via the access-token gate).
 * **HTTPS/mic on LAN IP**: Chrome blocks mic on plain `http://LAN-IP`; use `127.0.0.1` or an HTTPS tunnel.
-* **Compiled APK / device installation**: Java, `javac`, Gradle and the Android SDK are absent here (`ANDROID_HOME` unset, `sdkmanager` not found), so `./gradlew assembleDebug` could not run locally. The workflow installs JDK 21 + SDK 36 and verifies the APK file before upload.
+* **Compiled APK / device installation**: no local JDK/Android SDK, so the APK was built only in GitHub Actions and then downloaded and inspected here. It was not installed on a physical device; tile add/tap/long-press, mic/camera prompts and back-button behavior still require a device test.
 * **Native bridge at runtime**: `frontend/js/native.js` was syntax-checked and is inert in jsdom (no `window.Capacitor`), but actual Android back-button, mic and camera prompts need a real device.
 
 ---
@@ -140,13 +150,16 @@ Server restarted with the trusted-network / no-lock build using `bash scripts/st
 | `npm run build` (no backend URL) | `www/` copied from `frontend/`; `native-config.js` sets an empty API base and `JARVIS_NATIVE_BUILD=true`; script injected into `www/index.html`; browser `frontend/index.html` unchanged |
 | `npm run build` with `JARVIS_BACKEND_URL=https://jarvis.example.com` | `native-config.js` gets the HTTPS base; `capacitor.config.js` sets `server.url`; verified |
 | `JARVIS_BACKEND_URL=http://example.com` | Rejected with exit code 2 (HTTPS required) |
-| Runtime connection setting | First-run APK form + **System → Backend server** form; URL saved in WebView `localStorage`; validated (HTTPS-only in APK); API/WebSocket rebind on change |
-| Cross-origin session support | Backend allows credentialed CORS from `http://localhost` and sends `SameSite=None; Secure` cookies over HTTPS; 188 Python checks still pass |
-| Manifest | `INTERNET`, `RECORD_AUDIO`, `CAMERA`, `MODIFY_AUDIO_SETTINGS`, optional hardware features, HTTPS-only network security config |
+| Runtime connection setting | **System → Backend server** only; no startup form; URL saved via Capacitor Preferences (app-private) with browser `localStorage` fallback; validated (HTTPS-only in APK); API/WebSocket rebind on change |
+| Offline startup | `tests/offline_smoke.mjs`: HUD opens, backend shows OFFLINE, no mandatory form, no uncaught errors |
+| Settings dashboard | Backend, AI providers/keys/models, voice TTS/wake, language, permissions, reduced-motion appearance, Android diagnostics, privacy/data clear and About; all controls wired (198 Python + 39 frontend checks) |
+| Voice commands | Local "stop speaking" / "repeat that" handling works without the backend; wake phrase remains tab-open-only (no false always-on claim) |
+| Cross-origin session support | Backend allows credentialed CORS from `http://localhost` and sends `SameSite=None; Secure` cookies over HTTPS; 198 Python checks pass |
+| Manifest | `INTERNET`, `RECORD_AUDIO`, `CAMERA`, `MODIFY_AUDIO_SETTINGS`, optional hardware features, HTTPS-only network config, `windowSoftInputMode=adjustResize` |
 | Missing template `values/colors.xml` | Added (the generated Capacitor template referenced `@color/colorPrimary` without defining it — this would have failed AAPT) |
 | Icons / splash | Generated by `scripts/make-android-assets.mjs` at all required density sizes (valid PNG headers checked with `file`) |
 | Workflow | `.github/workflows/build-apk.yml` needs no `JARVIS_BACKEND_URL`; runs tests, builds bundled `www/`, assembles debug APK, fails if the APK is missing, uploads artifact |
-| CI run `45123162126` | Both jobs green; `app-debug.apk` downloaded and inspected (valid ZIP with Android manifest, seven dex files, resources, bundled HUD and runtime connection forms) |
+| CI run `45130417839` | Both jobs green; `app-debug.apk` downloaded and inspected (valid ZIP with Android manifest, seven dex files, resources, offline HUD, Preferences plugin, tile class) |
 | Deprecated SDK action | `android-actions/setup-android@v3` failed installing the removed `tools` package; replaced with the runner's preinstalled `sdkmanager` |
 | Quick Settings tile | `JarvisTileService.kt` added with Kotlin Android plugin (2.2.20, JVM target 21); `ic_tile_core.xml` vector icon; service registered with `BIND_QUICK_SETTINGS_TILE`, `QS_TILE` intent-filter and label `J.A.R.V.I.S.` |
 | Tile compile fixes | `TileService` has no long-press callback (Android itself opens App Info); Kotlin plugin version moved to `gradle.properties` because Gradle evaluates `buildscript` first; `aapt2 dump xmltree --file` plus all-dex scan used for APK verification |
@@ -154,3 +167,14 @@ Server restarted with the trusted-network / no-lock build using `bash scripts/st
 | `.gitignore` | `.env*, keys, DBs, logs, node_modules, www/, Android build output, APKs all excluded |
 
 No untested feature is presented as working in the UI or the README.
+
+---
+
+## 7. Final completion summary
+
+* Offline-capable Liquid Glass HUD boots directly; no startup/backend form exists.
+* Backend connection is configured only under System → Backend server, saved via app-private native Preferences, and never required to build or launch.
+* Settings dashboard controls are wired: backend, AI providers/keys/models, voice, language, permissions, appearance, Android diagnostics, privacy and About.
+* Quick Settings tile is compiled into the APK and statically verified; physical device interaction remains unverified.
+* All automated checks pass: 198 Python, 39 frontend HUD, 19 no-lock HUD, 7 offline startup.
+* Final APK artifact: `jarvis-ai-debug-apk` from run `45130417839`; local copy `app-debug.apk` (4.2 MB).
