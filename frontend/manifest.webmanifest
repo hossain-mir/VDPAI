@@ -1,7 +1,7 @@
 {
-  "name": "JARVIS AI",
-  "short_name": "JARVIS",
-  "description": "Private voice-enabled AI assistant hosted from Android.",
+  "name": "HSAI 2.0",
+  "short_name": "HSAI",
+  "description": "Private voice-enabled AI assistant for Android.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

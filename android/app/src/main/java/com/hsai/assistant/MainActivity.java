@@ -1,4 +1,4 @@
-package com.jarvis.ai;
+package com.hsai.assistant;
 
 import com.getcapacitor.BridgeActivity;
 

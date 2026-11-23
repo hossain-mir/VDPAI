@@ -9,7 +9,7 @@
  */
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-const WAKE_PATTERN = /^(?:(?:hey|hi|ok|okay)[\s,]+jarvis|জার্ভিস|जार्विस)[\s,.!?-]*/i;
+const WAKE_PATTERN = /^(?:(?:hey|hi|ok|okay)[\s,]+(?:hsai|jarvis)|জার্ভিস|जार्विस)[\s,.!?-]*/i;
 
 export class VoiceEngine {
   constructor({ onPartial, onFinal, onError, onState, onListening, getLanguage, ttsEnabled = true }) {
@@ -165,7 +165,7 @@ export class VoiceEngine {
     recognition.onstart = () => {
       this.listen = true;
       this.onListening(true);
-      this.onState("LISTENING", this.wakeMode ? 'say "Hey Jarvis"' : "listening…");
+      this.onState("LISTENING", this.wakeMode ? 'say "Hey HSAI"' : "listening…");
     };
 
     recognition.onspeechstart = () => {
@@ -231,7 +231,7 @@ export class VoiceEngine {
       this.onListening(false);
       if (this.wakeMode && this.wakePref && !this.stopping && !this.speaking) {
         this.restartTimer = setTimeout(() => this.spawnRecognizer(), 450);
-        this.onState("LISTENING", 'say "Hey Jarvis"');
+        this.onState("LISTENING", 'say "Hey HSAI"');
         return;
       }
       this.closeStream();

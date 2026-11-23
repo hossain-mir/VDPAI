@@ -524,7 +524,7 @@ def main() -> int:
 
         def config_test():
             response = client.get("/api/config")
-            check("config endpoint works", response.status_code == 200 and response.json().get("config", {}).get("app") == "JARVIS AI")
+            check("config endpoint works", response.status_code == 200 and response.json().get("config", {}).get("app") == "HSAI 2.0")
             check("config exposes no API key", "api_key" not in keys_in(response.json()))
 
         timed("GET /api/config", config_test)
@@ -749,6 +749,8 @@ def main() -> int:
         html = os.path.join(ROOT, "frontend", "index.html")
         manifest = os.path.join(ROOT, "android", "app", "src", "main", "AndroidManifest.xml")
         package = os.path.join(ROOT, "package.json")
+        android_build = os.path.join(ROOT, "android", "app", "build.gradle")
+        capacitor = os.path.join(ROOT, "capacitor.config.js")
         settings_js = os.path.join(ROOT, "frontend", "js", "settings.js")
         panels_js = os.path.join(ROOT, "frontend", "js", "panels.js")
         app_js = os.path.join(ROOT, "frontend", "js", "app.js")
@@ -761,7 +763,7 @@ def main() -> int:
         required = [
             'id="backendForm"', "AI providers", "Voice settings", "Language settings",
             "Permissions", "Theme &amp; appearance", "Android integration", "Privacy &amp; security",
-            "About J.A.R.V.I.S.",
+            "About HSAI 2.0",
         ]
         check("settings dashboard sections present", all(item in page for item in required))
         check(
@@ -813,8 +815,20 @@ def main() -> int:
 
         with open(strings, encoding="utf-8") as handle:
             labels = handle.read()
-        check("application name is JARVIS AI", '<string name="app_name">JARVIS AI</string>' in labels)
-        check("tile label is J.A.R.V.I.S.", '<string name="tile_label">J.A.R.V.I.S.</string>' in labels)
+        check("application name is HSAI 2.0", '<string name="app_name">HSAI 2.0</string>' in labels)
+        check("tile label is HSAI 2.0", '<string name="tile_label">HSAI 2.0</string>' in labels)
+
+        with open(android_build, encoding="utf-8") as handle:
+            gradle = handle.read()
+        with open(capacitor, encoding="utf-8") as handle:
+            cap_config = handle.read()
+        check(
+            "Android package ID is consistent",
+            'applicationId "com.hsai.assistant"' in gradle
+            and 'namespace = "com.hsai.assistant"' in gradle
+            and 'appId: "com.hsai.assistant"' in cap_config
+            and '<string name="package_name">com.hsai.assistant</string>' in labels,
+        )
 
         res_dir = os.path.join(ROOT, "android", "app", "src", "main", "res")
         resource_files = glob.glob(os.path.join(res_dir, "**", "*.xml"), recursive=True)

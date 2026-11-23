@@ -46,7 +46,7 @@
         </activity>
 
         <!-- Native Quick Settings tile. The system binds only this service and
-             only after the user adds "J.A.R.V.I.S." in Edit tiles. No new
+             only after the user adds "HSAI 2.0" in Edit tiles. No new
              uses-permission is needed: BIND_QUICK_SETTINGS_TILE is a system
              permission enforced on this component, not requested by the app. -->
         <service

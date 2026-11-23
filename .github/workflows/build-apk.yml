@@ -1,4 +1,4 @@
-name: Build JARVIS AI debug APK
+name: Build HSAI 2.0 Android APK
 
 on:
   push:
@@ -68,9 +68,6 @@ jobs:
 
       - name: Build www/ from the browser frontend
         run: npm run build
-
-      - name: Generate Android icons and splash screens
-        run: npm run assets
 
       - uses: actions/setup-java@v5
         with:
@@ -169,7 +166,7 @@ jobs:
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jarvis-ai-debug-apk
+          name: HSAI-2.0-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

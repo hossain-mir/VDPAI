@@ -403,7 +403,7 @@ async function saveBackend(event) {
     const okText = changed ? "Server saved and connected." : "Connection is active.";
     backendResult(checked.warning ? `${okText} ${checked.warning}` : okText, checked.warning ? "warn" : "ok");
     if (checked.warning) ui.toast(checked.warning, "warn", 7000);
-    else ui.toast("JARVIS server connected.", "ok");
+    else ui.toast("HSAI server connected.", "ok");
   } catch (error) {
     backendResult(error.message, "warn");
     ui.toast(error.message, "error", 7000);
@@ -492,7 +492,7 @@ function fillNativeInfo() {
     ["Packaged HUD", native ? "yes" : "no"],
     ["Back button", window.JARVIS_NATIVE_BRIDGE ? "native handler active" : "browser default"],
     ["Backend storage", usesNativeStorage() ? "app-private preferences" : "browser local storage"],
-    ["Quick tile", native ? "com.jarvis.ai/.JarvisTileService" : "available in APK"],
+    ["Quick tile", native ? "com.hsai.assistant/.JarvisTileService" : "available in APK"],
   ]);
 }
 
@@ -515,8 +515,8 @@ async function testNativeBridge() {
 
 function fillAboutInfo() {
   ui.fillFacts($("#aboutInfo"), [
-    ["Name", "J.A.R.V.I.S."],
-    ["Version", "1.0 (debug build)"],
+    ["Name", "HSAI 2.0"],
+    ["Version", "2.0.0 (build 2)"],
     ["Providers", "OpenAI · Gemini · Groq · OpenRouter · Ollama"],
     ["Languages", "English · বাংলা · हिन्दी"],
     ["Interface", "Liquid Glass HUD"],

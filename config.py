@@ -213,8 +213,8 @@ PROVIDER_ENV = {
 class Settings:
     """Runtime settings resolved once at import time."""
 
-    app_name = "JARVIS AI"
-    version = "1.0.0"
+    app_name = "HSAI 2.0"
+    version = "2.0.0"
 
     def __init__(self) -> None:
         self.host = _env("JARVIS_HOST", "0.0.0.0")

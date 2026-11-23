@@ -1,8 +1,8 @@
 {
-  "name": "jarvis-ai-mobile",
-  "version": "1.0.0",
+  "name": "hsai-2-android",
+  "version": "2.0.0",
   "private": true,
-  "description": "Bundled Capacitor Android wrapper for the JARVIS AI HUD. The Python backend stays separate; its URL is configured in the app.",
+  "description": "HSAI 2.0 Capacitor Android assistant. The optional Python backend stays separate.",
   "engines": {
     "node": ">=22"
   },

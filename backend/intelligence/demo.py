@@ -22,7 +22,7 @@ def demo_reply(message: str, *, language: str = "en-US") -> str:
     text = (message or "").strip()
     lowered = text.lower()
 
-    if lowered in {"hi", "hello", "hey", "hey jarvis", "hi jarvis", "salam", "assalamu alaikum"}:
+    if lowered in {"hi", "hello", "hey", "hey hsai", "hi jarvis", "salam", "assalamu alaikum"}:
         return (
             f"Hello. {DEMO_BANNER}\n"
             "I can already run local tools: calculator, date/time, notes, web search, "
@@ -32,7 +32,7 @@ def demo_reply(message: str, *, language: str = "en-US") -> str:
 
     if any(word in lowered for word in ("who are you", "what are you", "your name", "jarvis")):
         return (
-            f"I am JARVIS AI, running locally on this Android device. {DEMO_BANNER}\n"
+            f"I am HSAI 2.0, running locally on this Android device. {DEMO_BANNER}\n"
             "My backend, memory and tools are real; only the language model is missing."
         )
 

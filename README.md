@@ -1,4 +1,4 @@
-# JARVIS AI — Termux-hosted assistant + Capacitor Android APK
+# HSAI 2.0 — Termux-hosted assistant + Capacitor Android APK
 
 A self-hosted, provider-independent AI assistant whose Python backend runs in Termux and is controlled through a futuristic, mobile-first browser HUD. SQLite memory, validated tools, voice input, vision input, live event stream, and optional browser automation. An **optional Capacitor Android wrapper** packages the HUD locally into an APK; you enter your backend address in the app after installing. No Python runs inside the APK.
 
@@ -51,7 +51,7 @@ git init
 git add .
 git check-ignore -v .env          # must print a .gitignore rule, not "not ignored"
 git status --short                # verify .env / *.db / *.log are absent
-git commit -m "Initial import: JARVIS AI backend, HUD and Capacitor Android wrapper"
+git commit -m "Initial import: HSAI 2.0 backend, HUD and Capacitor Android wrapper"
 git branch -M main
 git remote add origin https://github.com/<your-user>/<your-repo>.git
 git push -u origin main
@@ -59,7 +59,7 @@ git push -u origin main
 
 If the folder is already a repository, skip `git init`/`remote add`. Never commit a real `.env`, token, DB, or keystore. Copy `.env.example` to `.env` on each machine and set `JARVIS_ACCESS_TOKEN` there. The `scripts/*.sh` files keep their Termux shebang for this device; on other Linux/macOS machines run them as `bash scripts/<name>.sh`.
 
-No repository variable is needed to build the APK. The HUD is bundled with the app and the server address is configured later inside the app. An optional `JARVIS_BACKEND_URL` is supported only for local builds where you want a default address baked in; it must be `https://` (or `http://localhost` for development).
+No repository variable is needed to build the APK. The HUD is bundled with the app and the server address is configured later inside the app. An optional `HSAI_BACKEND_URL (legacy alias: JARVIS_BACKEND_URL)` is supported only for local builds where you want a default address baked in; it must be `https://` (or `http://localhost` for development).
 
 ---
 
@@ -72,11 +72,11 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 * `npm run build` copies the existing `frontend/` into `www/`, generates `www/js/native-config.js`, and injects that script into `www/index.html`. The browser version at `http://127.0.0.1:8000` is untouched: with no configured base it keeps its exact same-origin behaviour.
 * The APK launches directly into the HUD with no startup form and works offline. A small backend indicator in the core shows ONLINE / OFFLINE / LOCAL. Configure, test, connect, disconnect, update or clear the address under **System → Backend server**. Disconnecting keeps the saved address but stops automatic retries until Connect is pressed. The URL is saved through Capacitor Preferences via the injected native bridge (app-private Android storage; browser falls back to `localStorage`). The unbundled HUD deliberately has no bare package imports, so it loads in the WebView. `frontend/js/settings.js` validates it; `frontend/js/api.js` resolves it on every request and reconnects the WebSocket when it changes. An address is not a credential and is never committed to the repository.
 * The APK accepts only `https://` addresses: Android requires a secure context for microphone access and the manifest blocks cleartext traffic. The browser HUD still accepts plain HTTP on trusted networks as before. No fake or placeholder production URL is shipped.
-* `capacitor.config.js` only uses `server.url` when `JARVIS_BACKEND_URL` is supplied for a local build; GitHub Actions leaves it empty so the bundled HUD is used.
+* `capacitor.config.js` only uses `server.url` when `HSAI_BACKEND_URL (legacy alias: JARVIS_BACKEND_URL)` is supplied for a local build; GitHub Actions leaves it empty so the bundled HUD is used.
 * `frontend/js/native.js` registers an Android `backButton` listener through Capacitor's bridge. It first closes the approval dialog or settings sheet; only then does it minimize (or exit) the app. It is a no-op in the browser and is imported by `app.js`.
 * The backend allows credentialed CORS from the APK's `http://localhost` WebView origin and issues `SameSite=None; Secure` session cookies over HTTPS. Requests from your LAN are trusted automatically; if you set `JARVIS_ACCESS_TOKEN`, a publicly hosted backend still requires either a trusted proxy/network or the same-origin mode below.
 * Network security config sets `cleartextTrafficPermitted="false"` for the Android app; `INTERNET`, `RECORD_AUDIO` and `CAMERA` permissions are declared, with camera/microphone marked optional so the app installs on devices without them.
-* A native **Quick Settings tile** named `J.A.R.V.I.S.` is provided by `JarvisTileService.kt` (Kotlin). Open **Quick Settings → Edit tiles → J.A.R.V.I.S.** to add it. Tap launches the existing HUD; a long press opens Android's **App Info** screen (the platform default for third-party tiles, supported on Android 13/16). It uses a Liquid-Glass-style concentric core icon, Android 13+ immutable `PendingIntent` launching, and binds only with `BIND_QUICK_SETTINGS_TILE` — no extra app permission is requested.
+* A native **Quick Settings tile** named `HSAI 2.0` is provided by `JarvisTileService.kt` (Kotlin). Open **Quick Settings → Edit tiles → HSAI 2.0** to add it. Tap launches the existing HUD; a long press opens Android's **App Info** screen (the platform default for third-party tiles, supported on Android 13/16). It uses a Liquid-Glass-style concentric core icon, Android 13+ immutable `PendingIntent` launching, and binds only with `BIND_QUICK_SETTINGS_TILE` — no extra app permission is requested.
 * **System → Settings dashboard** contains working controls for backend connection, AI providers/API keys/model selection, voice TTS/wake phrase, language, permissions, reduced-motion appearance, native bridge diagnostics, privacy (clear local data, audit log), and About. Reduced motion stops the core/waveform animation loops and low-glow mode removes expensive glass glows; both persist locally to save battery.
 
 ### Required dependencies for an APK build
@@ -93,18 +93,17 @@ The APK is a thin WebView wrapper with the HUD bundled locally. The Python/Starl
 
 ### Build instructions (GitHub Actions — recommended)
 
-1. Push to `main`, open a pull request, or run the workflow manually from the **Actions** tab → **Build JARVIS AI debug APK** → **Run workflow**. No repository variable is required.
-2. The workflow installs Python and Node dependencies, runs all tests, builds the bundled `www/`, regenerates icons/splash, syncs Capacitor, assembles the debug APK, verifies the file exists and uploads it as the `jarvis-ai-debug-apk` artifact.
+1. Push to `main`, open a pull request, or run the workflow manually from the **Actions** tab → **Build HSAI 2.0 Android APK** → **Run workflow**. No repository variable is required.
+2. The workflow installs Python and Node dependencies, runs syntax and smoke checks, builds the bundled `www/`, syncs Capacitor, assembles the debug APK, verifies the file exists and uploads it as the `HSAI-2.0-Android-APK` artifact. Android signing uses the standard debug key for this development APK; Play distribution requires a privately held release key and Play App Signing.
 3. Install the APK and open JARVIS — it launches straight into the HUD, even with no backend. Configure your HTTPS address any time under **System → Backend server**. Your backend does not need to exist yet when the APK is built.
 
 ### Build instructions (local machine with Android SDK)
 
 ```bash
 # Node 22+, JDK 21, ANDROID_HOME set, SDK platform 36 + build-tools 36.0.0 installed
-# Optional: export JARVIS_BACKEND_URL="$BACKEND_URL"  # bakes in a default HTTPS address
+# Optional: export HSAI_BACKEND_URL="$BACKEND_URL"  # bakes in a default HTTPS address
 npm ci
 npm run build
-npm run assets
 npm run cap:sync
 cd android && ./gradlew assembleDebug --no-daemon
 ```
@@ -115,19 +114,19 @@ cd android && ./gradlew assembleDebug --no-daemon
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-This exact path is checked (non-empty) by CI before the artifact is uploaded. No APK is claimed as built unless that file exists. A successful build is available as the `jarvis-ai-debug-apk` artifact on the [latest workflow run](https://github.com/hossain-mir/JARVIS-AI/actions/workflows/build-apk.yml).
+This exact path is checked (non-empty) by CI before the artifact is uploaded. No APK is claimed as built unless that file exists. A successful build is available as the `HSAI-2.0-Android-APK` artifact on the [latest workflow run](https://github.com/hossain-mir/JARVIS-AI/actions/workflows/build-apk.yml).
 
 ### Android project structure
 
 ```
 android/
 ├── app/
-│   ├── build.gradle                    applicationId com.jarvis.ai, SDK versions
+│   ├── build.gradle                    applicationId com.hsai.assistant, SDK versions
 │   ├── capacitor.build.gradle          generated Capacitor plugin wiring
 │   └── src/main/
 │       ├── AndroidManifest.xml         INTERNET/RECORD_AUDIO/CAMERA, tile service, HTTPS config
-│       ├── java/com/jarvis/ai/MainActivity.java
-│       ├── java/com/jarvis/ai/JarvisTileService.kt   native Quick Settings tile
+│       ├── java/com/hsai/assistant/MainActivity.java
+│       ├── java/com/hsai/assistant/JarvisTileService.kt   native Quick Settings tile
 │       ├── assets/                     generated by `cap sync` (not committed)
 │       │   ├── capacitor.config.json
 │       │   ├── capacitor.plugins.json
@@ -344,4 +343,11 @@ Full results, environment and honest gaps: **[TEST_REPORT.md](TEST_REPORT.md)**.
 * Playwright/Chromium, real microphone/TTS hardware, visual rendering and the compiled APK could not be verified in this environment (see test report).
 * Public tunnels are unsafe without `JARVIS_ACCESS_TOKEN`; the script enforces this.
 
-**JARVIS AI v1.0.0 — browser app preserved; Capacitor wrapper added without changing HUD behaviour.**
+**HSAI 2.0 — Android application ID `com.hsai.assistant`.**
+
+
+## Android identity and icon
+
+The Android application ID and Capacitor app ID are `com.hsai.assistant`; the launcher label is **HSAI 2.0**. This is a new package identity, so Android installs it alongside older `com.jarvis.ai` builds. The repository keeps the existing launcher resource directories and adaptive icon definitions. The CI job does not regenerate artwork. Replace the existing launcher image resources from the user supplied icon before release; no release icon is claimed until that source image is provided.
+
+The checked-in Android project builds a debug APK with Android's debug signing key. Private distribution may still trigger Play Protect warnings for a new or unfamiliar package. Release signing with a protected key and eventual Play Store distribution improve trust; the app does not bypass Play Protect.

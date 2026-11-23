@@ -15,9 +15,9 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SOURCE = join(ROOT, "frontend");
 const TARGET = join(ROOT, "www");
 
-const configured = (process.env.JARVIS_BACKEND_URL || "").trim().replace(/\/+$/, "");
+const configured = (process.env.HSAI_BACKEND_URL || process.env.JARVIS_BACKEND_URL || "").trim().replace(/\/+$/, "");
 if (configured && !/^https:\/\//i.test(configured) && !/^http:\/\/localhost(:\d+)?$/i.test(configured)) {
-  console.error("[jarvis] JARVIS_BACKEND_URL must be an https:// URL (http://localhost is dev-only).");
+  console.error("[hsai] HSAI_BACKEND_URL must be an https:// URL (http://localhost is dev-only).");
   process.exit(2);
 }
 
@@ -47,4 +47,4 @@ if (!html.includes(entry)) {
 }
 writeFileSync(indexPath, html.replace(entry, `${marker}\n  ${entry}`), "utf8");
 
-console.log(`[jarvis] www/ built from frontend/ (backend base: ${configured || "runtime setting / same origin"})`);
+console.log(`[hsai] www/ built from frontend/ (backend base: ${configured || "runtime setting / same origin"})`);

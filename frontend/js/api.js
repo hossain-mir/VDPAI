@@ -83,7 +83,7 @@ async function request(path, { method = "GET", body, signal } = {}) {
     } catch (error) {
       if (error.name === "AbortError") throw new ApiError("Request timed out.", "timeout", 0);
       if (attempt === attempts) {
-        throw new ApiError("Cannot reach the JARVIS server. Is it still running?", "network", 0);
+        throw new ApiError("Cannot reach the HSAI backend. Is it still running?", "network", 0);
       }
       continue;
     }
@@ -107,7 +107,7 @@ export async function startSession() {
       signal: controller.signal,
     });
   } catch {
-    throw new ApiError("Cannot reach the JARVIS server.", "network", 0);
+    throw new ApiError("Cannot reach the HSAI backend.", "network", 0);
   } finally {
     clearTimeout(timer);
   }

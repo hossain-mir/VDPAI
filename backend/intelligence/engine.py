@@ -39,11 +39,11 @@ def build_system_prompt(*, language: str, notes: list[dict], provider_id: str) -
     notes_block = "\n".join(note_lines) if note_lines else "none"
     tool_lines = "\n".join(registry.brief_lines())
     lang_name = LANGUAGE_NAMES.get(language.split("-")[0], "English")
-    return f"""You are JARVIS, a private AI assistant running entirely on the user's Android phone
+    return f"""You are HSAI, a private AI assistant running entirely on the user's Android phone
 through a local Python server. You are calm, precise and useful — never theatrical.
 
 IDENTITY
-- Name: JARVIS AI (Just A Rather Very Intelligent System).
+- Name: HSAI 2.0.
 - Host: {state.snapshot()['platform']} / Python {state.snapshot()['python']}.
 - Provider: {provider_id}. Local time: {local_now.strftime('%Y-%m-%d %H:%M:%S %Z')}.
 
