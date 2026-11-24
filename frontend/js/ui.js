@@ -223,6 +223,15 @@ export function confirmAction({ title = "Are you sure?", text = "", confirmLabel
   });
 }
 
+export function confirm({ title = "Are you sure?", text = "", confirmLabel = "Confirm", cancelLabel = "Cancel", danger = true, onConfirm = null } = {}) {
+  return confirmAction({ title, text, confirmLabel, cancelLabel, danger }).then((ok) => {
+    if (ok && typeof onConfirm === "function") {
+      onConfirm();
+    }
+    return ok;
+  });
+}
+
 export function openOverlay(id) {
   const node = document.getElementById(id);
   if (!node) return;

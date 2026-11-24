@@ -40,6 +40,7 @@ export function initAssistant() {
   bindReminderControls();
   bindQuickTools();
   bindCalendar();
+  bindSubtabs();
 
   subscribe(() => {
     renderAllAssistant();
@@ -474,3 +475,22 @@ function updateWorldClocks() {
     }
   }
 }
+
+function bindSubtabs() {
+  $$("#assistantSubtabs .subtab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const pane = btn.dataset.pane;
+      $$("#assistantSubtabs .subtab-btn").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      $$(".assistant-pane").forEach((p) => {
+        const active = p.dataset.pane === pane;
+        p.hidden = !active;
+        p.classList.toggle("is-active", active);
+      });
+    });
+  });
+}
+

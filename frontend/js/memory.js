@@ -97,8 +97,21 @@ export function renderMemories() {
   const countEl = $("#memoryCountBadge");
   if (!list) return;
 
+  const settings = getSettings();
   const memories = memorySearchQuery ? searchMemories(memorySearchQuery) : getMemories();
-  if (countEl) countEl.textContent = String(memories.length);
+
+  if (countEl) {
+    if (settings.memoryEnabled === false) {
+      countEl.textContent = "DISABLED";
+      countEl.dataset.tone = "bad";
+    } else if (settings.privateMode) {
+      countEl.textContent = "BYPASSED";
+      countEl.dataset.tone = "warn";
+    } else {
+      countEl.textContent = `${memories.length} ACTIVE`;
+      countEl.dataset.tone = "ok";
+    }
+  }
 
   while (list.firstChild) list.removeChild(list.firstChild);
 
@@ -133,9 +146,16 @@ export function renderMemories() {
     del.setAttribute("aria-label", `Delete memory ${mem.key}`);
     del.textContent = "×";
     del.addEventListener("click", () => {
-      deleteMemory(mem.id);
-      renderMemories();
-      ui.toast("Memory removed", "ok");
+      ui.confirm({
+        title: `Delete memory "${mem.key}"?`,
+        text: `Are you sure you want VDPAI to forget "${mem.key}"?`,
+        confirmLabel: "Forget",
+        onConfirm: () => {
+          deleteMemory(mem.id);
+          renderMemories();
+          ui.toast("Memory removed", "ok");
+        },
+      });
     });
 
     head.appendChild(key);

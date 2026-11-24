@@ -55,8 +55,6 @@ export function defaultSettings() {
 function defaultProfiles() {
   return [
     { id: "primary", name: "Primary", icon: "user", createdAt: Date.now() },
-    { id: "work", name: "Work", icon: "briefcase", createdAt: Date.now() },
-    { id: "private", name: "Private", icon: "shield", createdAt: Date.now() },
   ];
 }
 
@@ -447,7 +445,8 @@ export function setActiveProvider(providerId) {
 
 /* ---------------------------------------------------------- conversations */
 export function getConversations() {
-  return state.conversations;
+  const activeProf = state.activeProfileId || "primary";
+  return state.conversations.filter((item) => !item.profileId || item.profileId === activeProf);
 }
 
 export function getConversation(conversationId) {
@@ -464,6 +463,7 @@ export function createConversation({ title = "", providerId = null, model = "" }
     title: text(title, 120).trim() || "New conversation",
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    profileId: state.activeProfileId || "primary",
     providerId,
     model,
     messages: [],
@@ -644,7 +644,8 @@ export function getEffectiveSystemPrompt() {
 
 /* -------------------------------------------------------------------- tasks */
 export function getTasks() {
-  return [...state.tasks];
+  const activeProf = state.activeProfileId || "primary";
+  return state.tasks.filter((t) => !t.profileId || t.profileId === activeProf);
 }
 
 export function addTask(title, priority = "normal", dueDate = null) {
@@ -653,6 +654,7 @@ export function addTask(title, priority = "normal", dueDate = null) {
     title: text(title, 200).trim(),
     completed: false,
     priority: ["high", "med", "normal"].includes(priority) ? priority : "normal",
+    profileId: state.activeProfileId || "primary",
     createdAt: Date.now(),
     dueDate: dueDate ? Number(dueDate) : null,
   };
@@ -680,7 +682,8 @@ export function deleteTask(taskId) {
 
 /* -------------------------------------------------------------------- notes */
 export function getNotes() {
-  return [...state.notes];
+  const activeProf = state.activeProfileId || "primary";
+  return state.notes.filter((n) => !n.profileId || n.profileId === activeProf);
 }
 
 export function addNote(title, content = "", category = "General") {
@@ -689,6 +692,7 @@ export function addNote(title, content = "", category = "General") {
     title: text(title, 160).trim() || "Untitled note",
     content: text(content, 40000),
     category: text(category, 60).trim() || "General",
+    profileId: state.activeProfileId || "primary",
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -718,15 +722,17 @@ export function deleteNote(noteId) {
 
 export function searchNotes(query) {
   const needle = String(query || "").trim().toLowerCase();
-  if (!needle) return state.notes;
-  return state.notes.filter(
+  const notes = getNotes();
+  if (!needle) return notes;
+  return notes.filter(
     (n) => n.title.toLowerCase().includes(needle) || n.content.toLowerCase().includes(needle) || n.category.toLowerCase().includes(needle),
   );
 }
 
 /* ---------------------------------------------------------------- reminders */
 export function getReminders() {
-  return [...state.reminders];
+  const activeProf = state.activeProfileId || "primary";
+  return state.reminders.filter((r) => !r.profileId || r.profileId === activeProf);
 }
 
 export function addReminder(title, dueAt = null) {
@@ -735,6 +741,7 @@ export function addReminder(title, dueAt = null) {
     title: text(title, 200).trim(),
     dueAt: dueAt ? Number(dueAt) : Date.now() + 3600000,
     completed: false,
+    profileId: state.activeProfileId || "primary",
     createdAt: Date.now(),
   };
   if (!reminder.title) return null;
@@ -761,19 +768,24 @@ export function deleteReminder(reminderId) {
 
 /* ----------------------------------------------------------------- memories */
 export function getMemories() {
-  return [...state.memories];
+  const activeProf = state.activeProfileId || "primary";
+  return state.memories.filter((m) => !m.profileId || m.profileId === activeProf);
 }
 
 export function addMemory(key, value, category = "preference") {
+  const activeProf = state.activeProfileId || "primary";
   const memory = {
     id: id("mem"),
     key: text(key, 120).trim(),
     value: text(value, 1000).trim(),
     category: ["identity", "preference", "habit", "custom"].includes(category) ? category : "preference",
+    profileId: activeProf,
     createdAt: Date.now(),
   };
   if (!memory.key || !memory.value) return null;
-  const existing = state.memories.find((item) => item.key.toLowerCase() === memory.key.toLowerCase());
+  const existing = state.memories.find(
+    (item) => (!item.profileId || item.profileId === activeProf) && item.key.toLowerCase() === memory.key.toLowerCase(),
+  );
   if (existing) {
     existing.value = memory.value;
     existing.category = memory.category;
@@ -803,15 +815,17 @@ export function deleteMemory(memoryId) {
 }
 
 export function clearMemories() {
-  state.memories = [];
+  const activeProf = state.activeProfileId || "primary";
+  state.memories = state.memories.filter((m) => m.profileId && m.profileId !== activeProf);
   scheduleSave();
   return true;
 }
 
 export function searchMemories(query) {
   const needle = String(query || "").trim().toLowerCase();
-  if (!needle) return state.memories;
-  return state.memories.filter(
+  const memories = getMemories();
+  if (!needle) return memories;
+  return memories.filter(
     (m) => m.key.toLowerCase().includes(needle) || m.value.toLowerCase().includes(needle),
   );
 }
@@ -851,6 +865,7 @@ export function deleteProfile(profileId) {
   const index = state.profiles.findIndex((p) => p.id === profileId);
   if (index < 0) return false;
   state.profiles.splice(index, 1);
+  resetProfile(profileId);
   if (state.activeProfileId === profileId) {
     state.activeProfileId = "primary";
   }
@@ -859,17 +874,18 @@ export function deleteProfile(profileId) {
 }
 
 export function resetProfile(profileId) {
-  if (state.activeProfileId === profileId) {
-    state.conversations = [];
-    state.activeConversationId = null;
-    state.memories = [];
-    state.tasks = [];
-    state.notes = [];
-    state.reminders = [];
-    scheduleSave();
-    return true;
+  const targetId = profileId || state.activeProfileId || "primary";
+  state.conversations = state.conversations.filter((c) => c.profileId && c.profileId !== targetId);
+  state.tasks = state.tasks.filter((t) => t.profileId && t.profileId !== targetId);
+  state.notes = state.notes.filter((n) => n.profileId && n.profileId !== targetId);
+  state.reminders = state.reminders.filter((r) => r.profileId && r.profileId !== targetId);
+  state.memories = state.memories.filter((m) => m.profileId && m.profileId !== targetId);
+  if (state.activeConversationId) {
+    const stillActive = state.conversations.some((c) => c.id === state.activeConversationId);
+    if (!stillActive) state.activeConversationId = null;
   }
-  return false;
+  scheduleSave();
+  return true;
 }
 
 /** Delete every locally stored setting, credential and conversation. */
@@ -919,14 +935,10 @@ export function addHudLogEntry(text) {
   try {
     const log = getHudLog();
     const d = new Date();
-    const time = [
-      String(d.getHours()).padStart(2, "0"),
-      String(d.getMinutes()).padStart(2, "0"),
-      String(d.getSeconds()).padStart(2, "0"),
-    ].join(":");
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     const entry = { id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, time, text };
     log.unshift(entry);
-    if (log.length > 40) log.length = 40;
+    if (log.length > 50) log.length = 50;
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(HUD_LOG_KEY, JSON.stringify(log));
     }

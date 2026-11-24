@@ -20,10 +20,12 @@ import {
   usesNativeStorage,
   addCustomQuickCommand,
   addHudLogEntry,
+  clearHudLog,
   getCustomQuickCommands,
   getHudLog,
 } from "./store.js";
 import { providerReady, sendChat } from "./ai.js";
+import { testProvider } from "./providers.js";
 import { testBackend } from "./backend.js";
 import { CoreRenderer } from "./core.js";
 import { Waveform } from "./wave.js";
@@ -40,9 +42,9 @@ import {
   setBackendStatus,
 } from "./control.js";
 import { closeHistory, initHistory, isHistoryOpen, openHistory, renderHistory } from "./history.js";
-import { initAssistant } from "./assistant.js";
+import { initAssistant, renderAllAssistant } from "./assistant.js";
 import { initIntegrations } from "./integrations.js";
-import { initMemory } from "./memory.js";
+import { initMemory, renderMemories } from "./memory.js";
 import { initProfiles } from "./profiles.js";
 
 const $ = ui.$;
@@ -74,6 +76,17 @@ async function boot() {
   uiState.on((state) => {
     app.core?.setState(state);
     app.wave?.setState(state);
+    if (state === "LISTENING") {
+      setResponseStatus("LISTENING", "busy");
+    } else if (state === "THINKING") {
+      setResponseStatus("THINKING", "busy");
+    } else if (state === "SPEAKING") {
+      setResponseStatus("SPEAKING", "busy");
+    } else if (state === "ERROR") {
+      setResponseStatus("ERROR", "error");
+    } else if (state === "IDLE") {
+      setResponseStatus(app.lastAnswer ? "ANSWER READY" : "IDLE");
+    }
   });
 
   initVoice();
@@ -132,6 +145,8 @@ async function boot() {
       renderActiveConversation({ announce: false });
       renderHistory();
       refreshControlCenter();
+      renderAllAssistant();
+      renderMemories();
     },
   });
 
@@ -569,14 +584,30 @@ function refreshProviderUi() {
   const provider = getActiveProvider();
   const badge = $("#providerBadge");
   const model = $("#providerModel");
+  const p4Title = $("#p4ActiveProviderTitle");
+  const p4Model = $("#p4ActiveProviderModel");
+  const p4Badge = $("#p4ProviderStatusBadge");
   if (provider) {
     ui.setChip("chipProvider", "ok", truncate(provider.name.toUpperCase(), 14));
     if (badge) badge.textContent = provider.name;
     if (model) model.textContent = `${provider.model} · ${provider.apiKey || provider.type === "custom" ? "credential ready" : "no key"}`;
+    if (p4Title) p4Title.textContent = `Active Provider: ${provider.name}`;
+    if (p4Model) p4Model.textContent = `Model: ${provider.model} · ${provider.endpoint || "Default Endpoint"}`;
+    if (p4Badge) {
+      const ready = provider.apiKey || provider.type === "custom";
+      p4Badge.textContent = ready ? "READY" : "NO KEY";
+      p4Badge.dataset.tone = ready ? "ok" : "warn";
+    }
   } else {
     ui.setChip("chipProvider", "bad", "NO API");
     if (badge) badge.textContent = "Not configured";
     if (model) model.textContent = "Add a provider in Control Center";
+    if (p4Title) p4Title.textContent = "Active Provider: None";
+    if (p4Model) p4Model.textContent = "Add an AI provider to enable streaming intelligence.";
+    if (p4Badge) {
+      p4Badge.textContent = "NO API KEY";
+      p4Badge.dataset.tone = "warn";
+    }
   }
   updateVoiceChip();
 }
@@ -836,6 +867,43 @@ function wireHud() {
     });
   }
 
+  $("#hudClearLogBtn")?.addEventListener("click", async () => {
+    const confirmed = await ui.confirmAction({
+      title: "Clear Activity Log?",
+      text: "This will remove all recent activity entries from your local HUD log.",
+      confirmLabel: "Clear Log",
+    });
+    if (confirmed) {
+      clearHudLog();
+      renderHudLog();
+      ui.toast("Activity log cleared.", "ok");
+    }
+  });
+
+  $("#hudViewAllLogBtn")?.addEventListener("click", () => {
+    hudLogViewAll = !hudLogViewAll;
+    renderHudLog();
+  });
+
+  $("#p4ManageProviderBtn")?.addEventListener("click", () => {
+    openControlCenter("ai");
+  });
+
+  $("#p4TestProviderBtn")?.addEventListener("click", async () => {
+    const provider = getActiveProvider();
+    if (!provider) {
+      ui.toast("No active provider configured.", "warn");
+      return;
+    }
+    ui.toast(`Testing connection to ${provider.name}…`, "", 2500);
+    const result = await testProvider(provider);
+    if (result.ok) {
+      ui.toast(`Provider test passed: ${provider.name} (${provider.model}) is operational.`, "ok", 4000);
+    } else {
+      ui.toast(`Provider test failed: ${result.error || "Connection error"}`, "error", 6000);
+    }
+  });
+
   setInterval(tickClock, 1000);
   tickClock();
 }
@@ -923,6 +991,8 @@ function renderQuickCommands() {
   container.appendChild(addBtn);
 }
 
+let hudLogViewAll = false;
+
 function renderHudLog() {
   const list = $("#hudLogList");
   if (!list) return;
@@ -933,9 +1003,14 @@ function renderHudLog() {
     empty.className = "hud-log-entry empty";
     empty.textContent = "All systems nominal. No recent activity.";
     list.appendChild(empty);
+    const countBadge = $("#hudLogCount");
+    if (countBadge) countBadge.textContent = "0 EVENTS";
+    const viewAllBtn = $("#hudViewAllLogBtn");
+    if (viewAllBtn) viewAllBtn.textContent = "View All";
     return;
   }
-  for (const entry of entries.slice(0, 10)) {
+  const sliceEntries = hudLogViewAll ? entries : entries.slice(0, 5);
+  for (const entry of sliceEntries) {
     const row = document.createElement("div");
     row.className = "hud-log-entry";
     const time = document.createElement("time");
@@ -949,6 +1024,8 @@ function renderHudLog() {
   }
   const countBadge = $("#hudLogCount");
   if (countBadge) countBadge.textContent = `${entries.length} EVENTS`;
+  const viewAllBtn = $("#hudViewAllLogBtn");
+  if (viewAllBtn) viewAllBtn.textContent = hudLogViewAll ? "Show Recent" : "View All";
 }
 
 function updateGreeting() {
