@@ -977,11 +977,11 @@ export function clearHudLog() {
 /* ----------------------------------------------------------- Quick Commands */
 const QUICK_CMDS_KEY = "vdpai_quick_commands";
 const DEFAULT_QUICK_COMMANDS = [
-  { label: "Status Briefing", prompt: "Give me a short status briefing." },
-  { label: "Plan Day", prompt: "Help me plan my day in five concise steps." },
-  { label: "Capabilities", prompt: "What are your full capabilities as VDPAI?" },
-  { label: "বাংলা", prompt: "কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।" },
-  { label: "हिन्दी", prompt: "नमस्ते VDPAI, आज की मुख्य योजना क्या है?" },
+  { label: "Summarize", prompt: "Summarize the following content into key takeaways: " },
+  { label: "Write", prompt: "Help me write a professional draft for: " },
+  { label: "Brainstorm", prompt: "Brainstorm 5 innovative and creative ideas for: " },
+  { label: "Plan", prompt: "Help me plan a structured step-by-step strategy for: " },
+  { label: "Translate", prompt: "Translate the following text accurately into English: " },
 ];
 
 export function getCustomQuickCommands() {

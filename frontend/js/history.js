@@ -35,7 +35,7 @@ export function initHistory(context = {}) {
   $("#pageNewChatBtn")?.addEventListener("click", async () => {
     await ctx.onNewConversation?.();
     if (typeof window !== "undefined" && window.VDPAI?.switchPage) {
-      window.VDPAI.switchPage("home");
+      window.VDPAI.switchPage("chat");
     }
   });
   $("#historySearch")?.addEventListener("input", (e) => {
@@ -104,7 +104,7 @@ export function renderHistory() {
         ctx.onOpenConversation?.(conversation.id);
         ctx.onChanged?.();
         if (typeof window !== "undefined" && window.VDPAI?.switchPage) {
-          window.VDPAI.switchPage("home");
+          window.VDPAI.switchPage("chat");
         }
       });
       item.appendChild(open);

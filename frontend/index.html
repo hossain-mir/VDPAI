@@ -91,21 +91,21 @@
         <!-- ============================================================ PAGE 1: AI Home -->
         <section class="page-view is-active" id="pageHome" data-page="home" aria-label="Page 1: AI Home">
           <div class="page-scroll-content home-scroll-content" id="homeScrollContent">
-            <!-- Greeting Banner -->
-            <div class="greeting-banner" id="greetingBanner">
-              <span class="greeting-salute" id="greetingSalute">Good morning, Sir.</span>
-              <span class="greeting-sub" id="greetingSub">All systems nominal. How may I assist you?</span>
+            <!-- Compact Greeting Banner -->
+            <div class="greeting-banner compact" id="greetingBanner">
+              <h2 class="greeting-salute" id="greetingSalute">Good evening, Sir.</h2>
+              <p class="greeting-sub" id="greetingSub">All systems ready. How may I assist you?</p>
             </div>
 
             <main class="hud">
-              <!-- Central Arc Reactor Core -->
-              <section class="core-stage" aria-label="Assistant core">
-                <div class="core-frame">
+              <!-- Compact AI Reactor Core -->
+              <section class="core-stage compact" aria-label="Assistant core">
+                <div class="core-frame compact">
                   <canvas id="coreCanvas"></canvas>
                   <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
                   <div class="core-readout">
                     <span id="stateText" class="state-text">IDLE</span>
-                    <small id="stateDetail">awaiting command</small>
+                    <small id="stateDetail">ready</small>
                   </div>
                   <div class="mic-orb-wrap">
                     <button id="micBtn" class="mic-orb" type="button" aria-label="Start voice input" aria-pressed="false" title="Tap to talk, hold for voice settings">
@@ -126,165 +126,217 @@
                 </div>
               </section>
 
-              <!-- 4 Quick Prompt Cards (Screen 2) -->
-              <div class="chat-prompts-carousel" aria-label="Quick prompts">
-                <button type="button" class="chat-prompt-pill glass" data-prompt="Summarize the following content into key takeaways: ">
-                  <span class="prompt-icon">
-                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.6"/></svg>
-                  </span>
-                  <div class="prompt-texts">
-                    <strong>Summarize</strong>
-                    <small>Long articles or docs</small>
-                  </div>
-                </button>
-                <button type="button" class="chat-prompt-pill glass" data-prompt="Help me write a professional draft for: ">
-                  <span class="prompt-icon">
-                    <svg viewBox="0 0 24 24"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                  </span>
-                  <div class="prompt-texts">
-                    <strong>Write</strong>
-                    <small>Emails, posts and more</small>
-                  </div>
-                </button>
-                <button type="button" class="chat-prompt-pill glass" data-prompt="Brainstorm 5 innovative and creative ideas for: ">
-                  <span class="prompt-icon">
-                    <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                  </span>
-                  <div class="prompt-texts">
-                    <strong>Brainstorm</strong>
-                    <small>Ideas and outlines</small>
-                  </div>
-                </button>
-                <button type="button" class="chat-prompt-pill glass" data-prompt="Provide a detailed, well-sourced research overview of: ">
-                  <span class="prompt-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="1.6"/></svg>
-                  </span>
-                  <div class="prompt-texts">
-                    <strong>Research</strong>
-                    <small>Topics and insights</small>
-                  </div>
-                </button>
+              <!-- Compact Horizontal Quick Actions Row -->
+              <div class="home-quick-actions-wrap" aria-label="Quick actions">
+                <div class="quick home-quick-actions-row" id="quickActions" aria-label="Quick actions list">
+                  <button type="button" class="quick-action-pill glass" data-quick="Summarize the following content into key takeaways: ">Summarize</button>
+                  <button type="button" class="quick-action-pill glass" data-quick="Help me write a professional draft for: ">Write</button>
+                  <button type="button" class="quick-action-pill glass" data-quick="Brainstorm 5 innovative and creative ideas for: ">Brainstorm</button>
+                  <button type="button" class="quick-action-pill glass" data-quick="Help me plan a structured step-by-step strategy for: ">Plan</button>
+                  <button type="button" class="quick-action-pill glass" data-quick="Translate the following text accurately into English: ">Translate</button>
+                  <button type="button" class="quick-action-pill glass btn-add-quick" id="addQuickCmdBtn" title="Customize quick commands">+ Add</button>
+                </div>
               </div>
 
-              <!-- Latest Response Card -->
+              <!-- Prominent Readable Assistant Response Card -->
               <section class="response-panel glass" aria-label="Latest assistant response">
                 <header class="panel-head">
                   <span class="kicker">ASSISTANT RESPONSE</span>
                   <span id="responseStatus" class="mini-status">IDLE</span>
                 </header>
-                <div id="responseText" class="response-text">VDPAI is ready. Configure an AI provider, or use a quick command below.</div>
+                <div id="responseText" class="response-text">VDPAI is ready. Ask anything or choose a quick action.</div>
                 <div class="response-foot">
                   <span id="responseMeta" class="response-meta">Local HUD · Bring your own API keys</span>
                   <div class="row-actions">
-                    <button class="btn tiny" id="copyBtn" type="button">Copy</button>
-                    <button class="btn tiny" id="replayBtn" type="button">Replay</button>
-                    <button class="btn tiny" id="stopGenBtn" type="button" hidden>Stop</button>
-                    <button class="btn tiny danger-ghost" id="voiceStopBtn" type="button" hidden>Stop voice</button>
-                    <button class="btn tiny" id="shareBtn" type="button">Share</button>
+                    <button class="btn small" id="copyBtn" type="button">Copy</button>
+                    <button class="btn small" id="replayBtn" type="button">Replay</button>
+                    <button class="btn small" id="stopGenBtn" type="button" hidden>Stop</button>
+                    <button class="btn small danger-ghost" id="voiceStopBtn" type="button" hidden>Stop voice</button>
+                    <button class="btn small" id="shareBtn" type="button">Share</button>
                   </div>
                 </div>
               </section>
 
-              <!-- Conversation Chat Stream (Transcript) -->
-              <section class="activity-wrap glass" id="chatStreamPanel" aria-label="Conversation stream">
-                <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
-                <div class="activity" id="transcript" role="log" aria-live="polite"></div>
-              </section>
-
-              <!-- Single Unified HUD Activity Log -->
+              <!-- Compact Expandable Activity Log -->
               <section class="hud-log-panel glass" id="hudActivityLog" aria-label="Activity and HUD log">
                 <header class="panel-head">
                   <div class="hud-log-head-left">
                     <span class="hud-live-dot" aria-hidden="true"></span>
-                    <span class="kicker">ACTIVITY / HUD LOG</span>
+                    <span class="kicker">ACTIVITY LOG</span>
+                    <span class="mini-status" id="hudLogCount">SYSTEM ONLINE</span>
                   </div>
                   <div class="hud-log-actions">
-                    <span class="mini-status" id="hudLogCount">SYSTEM ONLINE</span>
-                    <button type="button" class="btn tiny" id="hudViewAllLogBtn" title="Toggle full log view">View All</button>
+                    <button type="button" class="btn tiny" id="hudViewAllLogBtn" title="Toggle full log view">Expand</button>
                     <button type="button" class="btn tiny danger-ghost" id="hudClearLogBtn" title="Clear activity log">Clear</button>
                   </div>
                 </header>
-                <div class="hud-log-list" id="hudLogList" role="log" aria-live="polite"></div>
+                <div class="hud-log-search-wrap" id="hudLogSearchWrap" hidden>
+                  <input type="text" id="hudLogSearch" class="inline-search" placeholder="Search activity events..." maxlength="60">
+                </div>
+                <div class="hud-log-list compact" id="hudLogList" role="log" aria-live="polite"></div>
               </section>
 
-              <!-- Quick Commands -->
-              <div class="quick-scroll-wrap" aria-label="Quick commands">
-                <div class="quick" id="quickActions" aria-label="Quick commands list">
-                  <button type="button" data-quick="Give me a short status briefing.">Status Briefing</button>
-                  <button type="button" data-quick="Help me plan my day in five concise steps.">Plan Day</button>
-                  <button type="button" data-quick="What are your full capabilities as VDPAI?">Capabilities</button>
-                  <button type="button" data-quick="কেমন আছেন? আজকের আবহাওয়া ও গুরুত্বপূর্ণ কাজ সম্পর্কে বলুন।">বাংলা</button>
-                  <button type="button" data-quick="नमस्ते VDPAI, आज की मुख्य योजना क्या है?">हिन्दी</button>
-                  <button type="button" class="btn-add-quick" id="addQuickCmdBtn" title="Customize quick commands">+ Add</button>
+              <!-- Home Chat Launcher -->
+              <div class="home-chat-launcher glass-soft" id="homeChatLauncher" role="button" tabindex="0" title="Open Full Chat Interface">
+                <div class="launcher-left">
+                  <span class="launcher-avatar">
+                    <img src="/assets/vdpai_icon.jpg" alt="VDPAI" onerror="this.src='/assets/icon.png'">
+                  </span>
+                  <span class="launcher-text">Ask VDPAI anything...</span>
                 </div>
+                <button type="button" class="btn small primary launcher-btn" id="homeOpenChatBtn">Open Chat ➔</button>
               </div>
             </main>
-
-            <!-- Input Pill Dock (Images 1 & 4) -->
-            <footer class="dock glass">
-              <form id="chatForm" class="composer-pill" autocomplete="off">
-                <button type="button" class="pill-btn attach-btn" id="attachMediaBtn" title="Attach image or file" aria-label="Attach file">
-                  <svg viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </button>
-                <label class="sr-only" for="chatInput">Message</label>
-                <textarea id="chatInput" rows="1" placeholder="Ask VDPAI..." maxlength="8000" enterkeyhint="send"></textarea>
-                <button class="send-pill-btn" type="submit" aria-label="Send message" title="Send" id="sendBtn" disabled>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-                </button>
-              </form>
-
-              <!-- Action Drawer for + button -->
-              <div class="action-drawer glass" id="actionDrawer" hidden>
-                <div class="action-drawer-head">
-                  <span class="action-drawer-title">Quick Actions &amp; Integrations</span>
-                  <button type="button" class="btn tiny" id="closeActionDrawerBtn">✕</button>
-                </div>
-                <div class="action-drawer-grid">
-                  <button type="button" class="drawer-action-btn" id="drawerAttachBtn">
-                    <span class="drawer-icon">📎</span>
-                    <span class="drawer-label">Attach File</span>
-                  </button>
-                  <button type="button" class="drawer-action-btn" id="drawerWhatsappBtn">
-                    <span class="drawer-icon">💬</span>
-                    <span class="drawer-label">WhatsApp</span>
-                  </button>
-                  <button type="button" class="drawer-action-btn" id="drawerSmsBtn">
-                    <span class="drawer-icon">✉️</span>
-                    <span class="drawer-label">SMS</span>
-                  </button>
-                  <button type="button" class="drawer-action-btn" id="drawerEmailBtn">
-                    <span class="drawer-icon">📧</span>
-                    <span class="drawer-label">Email</span>
-                  </button>
-                  <button type="button" class="drawer-action-btn" id="drawerPhoneBtn">
-                    <span class="drawer-icon">📞</span>
-                    <span class="drawer-label">Phone</span>
-                  </button>
-                  <button type="button" class="drawer-action-btn" id="drawerTorchBtn">
-                    <span class="drawer-icon">🔦</span>
-                    <span class="drawer-label">Flashlight</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="dock-tools">
-                <button id="ttsQuickBtn" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Spoken replies">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-                </button>
-                <button id="newChatBtn" class="icon-btn" type="button" aria-label="New conversation" title="New conversation">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </button>
-              </div>
-            </footer>
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 2: Tools & Intelligence -->
-        <section class="page-view" id="pageAssistant" data-page="assistant" aria-label="Page 2: Tools & Intelligence">
+        <!-- ============================================================ PAGE 2: Dedicated Large Chat Interface -->
+        <section class="page-view" id="pageChat" data-page="chat" aria-label="Page 2: Chat Interface">
+          <!-- Chat Header Bar -->
+          <header class="chat-view-header glass">
+            <div class="chat-header-left">
+              <button type="button" class="icon-btn" id="chatBackBtn" title="Back to Home" aria-label="Back to Home">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              </button>
+              <div class="chat-assistant-meta">
+                <div class="chat-assistant-avatar">
+                  <img src="/assets/vdpai_icon.jpg" alt="VDPAI" onerror="this.src='/assets/icon.png'">
+                  <span class="online-indicator-dot" aria-hidden="true"></span>
+                </div>
+                <div class="chat-assistant-titles">
+                  <div class="chat-assistant-name-row">
+                    <strong id="chatHeaderTitle">VDPAI AI</strong>
+                    <span class="chat-online-badge">ONLINE</span>
+                  </div>
+                  <span class="chat-header-model" id="chatHeaderModel">Bring Your Own API</span>
+                </div>
+              </div>
+            </div>
+            <div class="chat-header-actions">
+              <button id="ttsQuickBtn" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Toggle voice speech">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+              <button id="newChatBtn" class="icon-btn" type="button" aria-label="New conversation" title="New conversation">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              </button>
+              <button id="historyBtn" class="icon-btn" type="button" aria-label="History" title="History">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Large Conversation Area -->
+          <div class="chat-conversation-viewport" id="chatConversationViewport">
+            <!-- Empty State Category Suggestions (Screen 2 from user's image) -->
+            <div class="chat-empty-suggestions" id="chatEmptySuggestions">
+              <div class="empty-hero">
+                <div class="empty-icon-glow">
+                  <img src="/assets/vdpai_icon.jpg" alt="VDPAI" class="empty-hero-img" onerror="this.src='/assets/icon.png'">
+                </div>
+                <h3>How can I help you today?</h3>
+                <p>Ask anything, explore ideas, or select a prompt below:</p>
+              </div>
+
+              <div class="suggestion-category-group">
+                <div class="suggestion-cat-header">
+                  <svg viewBox="0 0 24 24" class="cat-icon"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  <span>Explain</span>
+                </div>
+                <div class="suggestion-pills-list">
+                  <button type="button" class="suggestion-pill glass" data-prompt="Explain quantum physics in simple, intuitive terms: ">Explain quantum physics</button>
+                  <button type="button" class="suggestion-pill glass" data-prompt="What are wormholes? Explain like I am 5 years old: ">What are wormholes explain like i am 5</button>
+                </div>
+              </div>
+
+              <div class="suggestion-category-group">
+                <div class="suggestion-cat-header">
+                  <svg viewBox="0 0 24 24" class="cat-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <span>Write &amp; Edit</span>
+                </div>
+                <div class="suggestion-pills-list">
+                  <button type="button" class="suggestion-pill glass" data-prompt="Write a concise tweet about artificial intelligence and future technology: ">Write a tweet about AI and future tech</button>
+                  <button type="button" class="suggestion-pill glass" data-prompt="Write a professional weekly team update email with key achievements: ">Write a weekly team update email</button>
+                  <button type="button" class="suggestion-pill glass" data-prompt="Write a short poetic verse about neon cybernetic cities: ">Write a poem about neon cities</button>
+                </div>
+              </div>
+
+              <div class="suggestion-category-group">
+                <div class="suggestion-cat-header">
+                  <svg viewBox="0 0 24 24" class="cat-icon"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  <span>Translate &amp; Code</span>
+                </div>
+                <div class="suggestion-pills-list">
+                  <button type="button" class="suggestion-pill glass" data-prompt="How do you say 'How are you' and common conversational phrases in Korean?: ">How do you say "How are you" in Korean?</button>
+                  <button type="button" class="suggestion-pill glass" data-prompt="Write a clean Python script using async and httpx to query an API: ">Write a clean Python script</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active Conversation Transcript (Large Full-Height Stream) -->
+            <div class="chat-stream-panel" id="chatStreamPanel">
+              <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
+              <div class="activity" id="transcript" role="log" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <!-- Large Premium Bottom Chat Input Dock -->
+          <footer class="chat-dock-large glass">
+            <form id="chatForm" class="chat-composer-large" autocomplete="off">
+              <button type="button" class="composer-icon-btn" id="attachMediaBtn" title="Attach file or action drawer" aria-label="Attach file">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2"/></svg>
+              </button>
+              <label class="sr-only" for="chatInput">Message</label>
+              <textarea id="chatInput" rows="1" placeholder="Ask VDPAI anything..." maxlength="8000" enterkeyhint="send"></textarea>
+              <button type="button" class="composer-icon-btn voice-btn" id="chatVoiceTriggerBtn" title="Voice Input" aria-label="Voice input">
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              </button>
+              <button class="composer-send-btn" type="submit" aria-label="Send message" title="Send" id="sendBtn" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="currentColor"/></svg>
+              </button>
+            </form>
+
+            <!-- Action Drawer for + button -->
+            <div class="action-drawer glass" id="actionDrawer" hidden>
+              <div class="action-drawer-head">
+                <span class="action-drawer-title">Quick Actions &amp; Integrations</span>
+                <button type="button" class="btn tiny" id="closeActionDrawerBtn">✕</button>
+              </div>
+              <div class="action-drawer-grid">
+                <button type="button" class="drawer-action-btn" id="drawerAttachBtn">
+                  <span class="drawer-icon">📎</span>
+                  <span class="drawer-label">Attach File</span>
+                </button>
+                <button type="button" class="drawer-action-btn" id="drawerWhatsappBtn">
+                  <span class="drawer-icon">💬</span>
+                  <span class="drawer-label">WhatsApp</span>
+                </button>
+                <button type="button" class="drawer-action-btn" id="drawerSmsBtn">
+                  <span class="drawer-icon">✉️</span>
+                  <span class="drawer-label">SMS</span>
+                </button>
+                <button type="button" class="drawer-action-btn" id="drawerEmailBtn">
+                  <span class="drawer-icon">📧</span>
+                  <span class="drawer-label">Email</span>
+                </button>
+                <button type="button" class="drawer-action-btn" id="drawerPhoneBtn">
+                  <span class="drawer-icon">📞</span>
+                  <span class="drawer-label">Phone</span>
+                </button>
+                <button type="button" class="drawer-action-btn" id="drawerTorchBtn">
+                  <span class="drawer-icon">🔦</span>
+                  <span class="drawer-label">Flashlight</span>
+                </button>
+              </div>
+            </div>
+          </footer>
+        </section>
+
+        <!-- ============================================================ PAGE 3: Tasks & Intelligence -->
+        <section class="page-view" id="pageTasks" data-page="tasks" aria-label="Page 3: Tasks & Intelligence">
           <div class="page-scroll-content">
             <header class="section-banner">
-              <h2>TOOLS &amp; INTELLIGENCE</h2>
-              <p>Specialized AI accelerators, recent conversations, device actions, and background core.</p>
+              <h2>TASKS &amp; INTELLIGENCE</h2>
+              <p>Specialized AI accelerators, action items, scratchpad notes, reminders, and calendar agenda.</p>
             </header>
 
             <!-- 6 Prominent AI Action Cards (Screen 3) -->
@@ -799,25 +851,31 @@
       </div>
     </div>
 
-    <!-- Dynamic Pill Bottom Navigation Bar (4 Main Pages: Chat, Tools, History, Profile) -->
+    <!-- Dynamic Floating Pill Bottom Navigation Bar (5 Main Pages: Home, Chat, Tasks, Control, Profile) -->
     <nav class="bottom-nav-bar" id="bottomNavBar" role="tablist" aria-label="Main Navigation">
-      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Chat">
+      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Home">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button type="button" class="nav-pill-btn" data-page="chat" role="tab" aria-selected="false" title="Chat">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.5" r="1" fill="currentColor"/><circle cx="8" cy="11.5" r="1" fill="currentColor"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/></svg>
         </span>
         <span class="nav-label">Chat</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false" title="Tools">
+      <button type="button" class="nav-pill-btn" data-page="tasks" role="tab" aria-selected="false" title="Tasks">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </span>
-        <span class="nav-label">Tools</span>
+        <span class="nav-label">Tasks</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="History">
+      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="Control">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </span>
-        <span class="nav-label">History</span>
+        <span class="nav-label">Control</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false" title="Profile">
         <span class="nav-icon">

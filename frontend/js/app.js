@@ -391,6 +391,9 @@ async function send(raw, { source = "text" } = {}) {
   const conversation = ensureConversation();
   const provider = ready.provider;
 
+  switchPage("chat");
+  syncChatEmptySuggestions();
+
   const chatInput = $("#chatInput");
   if (chatInput) {
     chatInput.value = "";
@@ -585,6 +588,7 @@ function renderActiveConversation({ announce = false } = {}) {
   const conversation = getActiveConversation();
   if (!conversation || !conversation.messages.length) {
     app.transcript?.clear();
+    syncChatEmptySuggestions();
     if (announce) {
       app.transcript?.add("system", "VDPAI READY · local HUD · configure an AI provider in Control Center");
     }
@@ -603,6 +607,7 @@ function renderActiveConversation({ announce = false } = {}) {
     return;
   }
   app.transcript?.renderConversation(conversation, { announce });
+  syncChatEmptySuggestions();
   const lastAssistant = [...conversation.messages].reverse().find((message) => message.role === "assistant");
   if (lastAssistant) {
     app.lastAnswer = lastAssistant.content.replace(/\n\n\[stopped\]$/, "");
@@ -981,8 +986,8 @@ function wireHud() {
     $("#toggleTorchBtn")?.click();
   });
 
-  // Screen 2: 4 Quick Prompt Pills on Chat page
-  $$(".chat-prompt-pill").forEach((pill) => {
+  // Suggestion Pills on Chat View (Screen 2)
+  $$(".suggestion-pill").forEach((pill) => {
     pill.addEventListener("click", () => {
       const prompt = pill.dataset.prompt || "";
       const input = $("#chatInput");
@@ -995,7 +1000,20 @@ function wireHud() {
     });
   });
 
-  // Screen 3: 6 Tool Action Cards on Tools page
+  // Chat View Voice Trigger & Back Button
+  $("#chatVoiceTriggerBtn")?.addEventListener("click", () => toggleVoice());
+  $("#chatBackBtn")?.addEventListener("click", () => switchPage("home"));
+  $("#homeChatLauncher")?.addEventListener("click", () => {
+    switchPage("chat");
+    setTimeout(() => $("#chatInput")?.focus(), 150);
+  });
+  $("#homeOpenChatBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    switchPage("chat");
+    setTimeout(() => $("#chatInput")?.focus(), 150);
+  });
+
+  // Tool Action Cards on Tasks page
   $$(".tool-action-card").forEach((card) => {
     card.addEventListener("click", () => {
       const prompt = card.dataset.prompt || "";
@@ -1004,11 +1022,24 @@ function wireHud() {
         input.value = prompt;
         autoGrow(input);
         syncSendButton();
-        switchPage("home");
+        switchPage("chat");
         setTimeout(() => input.focus(), 150);
       }
     });
   });
+
+  // Visual Viewport Keyboard Handling (prevents bottom nav from overlapping input)
+  if (typeof window !== "undefined" && window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.78;
+      document.body.classList.toggle("keyboard-open", isKeyboardOpen);
+      if (isKeyboardOpen && activePageIndex === 1) {
+        app.transcript?.scroll();
+      }
+    });
+  }
+
+  $("#hudLogSearch")?.addEventListener("input", () => renderHudLog());
 
   // Background Standby Mode Toggle
   let bgStandbyActive = false;
@@ -1108,16 +1139,24 @@ function wireHud() {
 }
 
 let activePageIndex = 0;
-const PAGES = ["home", "assistant", "control", "settings"];
+const PAGES = ["home", "chat", "tasks", "control", "settings"];
+
+function syncChatEmptySuggestions() {
+  const conversation = getActiveConversation();
+  const emptyEl = $("#chatEmptySuggestions");
+  const hasMessages = Boolean(conversation && conversation.messages && conversation.messages.length > 0);
+  if (emptyEl) emptyEl.hidden = hasMessages;
+}
 
 function switchPage(pageId) {
+  if (pageId === "assistant") pageId = "tasks";
   const index = PAGES.indexOf(pageId);
   if (index < 0) return;
   activePageIndex = index;
 
   const slider = $("#pagesSlider");
   if (slider) {
-    slider.style.transform = `translateX(-${index * 25}%)`;
+    slider.style.transform = `translateX(-${index * 20}%)`;
   }
 
   $$(".page-view").forEach((view) => {
@@ -1130,10 +1169,13 @@ function switchPage(pageId) {
     btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
   });
 
-  if (pageId === "assistant") {
+  if (pageId === "tasks") {
     renderRecentChats();
   } else if (pageId === "control") {
     renderHistory();
+  } else if (pageId === "chat") {
+    app.transcript?.scroll();
+    syncChatEmptySuggestions();
   }
 }
 
@@ -1167,7 +1209,7 @@ function renderRecentChats() {
     row.addEventListener("click", () => {
       setActiveConversation(conv.id);
       renderActiveConversation({ announce: false });
-      switchPage("home");
+      switchPage("chat");
     });
     host.appendChild(row);
   }
@@ -1238,19 +1280,25 @@ function renderHudLog() {
   const list = $("#hudLogList");
   if (!list) return;
   const entries = getHudLog();
+  const searchInput = $("#hudLogSearch");
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  const filtered = query ? entries.filter((e) => (e.text || "").toLowerCase().includes(query)) : entries;
+
   list.replaceChildren();
-  if (entries.length === 0) {
+  if (filtered.length === 0) {
     const empty = document.createElement("div");
     empty.className = "hud-log-entry empty";
-    empty.textContent = "All systems nominal. No recent activity.";
+    empty.textContent = query ? "No matching events found." : "All systems nominal. No recent activity.";
     list.appendChild(empty);
     const countBadge = $("#hudLogCount");
     if (countBadge) countBadge.textContent = "0 EVENTS";
     const viewAllBtn = $("#hudViewAllLogBtn");
-    if (viewAllBtn) viewAllBtn.textContent = "View All";
+    if (viewAllBtn) viewAllBtn.textContent = hudLogViewAll ? "Collapse" : "Expand";
+    const searchWrap = $("#hudLogSearchWrap");
+    if (searchWrap) searchWrap.hidden = !hudLogViewAll;
     return;
   }
-  const sliceEntries = hudLogViewAll ? entries : entries.slice(0, 5);
+  const sliceEntries = hudLogViewAll ? filtered : filtered.slice(0, 2);
   for (const entry of sliceEntries) {
     const row = document.createElement("div");
     row.className = "hud-log-entry";
@@ -1266,7 +1314,9 @@ function renderHudLog() {
   const countBadge = $("#hudLogCount");
   if (countBadge) countBadge.textContent = `${entries.length} EVENTS`;
   const viewAllBtn = $("#hudViewAllLogBtn");
-  if (viewAllBtn) viewAllBtn.textContent = hudLogViewAll ? "Show Recent" : "View All";
+  if (viewAllBtn) viewAllBtn.textContent = hudLogViewAll ? "Collapse" : "Expand";
+  const searchWrap = $("#hudLogSearchWrap");
+  if (searchWrap) searchWrap.hidden = !hudLogViewAll;
 }
 
 function updateGreeting() {
