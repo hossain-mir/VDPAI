@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25" />
+      <stop offset="60%" stop-color="#2563eb" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bodyWhite" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="85%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <linearGradient id="blueAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="darkVisor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1e3a8a" flood-opacity="0.16" />
+    </filter>
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2563eb" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background Aura Rings -->
+  <circle cx="180" cy="190" r="140" fill="url(#auraGrad)" />
+  <circle cx="180" cy="230" r="110" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.4" />
+  <ellipse cx="180" cy="275" rx="100" ry="25" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.5" />
+  <ellipse cx="180" cy="275" rx="60" ry="15" fill="none" stroke="#2563eb" stroke-width="1.5" opacity="0.4" />
+
+  <!-- Floating Badges -->
+  <!-- Badge 1: Chat (Top-Right) -->
+  <g transform="translate(240, 75)" filter="url(#badgeShadow)">
+    <circle cx="24" cy="24" r="22" fill="#2563eb" />
+    <path d="M15 17h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4l-5 4v-4h-9a2 2 0 0 1-2-2V19a2 2 0 0 1 2-2z" fill="#ffffff" />
+    <circle cx="20" cy="24" r="1.5" fill="#2563eb" />
+    <circle cx="24" cy="24" r="1.5" fill="#2563eb" />
+    <circle cx="28" cy="24" r="1.5" fill="#2563eb" />
+  </g>
+
+  <!-- Badge 2: Settings / Gear (Right) -->
+  <g transform="translate(275, 145)" filter="url(#badgeShadow)">
+    <circle cx="20" cy="20" r="18" fill="#3b82f6" />
+    <path d="M20 14a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" fill="#ffffff" />
+    <path d="M21 11h-2l-.5 2-.8.3-1.6-1.2-1.4 1.4 1.2 1.6-.3.8-2 .5v2l2 .5.3.8-1.2 1.6 1.4 1.4 1.6-1.2.8.3.5 2h2l.5-2 .8-.3 1.6 1.2 1.4-1.4-1.2-1.6.3-.8 2-.5v-2l-2-.5-.3-.8 1.2-1.6-1.4-1.4-1.6 1.2-.8-.3z" fill="#ffffff" />
+  </g>
+
+  <!-- Badge 3: Globe / Connectivity (Lower Right) -->
+  <g transform="translate(260, 220)" filter="url(#badgeShadow)">
+    <circle cx="18" cy="18" r="16" fill="#1d4ed8" />
+    <circle cx="18" cy="18" r="10" fill="none" stroke="#ffffff" stroke-width="1.5" />
+    <ellipse cx="18" cy="18" rx="4.5" ry="10" fill="none" stroke="#ffffff" stroke-width="1.2" />
+    <line x1="8" y1="18" x2="28" y2="18" stroke="#ffffff" stroke-width="1.2" />
+  </g>
+
+  <!-- Robot Character Group -->
+  <g filter="url(#softShadow)">
+    <!-- Shoulders & Upper Body -->
+    <path d="M125 210 C125 185, 235 185, 235 210 L230 250 C230 268, 130 268, 130 250 Z" fill="url(#bodyWhite)" />
+    <!-- Chest Plate / Badge -->
+    <ellipse cx="180" cy="226" rx="26" ry="24" fill="url(#blueAccent)" />
+    <polygon points="180,210 196,219 196,237 180,246 164,237 164,219" fill="#1e40af" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="180" y="233" font-family="system-ui, sans-serif" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" dominant-baseline="central">N</text>
+
+    <!-- Arms -->
+    <!-- Left Arm & Hand -->
+    <g>
+      <ellipse cx="112" cy="224" rx="16" ry="22" fill="url(#blueAccent)" transform="rotate(-15 112 224)" />
+      <path d="M102 235 C92 250, 75 258, 65 248 C55 238, 70 220, 85 215" fill="none" stroke="url(#bodyWhite)" stroke-width="16" stroke-linecap="round" />
+      <circle cx="65" cy="245" r="12" fill="url(#blueAccent)" />
+    </g>
+
+    <!-- Right Arm (Waving) -->
+    <g>
+      <ellipse cx="248" cy="224" rx="16" ry="22" fill="url(#blueAccent)" transform="rotate(15 248 224)" />
+      <path d="M255 230 C275 238, 290 226, 298 210 C306 195, 295 182, 280 188" fill="none" stroke="url(#bodyWhite)" stroke-width="16" stroke-linecap="round" />
+      <circle cx="280" cy="190" r="12" fill="url(#blueAccent)" />
+      <!-- Finger joints -->
+      <circle cx="288" cy="180" r="4" fill="#38bdf8" />
+      <circle cx="295" cy="186" r="4" fill="#38bdf8" />
+      <circle cx="292" cy="195" r="4" fill="#38bdf8" />
+    </g>
+
+    <!-- Neck Ring -->
+    <ellipse cx="180" cy="186" rx="32" ry="12" fill="#94a3b8" />
+    <ellipse cx="180" cy="184" rx="30" ry="10" fill="url(#blueAccent)" />
+
+    <!-- Robot Head / Helmet -->
+    <!-- Left Ear / Antenna -->
+    <rect x="78" y="125" width="16" height="36" rx="8" fill="url(#blueAccent)" />
+    <circle cx="86" cy="143" r="5" fill="#38bdf8" />
+    <line x1="86" y1="125" x2="72" y2="100" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+    <circle cx="70" cy="98" r="6" fill="#38bdf8" />
+
+    <!-- Right Ear / Antenna -->
+    <rect x="266" y="125" width="16" height="36" rx="8" fill="url(#blueAccent)" />
+    <circle cx="274" cy="143" r="5" fill="#38bdf8" />
+    <line x1="274" y1="125" x2="288" y2="100" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+    <circle cx="290" cy="98" r="6" fill="#38bdf8" />
+
+    <!-- Main Helmet Shell -->
+    <rect x="88" y="86" width="184" height="108" rx="54" fill="url(#bodyWhite)" />
+
+    <!-- Head Highlight -->
+    <path d="M120 95 C140 90, 220 90, 240 95" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.8" fill="none" />
+
+    <!-- Glossy Dark Visor Screen -->
+    <rect x="108" y="104" width="144" height="74" rx="37" fill="url(#darkVisor)" stroke="#38bdf8" stroke-width="2.5" />
+
+    <!-- Cyan Glowing Visor Eyes -->
+    <g>
+      <ellipse cx="146" cy="138" rx="14" ry="18" fill="#38bdf8" />
+      <circle cx="142" cy="133" r="5" fill="#ffffff" />
+      <ellipse cx="214" cy="138" rx="14" ry="18" fill="#38bdf8" />
+      <circle cx="210" cy="133" r="5" fill="#ffffff" />
+
+      <!-- Cute Curved Digital Smile -->
+      <path d="M168 155 Q180 163 192 155" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+
+      <!-- Cheeks -->
+      <ellipse cx="128" cy="154" rx="7" ry="4" fill="rgba(56, 189, 248, 0.45)" />
+      <ellipse cx="232" cy="154" rx="7" ry="4" fill="rgba(56, 189, 248, 0.45)" />
+    </g>
+  </g>
+</svg>

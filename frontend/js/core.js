@@ -1,12 +1,12 @@
 /* VDPAI — animated core (Canvas 2D, ~30fps, cheap on Android). */
 
 const PALETTE = {
-  IDLE: ["#58e7ff", "#2aa8c4"],
-  LISTENING: ["#3dffb0", "#58e7ff"],
-  THINKING: ["#58e7ff", "#8ef3ff"],
-  SPEAKING: ["#3dffb0", "#4fd6ff"],
-  EXECUTING: ["#ffd166", "#58e7ff"],
-  ERROR: ["#ff6b7a", "#ff9aa5"],
+  IDLE: ["#1d68f0", "#3b82f6"],
+  LISTENING: ["#10b981", "#1d68f0"],
+  THINKING: ["#1d68f0", "#6366f1"],
+  SPEAKING: ["#2563eb", "#38bdf8"],
+  EXECUTING: ["#f59e0b", "#1d68f0"],
+  ERROR: ["#ef4444", "#dc2626"],
 };
 
 function alpha(hex, value) {

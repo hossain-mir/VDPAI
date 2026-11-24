@@ -3,106 +3,135 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#02070a">
-  <meta name="color-scheme" content="dark">
-  <meta name="description" content="VDPAI — futuristic personal AI assistant. Intelligent voice, personal memory, and app integrations.">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="VDPAI — Your Personal AI Assistant. Smarter. Faster. More Helpful.">
   <title>VDPAI</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body data-state="idle" data-theme="cyan">
+<body data-state="idle" data-theme="blue">
   <a class="skip-link" href="#chatInput">Skip to message input</a>
 
-  <!-- ------------------------------------------------ Launch Animation Sequence (Section 12) -->
-  <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Launch Sequence">
+  <!-- ============================================================ SCREEN 1: Onboarding / Welcome Screen -->
+  <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Onboarding">
     <div class="splash-content">
-      <div class="splash-logo-wrap">
-        <img src="/assets/vdpai_icon.jpg" alt="VDPAI" class="splash-logo" onerror="this.src='/assets/icon.png'">
-        <div class="splash-pulse-ring"></div>
-        <div class="splash-reactor-ring"></div>
+      <div class="splash-top">
+        <div class="splash-logo-badge">
+          <svg viewBox="0 0 44 44" class="splash-hex-logo" aria-hidden="true">
+            <path d="M22 3 39 12.5v19L22 41 5 31.5v-19Z" fill="#eff6ff" stroke="#1d68f0" stroke-width="2.5"/>
+            <path d="M15 28V16l14 12V16" fill="none" stroke="#1d68f0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1 class="splash-title">VDPAI</h1>
+        <h2 class="splash-subtitle">Your Personal AI Assistant</h2>
+        <p class="splash-tagline">Smarter. Faster. More Helpful.</p>
       </div>
-      <h1 class="splash-title">VDPAI</h1>
-      <p class="splash-subtitle">PERSONAL INTELLIGENCE CORE</p>
-      <div class="splash-progress-track">
-        <div class="splash-progress-fill" id="splashProgress"></div>
+
+      <div class="splash-illustration-wrap">
+        <img src="/assets/robot_illustration.svg" alt="VDPAI Assistant" class="splash-robot-img">
       </div>
-      <span class="splash-status-text" id="splashStatusText">INITIALIZING SYSTEM CORE…</span>
-      <button type="button" class="btn tiny splash-skip-btn" id="splashSkipBtn">Skip Sequence ➔</button>
+
+      <div class="splash-bottom">
+        <p class="splash-description">
+          Using this software, you can ask your questions and receive enterprise level artificial intelligence assistant.
+        </p>
+
+        <div class="splash-dots" aria-hidden="true">
+          <span class="splash-dot active"></span>
+          <span class="splash-dot"></span>
+          <span class="splash-dot"></span>
+          <span class="splash-dot"></span>
+        </div>
+
+        <button type="button" class="splash-continue-btn" id="splashSkipBtn">Continue ➔</button>
+
+        <!-- Hidden progress elements to maintain API compatibility -->
+        <div class="sr-only" aria-hidden="true" style="display:none">
+          <div id="splashProgress"></div>
+          <span id="splashStatusText">ONLINE</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="app" id="app" hidden>
-    <!-- Top HUD Header -->
+    <!-- Top Universal Clean Header -->
     <header class="topbar">
-      <div class="brand">
-        <button class="topbar-menu-btn" id="topMenuBtn" type="button" aria-label="Open Control Center" title="Menu">
-          <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="topMenuBtn" type="button" aria-label="Menu" title="Menu">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 44 44"><path d="M22 3 39 12.5v19L22 41 5 31.5v-19Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M15 28V16l14 12V16" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
-        </span>
-        <div class="brand-text">
-          <strong>VDPAI</strong>
-          <small>PERSONAL AI ASSISTANT</small>
+        <div class="brand">
+          <img src="/assets/robot_avatar.svg" class="header-robot-avatar" alt="VDPAI">
+          <div class="brand-text">
+            <strong>VDPAI</strong>
+            <span class="online-status-badge"><i class="green-dot"></i> Online</span>
+          </div>
         </div>
       </div>
 
-      <!-- Topbar Model Selector Pill (Screen 2) -->
+      <!-- Topbar Model Selector Pill -->
       <button type="button" class="model-pill-selector" id="modelPillBtn" title="Active Model & Provider">
         <span class="model-pill-dot" aria-hidden="true"></span>
         <span class="model-pill-name" id="modelPillName">VDPAI 2.0</span>
-        <svg viewBox="0 0 24 24" class="model-pill-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+        <svg viewBox="0 0 24 24" class="model-pill-chevron" aria-hidden="true"><polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
 
+      <!-- System Status Chips (Required IDs) -->
       <div class="status-chips" aria-label="System status">
         <span class="chip" id="chipProvider" data-tone="bad" title="Selected AI provider"><i></i>NO API</span>
         <span class="chip" id="chipMic" data-tone="warn" title="Microphone status"><i></i>MIC</span>
         <span class="chip" id="chipVoice" data-tone="ok" title="Voice output status"><i></i>VOICE</span>
-        <span class="chip" id="chipBackend" data-tone="warn" title="Optional backend status"><i></i>OFFLINE</span>
+        <span class="chip" id="chipBackend" data-tone="warn" title="Backend status"><i></i>OFFLINE</span>
         <span class="chip" id="hudNetworkStatus" data-tone="ok" title="Network status"><i></i>ONLINE</span>
       </div>
 
-      <div class="hud-telemetry" aria-label="Local telemetry">
-        <div class="clock" aria-label="Local time">
-          <time id="clock">--:--</time>
-          <small id="dateLabel">—</small>
-        </div>
-        <div class="battery-readout" id="hudBatteryText" title="Device battery">100%</div>
-      </div>
-
       <div class="top-actions">
-        <button class="icon-btn" id="historyBtn" type="button" aria-label="Conversation history" title="Chat">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 9h8M8 12.5h5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        <button class="icon-btn" id="ttsQuickBtn" type="button" aria-pressed="true" aria-label="Voice speech toggle" title="Voice speech">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </button>
-        <button class="icon-btn" id="themeQuickBtn" type="button" aria-label="Toggle accent theme" title="Theme">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.97-4.03-9-9-9zm-6.5 9c-.83 0-1.5-.67-1.5-1.5S4.67 9 5.5 9s1.5.67 1.5 1.5S6.33 12 5.5 12zm3-4C7.67 8 7 7.33 7 6.5S7.67 5 8.5 5s1.5.67 1.5 1.5S9.33 8 8.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S12.67 5 13.5 5s1.5.67 1.5 1.5S14.33 8 13.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S15.67 9 16.5 9s1.5.67 1.5 1.5S17.33 12 16.5 12z" fill="currentColor"/></svg>
+        <button class="icon-btn" id="newChatBtn" type="button" aria-label="New conversation" title="New conversation">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button class="icon-btn" id="historyBtn" type="button" aria-label="Conversation history" title="History">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button class="icon-btn" id="themeQuickBtn" type="button" aria-label="Toggle accent theme" title="Theme" style="display:none">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>
         </button>
         <button class="icon-btn" id="controlBtn" type="button" aria-label="Control Center" title="Control Center">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </button>
+      </div>
+
+      <div class="hud-telemetry sr-only" aria-hidden="true" style="display:none">
+        <time id="clock">--:--</time>
+        <small id="dateLabel">—</small>
+        <div id="hudBatteryText">100%</div>
       </div>
     </header>
 
-    <!-- Main Viewport containing the Four Main Swipeable Pages -->
+    <!-- Main Viewport containing the Five Swipeable Pages -->
     <div class="pages-viewport" id="pagesViewport">
       <div class="pages-slider" id="pagesSlider">
 
         <!-- ============================================================ PAGE 1: AI Home -->
         <section class="page-view is-active" id="pageHome" data-page="home" aria-label="Page 1: AI Home">
           <div class="page-scroll-content home-scroll-content" id="homeScrollContent">
-            <!-- Compact Greeting Banner -->
-            <div class="greeting-banner compact" id="greetingBanner">
-              <h2 class="greeting-salute" id="greetingSalute">Good evening, Sir.</h2>
-              <p class="greeting-sub" id="greetingSub">All systems ready. How may I assist you?</p>
+            <!-- Modern Greeting Banner -->
+            <div class="greeting-banner" id="greetingBanner">
+              <span class="greeting-sun" aria-hidden="true">☀️</span>
+              <h2 class="greeting-salute" id="greetingSalute">Good morning, Sir</h2>
+              <p class="greeting-sub" id="greetingSub">How can I help you today?</p>
             </div>
 
             <main class="hud">
-              <!-- Compact AI Reactor Core -->
-              <section class="core-stage compact" aria-label="Assistant core">
-                <div class="core-frame compact">
+              <!-- Luminous Pearl AI Reactor Stage -->
+              <section class="core-stage" aria-label="Assistant core">
+                <div class="core-frame">
                   <canvas id="coreCanvas"></canvas>
-                  <div class="hud-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
                   <div class="core-readout">
                     <span id="stateText" class="state-text">IDLE</span>
                     <small id="stateDetail">ready</small>
@@ -110,13 +139,13 @@
                   <div class="mic-orb-wrap">
                     <button id="micBtn" class="mic-orb" type="button" aria-label="Start voice input" aria-pressed="false" title="Tap to talk, hold for voice settings">
                       <span class="mic-halo" aria-hidden="true"></span>
-                      <span class="mic-pulse-fx" aria-hidden="true"></span>
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                     </button>
                     <span class="mic-label" id="micLabel">MIC</span>
                   </div>
                 </div>
-                <div class="core-provider glass" id="activeProviderCard">
+
+                <div class="core-provider" id="activeProviderCard">
                   <div class="provider-pill-head">
                     <span class="provider-pulse-dot" aria-hidden="true"></span>
                     <span class="kicker">ACTIVE PROVIDER</span>
@@ -126,27 +155,27 @@
                 </div>
               </section>
 
-              <!-- Compact Horizontal Quick Actions Row -->
+              <!-- Quick Actions Row -->
               <div class="home-quick-actions-wrap" aria-label="Quick actions">
-                <div class="quick home-quick-actions-row" id="quickActions" aria-label="Quick actions list">
-                  <button type="button" class="quick-action-pill glass" data-quick="Summarize the following content into key takeaways: ">Summarize</button>
-                  <button type="button" class="quick-action-pill glass" data-quick="Help me write a professional draft for: ">Write</button>
-                  <button type="button" class="quick-action-pill glass" data-quick="Brainstorm 5 innovative and creative ideas for: ">Brainstorm</button>
-                  <button type="button" class="quick-action-pill glass" data-quick="Help me plan a structured step-by-step strategy for: ">Plan</button>
-                  <button type="button" class="quick-action-pill glass" data-quick="Translate the following text accurately into English: ">Translate</button>
-                  <button type="button" class="quick-action-pill glass btn-add-quick" id="addQuickCmdBtn" title="Customize quick commands">+ Add</button>
+                <div class="home-quick-actions-row" id="quickActions" aria-label="Quick actions list">
+                  <button type="button" class="quick-action-pill" data-quick="Summarize the following content into key takeaways: ">Summarize</button>
+                  <button type="button" class="quick-action-pill" data-quick="Help me write a professional draft for: ">Write</button>
+                  <button type="button" class="quick-action-pill" data-quick="Brainstorm 5 innovative and creative ideas for: ">Brainstorm</button>
+                  <button type="button" class="quick-action-pill" data-quick="Help me plan a structured step-by-step strategy for: ">Plan</button>
+                  <button type="button" class="quick-action-pill" data-quick="Translate the following text accurately into English: ">Translate</button>
+                  <button type="button" class="quick-action-pill btn-add-quick" id="addQuickCmdBtn" title="Customize quick commands">+ Add</button>
                 </div>
               </div>
 
-              <!-- Prominent Readable Assistant Response Card -->
-              <section class="response-panel glass" aria-label="Latest assistant response">
+              <!-- Assistant Response Panel -->
+              <section class="response-panel" aria-label="Latest assistant response">
                 <header class="panel-head">
                   <span class="kicker">ASSISTANT RESPONSE</span>
                   <span id="responseStatus" class="mini-status">IDLE</span>
                 </header>
                 <div id="responseText" class="response-text">VDPAI is ready. Ask anything or choose a quick action.</div>
                 <div class="response-foot">
-                  <span id="responseMeta" class="response-meta">Local HUD · Bring your own API keys</span>
+                  <span id="responseMeta" class="response-meta">Bring your own API keys · Stored locally</span>
                   <div class="row-actions">
                     <button class="btn small" id="copyBtn" type="button">Copy</button>
                     <button class="btn small" id="replayBtn" type="button">Replay</button>
@@ -157,8 +186,8 @@
                 </div>
               </section>
 
-              <!-- Compact Expandable Activity Log -->
-              <section class="hud-log-panel glass" id="hudActivityLog" aria-label="Activity and HUD log">
+              <!-- Expandable Activity Log -->
+              <section class="hud-log-panel" id="hudActivityLog" aria-label="Activity and HUD log">
                 <header class="panel-head">
                   <div class="hud-log-head-left">
                     <span class="hud-live-dot" aria-hidden="true"></span>
@@ -177,10 +206,10 @@
               </section>
 
               <!-- Home Chat Launcher -->
-              <div class="home-chat-launcher glass-soft" id="homeChatLauncher" role="button" tabindex="0" title="Open Full Chat Interface">
+              <div class="home-chat-launcher" id="homeChatLauncher" role="button" tabindex="0" title="Open Full Chat Interface">
                 <div class="launcher-left">
                   <span class="launcher-avatar">
-                    <img src="/assets/vdpai_icon.jpg" alt="VDPAI" onerror="this.src='/assets/icon.png'">
+                    <img src="/assets/robot_avatar.svg" alt="VDPAI">
                   </span>
                   <span class="launcher-text">Ask VDPAI anything...</span>
                 </div>
@@ -190,85 +219,53 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 2: Dedicated Large Chat Interface -->
+        <!-- ============================================================ PAGE 2: Dedicated Large Chat Interface (SCREEN 3) -->
         <section class="page-view" id="pageChat" data-page="chat" aria-label="Page 2: Chat Interface">
-          <!-- Chat Header Bar -->
-          <header class="chat-view-header glass">
+          <!-- Chat Header Bar matching Screen 3 -->
+          <header class="chat-view-header">
             <div class="chat-header-left">
-              <button type="button" class="icon-btn" id="chatBackBtn" title="Back to Home" aria-label="Back to Home">
-                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <button type="button" class="chat-back-btn" id="chatBackBtn" title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
               </button>
               <div class="chat-assistant-meta">
-                <div class="chat-assistant-avatar">
-                  <img src="/assets/vdpai_icon.jpg" alt="VDPAI" onerror="this.src='/assets/icon.png'">
-                  <span class="online-indicator-dot" aria-hidden="true"></span>
+                <div class="chat-assistant-avatar-wrap">
+                  <img src="/assets/robot_avatar.svg" alt="VDPAI" class="chat-robot-avatar">
                 </div>
                 <div class="chat-assistant-titles">
-                  <div class="chat-assistant-name-row">
-                    <strong id="chatHeaderTitle">VDPAI AI</strong>
-                    <span class="chat-online-badge">ONLINE</span>
+                  <div class="chat-title-row">
+                    <strong id="chatHeaderTitle">VDPAI</strong>
                   </div>
-                  <span class="chat-header-model" id="chatHeaderModel">Bring Your Own API</span>
+                  <span class="online-status-badge"><i class="green-dot"></i> Online</span>
+                  <span class="sr-only" id="chatHeaderModel"></span>
                 </div>
               </div>
             </div>
             <div class="chat-header-actions">
-              <button id="ttsQuickBtn" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Toggle voice speech">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              <button id="ttsChatQuickBtn" class="header-action-btn" type="button" aria-label="Voice audio" title="Voice audio">
+                <svg viewBox="0 0 24 24"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
               </button>
-              <button id="newChatBtn" class="icon-btn" type="button" aria-label="New conversation" title="New conversation">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-              </button>
-              <button id="historyBtn" class="icon-btn" type="button" aria-label="History" title="History">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              <button id="newChatChatBtn" class="header-action-btn" type="button" aria-label="New chat" title="New chat">
+                <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
               </button>
             </div>
           </header>
 
           <!-- Large Conversation Area -->
           <div class="chat-conversation-viewport" id="chatConversationViewport">
-            <!-- Empty State Category Suggestions (Screen 2 from user's image) -->
+            <!-- Empty State Category Suggestions -->
             <div class="chat-empty-suggestions" id="chatEmptySuggestions">
               <div class="empty-hero">
-                <div class="empty-icon-glow">
-                  <img src="/assets/vdpai_icon.jpg" alt="VDPAI" class="empty-hero-img" onerror="this.src='/assets/icon.png'">
-                </div>
-                <h3>How can I help you today?</h3>
-                <p>Ask anything, explore ideas, or select a prompt below:</p>
+                <img src="/assets/robot_avatar.svg" alt="VDPAI" class="empty-hero-robot">
+                <h3>Hello! How can I help you?</h3>
+                <p>Ask anything or tap a prompt below to get started:</p>
               </div>
 
-              <div class="suggestion-category-group">
-                <div class="suggestion-cat-header">
-                  <svg viewBox="0 0 24 24" class="cat-icon"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                  <span>Explain</span>
-                </div>
-                <div class="suggestion-pills-list">
-                  <button type="button" class="suggestion-pill glass" data-prompt="Explain quantum physics in simple, intuitive terms: ">Explain quantum physics</button>
-                  <button type="button" class="suggestion-pill glass" data-prompt="What are wormholes? Explain like I am 5 years old: ">What are wormholes explain like i am 5</button>
-                </div>
-              </div>
-
-              <div class="suggestion-category-group">
-                <div class="suggestion-cat-header">
-                  <svg viewBox="0 0 24 24" class="cat-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  <span>Write &amp; Edit</span>
-                </div>
-                <div class="suggestion-pills-list">
-                  <button type="button" class="suggestion-pill glass" data-prompt="Write a concise tweet about artificial intelligence and future technology: ">Write a tweet about AI and future tech</button>
-                  <button type="button" class="suggestion-pill glass" data-prompt="Write a professional weekly team update email with key achievements: ">Write a weekly team update email</button>
-                  <button type="button" class="suggestion-pill glass" data-prompt="Write a short poetic verse about neon cybernetic cities: ">Write a poem about neon cities</button>
-                </div>
-              </div>
-
-              <div class="suggestion-category-group">
-                <div class="suggestion-cat-header">
-                  <svg viewBox="0 0 24 24" class="cat-icon"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                  <span>Translate &amp; Code</span>
-                </div>
-                <div class="suggestion-pills-list">
-                  <button type="button" class="suggestion-pill glass" data-prompt="How do you say 'How are you' and common conversational phrases in Korean?: ">How do you say "How are you" in Korean?</button>
-                  <button type="button" class="suggestion-pill glass" data-prompt="Write a clean Python script using async and httpx to query an API: ">Write a clean Python script</button>
-                </div>
+              <div class="suggestion-pills-flow">
+                <button type="button" class="suggestion-chip" data-prompt="Hello VDPAI, how are you today?">Hello VDPAI, how are you today?</button>
+                <button type="button" class="suggestion-chip" data-prompt="What is the best programming language?">What is the best programming language?</button>
+                <button type="button" class="suggestion-chip" data-prompt="Explain quantum physics in simple terms: ">Explain quantum physics</button>
+                <button type="button" class="suggestion-chip" data-prompt="Write a tweet about AI: ">Write a tweet about AI</button>
+                <button type="button" class="suggestion-chip" data-prompt="How do you say 'How are you' in Korean?: ">How do you say "How are you" in Korean?</button>
               </div>
             </div>
 
@@ -277,26 +274,33 @@
               <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
               <div class="activity" id="transcript" role="log" aria-live="polite"></div>
             </div>
+
+            <!-- Follow-up Suggestion Pills (Screen 3 style) -->
+            <div class="follow-up-dock" id="followUpDock">
+              <button type="button" class="follow-up-pill" data-prompt="So explain to me more">So explain to me more</button>
+              <button type="button" class="follow-up-pill" data-prompt="Can you give me an example?">Can you give me an example?</button>
+              <button type="button" class="follow-up-pill" data-prompt="Summarize this in 3 bullets">Summarize in 3 bullets</button>
+            </div>
           </div>
 
-          <!-- Large Premium Bottom Chat Input Dock -->
-          <footer class="chat-dock-large glass">
+          <!-- Large Premium Bottom Chat Input Dock matching Screen 3 -->
+          <footer class="chat-dock-large">
             <form id="chatForm" class="chat-composer-large" autocomplete="off">
-              <button type="button" class="composer-icon-btn" id="attachMediaBtn" title="Attach file or action drawer" aria-label="Attach file">
-                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2"/></svg>
+              <button type="button" class="composer-icon-btn attach-btn" id="attachMediaBtn" title="Attach file or action drawer" aria-label="Attach file">
+                <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
               <label class="sr-only" for="chatInput">Message</label>
-              <textarea id="chatInput" rows="1" placeholder="Ask VDPAI anything..." maxlength="8000" enterkeyhint="send"></textarea>
+              <textarea id="chatInput" rows="1" placeholder="Write your message..." maxlength="8000" enterkeyhint="send"></textarea>
               <button type="button" class="composer-icon-btn voice-btn" id="chatVoiceTriggerBtn" title="Voice Input" aria-label="Voice input">
-                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               </button>
               <button class="composer-send-btn" type="submit" aria-label="Send message" title="Send" id="sendBtn" disabled>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="currentColor"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.4 20.4 17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" fill="currentColor"/></svg>
               </button>
             </form>
 
-            <!-- Action Drawer for + button -->
-            <div class="action-drawer glass" id="actionDrawer" hidden>
+            <!-- Action Drawer for + / @ button -->
+            <div class="action-drawer" id="actionDrawer" hidden>
               <div class="action-drawer-head">
                 <span class="action-drawer-title">Quick Actions &amp; Integrations</span>
                 <button type="button" class="btn tiny" id="closeActionDrawerBtn">✕</button>
@@ -331,84 +335,160 @@
           </footer>
         </section>
 
-        <!-- ============================================================ PAGE 3: Tasks & Intelligence -->
-        <section class="page-view" id="pageTasks" data-page="tasks" aria-label="Page 3: Tasks & Intelligence">
+        <!-- ============================================================ PAGE 3: AI Tools & Tasks (SCREEN 2) -->
+        <section class="page-view" id="pageTasks" data-page="tasks" aria-label="Page 3: AI Tools & Tasks">
+          <!-- Top Tool Bar matching Screen 2 -->
+          <header class="view-header">
+            <button type="button" class="header-back-btn" id="toolsBackBtn" title="Back to Home" aria-label="Back">
+              <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </button>
+            <div class="view-header-title">
+              <img src="/assets/robot_avatar.svg" class="header-robot-avatar" alt="VDPAI">
+              <div class="header-title-stack">
+                <strong>VDPAI</strong>
+                <span class="online-status-badge"><i class="green-dot"></i> Online</span>
+              </div>
+            </div>
+            <div class="view-header-actions">
+              <button class="header-action-btn" id="toolsAudioBtn" type="button" aria-label="Voice audio" title="Voice audio">
+                <svg viewBox="0 0 24 24"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              </button>
+              <button class="header-action-btn" id="toolsRefreshBtn" type="button" aria-label="Reload" title="Reload">
+                <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              </button>
+            </div>
+          </header>
+
           <div class="page-scroll-content">
-            <header class="section-banner">
-              <h2>TASKS &amp; INTELLIGENCE</h2>
-              <p>Specialized AI accelerators, action items, scratchpad notes, reminders, and calendar agenda.</p>
-            </header>
+            <!-- Category Pills Row (Tools, AI, Utility, More) -->
+            <div class="category-pills-row" id="toolsCategoryRow" role="tablist" aria-label="Tool Categories">
+              <button type="button" class="category-pill active" data-cat="tools" role="tab" aria-selected="true">Tools</button>
+              <button type="button" class="category-pill" data-cat="ai" role="tab" aria-selected="false">AI</button>
+              <button type="button" class="category-pill" data-cat="utility" role="tab" aria-selected="false">Utility</button>
+              <button type="button" class="category-pill" data-cat="more" role="tab" aria-selected="false">More</button>
+            </div>
 
-            <!-- 6 Prominent AI Action Cards (Screen 3) -->
-            <div class="lumo-tools-grid" aria-label="AI Tool Accelerators">
-              <button type="button" class="tool-action-card glass" data-prompt="Summarize the following text into clear bullet points: ">
-                <span class="tool-card-icon tool-icon-summarize">
-                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
-                  <strong>Summarize</strong>
-                  <small>Condense any content</small>
+            <!-- Tool Cards Grid / List (Screen 2) -->
+            <div class="tools-cards-list" id="toolsCardsList">
+              <!-- 1. Explain -->
+              <button type="button" class="tool-card" data-prompt="Explain quantum physics in simple, intuitive terms: ">
+                <div class="tool-card-icon-wrap icon-explain">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(30 12 12)" fill="none" stroke="currentColor" stroke-width="1.8"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-30 12 12)" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
                 </div>
+                <div class="tool-card-text">
+                  <strong>Explain</strong>
+                  <span>Explain quantum physics</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
               </button>
 
-              <button type="button" class="tool-action-card glass" data-prompt="Help me write a well-crafted draft for: ">
-                <span class="tool-card-icon tool-icon-write">
-                  <svg viewBox="0 0 24 24"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
+              <!-- 2. Write -->
+              <button type="button" class="tool-card" data-prompt="Write a professional, engaging tweet about artificial intelligence: ">
+                <div class="tool-card-icon-wrap icon-write">
+                  <svg viewBox="0 0 24 24"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-card-text">
                   <strong>Write</strong>
-                  <small>Create with AI assistance</small>
+                  <span>Write a tweet about AI</span>
                 </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
               </button>
 
-              <button type="button" class="tool-action-card glass" data-prompt="Brainstorm creative ideas, solutions, and outlines for: ">
-                <span class="tool-card-icon tool-icon-brainstorm">
-                  <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
-                  <strong>Brainstorm</strong>
-                  <small>Generate ideas and outlines</small>
+              <!-- 3. Translate -->
+              <button type="button" class="tool-card" data-prompt="Translate the following text accurately into Bengali: ">
+                <div class="tool-card-icon-wrap icon-translate">
+                  <svg viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                 </div>
-              </button>
-
-              <button type="button" class="tool-action-card glass" data-prompt="Find comprehensive insights, verified sources, and research on: ">
-                <span class="tool-card-icon tool-icon-research">
-                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
-                  <strong>Research</strong>
-                  <small>Find insights and sources</small>
-                </div>
-              </button>
-
-              <button type="button" class="tool-action-card glass" data-prompt="Translate the following text accurately into English: ">
-                <span class="tool-card-icon tool-icon-translate">
-                  <svg viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
+                <div class="tool-card-text">
                   <strong>Translate</strong>
-                  <small>Break language barriers</small>
+                  <span>Translate to Bengali</span>
                 </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
               </button>
 
-              <button type="button" class="tool-action-card glass" data-prompt="Write clean, performant, and well-commented code to implement: ">
-                <span class="tool-card-icon tool-icon-code">
-                  <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="8 6 2 12 8 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                </span>
-                <div class="tool-card-info">
-                  <strong>Code</strong>
-                  <small>Generate and explain code</small>
+              <!-- 4. Brainstorm -->
+              <button type="button" class="tool-card" data-prompt="Brainstorm creative and innovative ideas for: ">
+                <div class="tool-card-icon-wrap icon-brainstorm">
+                  <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                 </div>
+                <div class="tool-card-text">
+                  <strong>Brainstorm</strong>
+                  <span>Get creative ideas</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </button>
+
+              <!-- 5. Summarize -->
+              <button type="button" class="tool-card" data-prompt="Summarize the following long text into key takeaways: ">
+                <div class="tool-card-icon-wrap icon-summarize">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-card-text">
+                  <strong>Summarize</strong>
+                  <span>Summarize long text</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </button>
+
+              <!-- 6. Generate Image -->
+              <button type="button" class="tool-card" data-prompt="Generate a detailed prompt and description for creating an image of: ">
+                <div class="tool-card-icon-wrap icon-image">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-card-text">
+                  <strong>Generate Image</strong>
+                  <span>Create an image</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </button>
+
+              <!-- 7. Plan -->
+              <button type="button" class="tool-card" data-prompt="Create a detailed step-by-step strategic action plan for: ">
+                <div class="tool-card-icon-wrap icon-plan">
+                  <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="2 17 12 22 22 17" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="2 12 12 17 22 12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-card-text">
+                  <strong>Plan</strong>
+                  <span>Structured step-by-step strategy</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </button>
+
+              <!-- 8. Coding Assistant -->
+              <button type="button" class="tool-card" data-prompt="Write clean, performant, and well-documented code for: ">
+                <div class="tool-card-icon-wrap icon-code">
+                  <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="8 6 2 12 8 18" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                </div>
+                <div class="tool-card-text">
+                  <strong>Coding Assistant</strong>
+                  <span>Write and explain code</span>
+                </div>
+                <svg viewBox="0 0 24 24" class="tool-card-arrow"><polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
               </button>
             </div>
 
+            <!-- Bottom Info Banner matching Screen 2 -->
+            <div class="tools-info-banner">
+              <span class="info-circle-icon">ℹ</span>
+              <p>Tap any tool to get started or ask anything in chat.</p>
+            </div>
+
+            <!-- Recent Chats Card -->
+            <div class="card" id="recentChatsSection">
+              <div class="card-head-row">
+                <h3>Recent chats</h3>
+                <button type="button" class="btn tiny" id="viewAllRecentChatsBtn">View all ➔</button>
+              </div>
+              <div class="recent-chats-list" id="recentChatsList"></div>
+            </div>
+
             <!-- Background Assistant Core Standby Card -->
-            <div class="card glass-soft" id="bgStandbyCard">
+            <div class="card" id="bgStandbyCard">
               <div class="card-head-row">
                 <div>
                   <span class="kicker">BACKGROUND INTELLIGENCE</span>
                   <h3>Run in Background</h3>
-                  <p class="hint">When enabled, VDPAI maintains standby to instantly receive your commands via the Android Quick Settings Tile and Notification.</p>
+                  <p class="hint">When enabled, VDPAI maintains standby to instantly receive commands via Android Quick Settings Tile and Notification.</p>
                 </div>
                 <span class="mini-status" id="bgStandbyStatusBadge">STANDBY READY</span>
               </div>
@@ -419,48 +499,19 @@
               </div>
             </div>
 
-            <!-- Recent Chats (Screen 3) -->
-            <div class="card glass-soft" id="recentChatsSection">
-              <div class="card-head-row">
-                <h3>Recent chats</h3>
-                <button type="button" class="btn tiny" id="viewAllRecentChatsBtn">View all ➔</button>
-              </div>
-              <div class="recent-chats-list" id="recentChatsList"></div>
-            </div>
-
-            <!-- Daily Activity Summary Grid -->
-            <div class="metrics-grid">
-              <div class="metric-card glass-soft">
-                <span class="metric-val" id="summaryMessageCount">0</span>
-                <span class="metric-lbl">MESSAGES</span>
-              </div>
-              <div class="metric-card glass-soft">
-                <span class="metric-val" id="summaryTaskCount">0/0</span>
-                <span class="metric-lbl">TASKS DONE</span>
-              </div>
-              <div class="metric-card glass-soft">
-                <span class="metric-val" id="summaryReminderCount">0</span>
-                <span class="metric-lbl">REMINDERS</span>
-              </div>
-              <div class="metric-card glass-soft">
-                <span class="metric-val" id="summaryUptime">ONLINE</span>
-                <span class="metric-lbl">CORE STATUS</span>
-              </div>
-            </div>
-
-            <!-- Assistant Subtabs (Fix 4: Tasks | Notes | Reminders | Calendar | Tools) -->
+            <!-- Assistant Subtabs -->
             <nav class="assistant-subtabs" id="assistantSubtabs" role="tablist" aria-label="Assistant sections">
               <button type="button" class="subtab-btn is-active" data-pane="tasks" role="tab" aria-selected="true">Tasks</button>
               <button type="button" class="subtab-btn" data-pane="notes" role="tab" aria-selected="false">Notes</button>
               <button type="button" class="subtab-btn" data-pane="reminders" role="tab" aria-selected="false">Reminders</button>
               <button type="button" class="subtab-btn" data-pane="calendar" role="tab" aria-selected="false">Calendar</button>
-              <button type="button" class="subtab-btn" data-pane="tools" role="tab" aria-selected="false">Tools</button>
+              <button type="button" class="subtab-btn" data-pane="tools" role="tab" aria-selected="false">Calculator</button>
             </nav>
 
             <div class="assistant-panes">
               <!-- Pane 1: Tasks Manager -->
               <div class="assistant-pane is-active" id="paneTasks" data-pane="tasks" role="tabpanel">
-                <div class="card glass-soft">
+                <div class="card">
                   <div class="card-head-row">
                     <h3>Tasks &amp; Action Items</h3>
                     <div class="filter-pills">
@@ -484,9 +535,9 @@
 
               <!-- Pane 2: Notes Scratchpad -->
               <div class="assistant-pane" id="paneNotes" data-pane="notes" role="tabpanel" hidden>
-                <div class="card glass-soft">
+                <div class="card">
                   <div class="card-head-row">
-                    <h3>Notes &amp; Intelligence Scratchpad</h3>
+                    <h3>Notes Scratchpad</h3>
                     <input id="noteSearchInput" class="inline-search" placeholder="Search notes…" maxlength="80">
                   </div>
                   <form id="noteForm" class="add-note-form">
@@ -505,7 +556,7 @@
 
               <!-- Pane 3: Reminders -->
               <div class="assistant-pane" id="paneReminders" data-pane="reminders" role="tabpanel" hidden>
-                <div class="card glass-soft">
+                <div class="card">
                   <h3>Reminders &amp; Alerts</h3>
                   <form id="reminderForm" class="add-item-form">
                     <input id="reminderTitleInput" placeholder="Reminder title…" maxlength="140" required>
@@ -518,50 +569,35 @@
 
               <!-- Pane 4: Calendar & Agenda -->
               <div class="assistant-pane" id="paneCalendar" data-pane="calendar" role="tabpanel" hidden>
-                <div class="card glass-soft">
-                  <h3>Daily Schedule &amp; Calendar Agenda</h3>
+                <div class="card">
+                  <h3>Daily Schedule &amp; Agenda</h3>
                   <div id="calendarAgenda" class="agenda-timeline"></div>
                 </div>
               </div>
 
-              <!-- Pane 5: Quick Tools -->
+              <!-- Pane 5: Quick Calculator & Tools -->
               <div class="assistant-pane" id="paneTools" data-pane="tools" role="tabpanel" hidden>
-                <div class="card glass-soft">
-                  <h3>Quick Assistant Tools</h3>
-                  <div class="tools-grid">
-                    <!-- Calculator -->
-                    <div class="tool-box calculator-box">
-                      <span class="tool-title">Quick Calculator</span>
-                      <input id="calcDisplay" readonly placeholder="0" class="calc-display">
-                      <div class="calc-grid">
-                        <button type="button" class="calc-btn" data-val="7">7</button>
-                        <button type="button" class="calc-btn" data-val="8">8</button>
-                        <button type="button" class="calc-btn" data-val="9">9</button>
-                        <button type="button" class="calc-btn op" data-val="/">÷</button>
-                        <button type="button" class="calc-btn" data-val="4">4</button>
-                        <button type="button" class="calc-btn" data-val="5">5</button>
-                        <button type="button" class="calc-btn" data-val="6">6</button>
-                        <button type="button" class="calc-btn op" data-val="*">×</button>
-                        <button type="button" class="calc-btn" data-val="1">1</button>
-                        <button type="button" class="calc-btn" data-val="2">2</button>
-                        <button type="button" class="calc-btn" data-val="3">3</button>
-                        <button type="button" class="calc-btn op" data-val="-">-</button>
-                        <button type="button" class="calc-btn danger" data-val="C">C</button>
-                        <button type="button" class="calc-btn" data-val="0">0</button>
-                        <button type="button" class="calc-btn op" data-val="+">+</button>
-                        <button type="button" class="calc-btn primary" data-val="=">=</button>
-                      </div>
-                    </div>
-
-                    <!-- World Clocks -->
-                    <div class="tool-box clocks-box">
-                      <span class="tool-title">World Clocks</span>
-                      <div class="world-clocks-list">
-                        <div class="world-clock-item" id="clockDhaka">Dhaka: --:--</div>
-                        <div class="world-clock-item" id="clockLondon">London: --:--</div>
-                        <div class="world-clock-item" id="clockNYC">New York: --:--</div>
-                        <div class="world-clock-item" id="clockTokyo">Tokyo: --:--</div>
-                      </div>
+                <div class="card">
+                  <h3>Quick Calculator</h3>
+                  <div class="calculator-box">
+                    <input id="calcDisplay" readonly placeholder="0" class="calc-display">
+                    <div class="calc-grid">
+                      <button type="button" class="calc-btn" data-val="7">7</button>
+                      <button type="button" class="calc-btn" data-val="8">8</button>
+                      <button type="button" class="calc-btn" data-val="9">9</button>
+                      <button type="button" class="calc-btn op" data-val="/">÷</button>
+                      <button type="button" class="calc-btn" data-val="4">4</button>
+                      <button type="button" class="calc-btn" data-val="5">5</button>
+                      <button type="button" class="calc-btn" data-val="6">6</button>
+                      <button type="button" class="calc-btn op" data-val="*">×</button>
+                      <button type="button" class="calc-btn" data-val="1">1</button>
+                      <button type="button" class="calc-btn" data-val="2">2</button>
+                      <button type="button" class="calc-btn" data-val="3">3</button>
+                      <button type="button" class="calc-btn op" data-val="-">-</button>
+                      <button type="button" class="calc-btn danger" data-val="C">C</button>
+                      <button type="button" class="calc-btn" data-val="0">0</button>
+                      <button type="button" class="calc-btn op" data-val="+">+</button>
+                      <button type="button" class="calc-btn primary" data-val="=">=</button>
                     </div>
                   </div>
                 </div>
@@ -570,21 +606,21 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 3: Chat History & Safety -->
-        <section class="page-view" id="pageControl" data-page="control" aria-label="Page 3: Conversation History">
+        <!-- ============================================================ PAGE 4: Control & History -->
+        <section class="page-view" id="pageControl" data-page="control" aria-label="Page 4: History & Control">
           <div class="page-scroll-content">
             <header class="section-banner">
               <div class="row between wrap" style="gap: 12px; align-items: center;">
                 <div>
                   <h2>CONVERSATION HISTORY</h2>
-                  <p>All conversations are saved locally on this device only. No data is leaked or sent elsewhere.</p>
+                  <p>All conversations are saved locally on this device only.</p>
                 </div>
                 <button type="button" class="btn small primary" id="pageNewChatBtn">+ New Chat</button>
               </div>
             </header>
 
             <!-- Search Bar & List -->
-            <div class="card glass-soft">
+            <div class="card">
               <input id="pageHistorySearch" class="inline-search" placeholder="Search conversations by title or topic…" maxlength="80">
               <div id="pageHistoryList" class="history-list" style="margin-top: 12px;"></div>
               <div class="row wrap end" style="margin-top: 14px; gap: 8px;">
@@ -594,114 +630,98 @@
               </div>
             </div>
 
-            <!-- Emergency Stop Control (Section 8) -->
-            <div class="card emergency-card glass">
+            <!-- Emergency Stop Control -->
+            <div class="card emergency-card">
               <div class="emergency-head">
                 <span class="emergency-tag">SAFETY FIRST</span>
                 <h3>Emergency Process Halt</h3>
-                <p>Stops active assistant speech and listening, aborts the current AI request, and turns off VDPAI's camera torch stream.</p>
+                <p>Immediately aborts the active AI request, stops speech and voice listening, and halts ongoing operations.</p>
               </div>
               <button type="button" class="emergency-stop-btn" id="emergencyStopBtn">
-                <svg viewBox="0 0 24 24" width="28" height="28"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
                 <span>EMERGENCY STOP</span>
               </button>
             </div>
 
-            <!-- Glassmorphic App Shortcuts Grid (Image 2 style) -->
-            <div class="card glass-soft">
+            <!-- App & Phone Integrations -->
+            <div class="card">
               <h3>App &amp; Phone Integrations</h3>
               <p class="hint">External actions always prompt for user confirmation before launching.</p>
               <div class="app-grid-shortcuts">
-                <button type="button" class="app-tile glass" id="shortcutWhatsapp" title="WhatsApp">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 10a4 4 0 0 0 4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutWhatsapp" title="WhatsApp">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 10a4 4 0 0 0 4 4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">WhatsApp</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutPhone" title="Phone Dialer">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutPhone" title="Phone">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Phone</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutSms" title="SMS Messages">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="10" r="1" fill="currentColor"/><circle cx="12" cy="10" r="1" fill="currentColor"/><circle cx="16" cy="10" r="1" fill="currentColor"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutSms" title="SMS">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">SMS</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutEmail" title="Email Composer">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m3 7 9 6 9-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutEmail" title="Email">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m3 7 9 6 9-6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Email</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutCamera" title="Camera">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutCamera" title="Camera">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Camera</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutMaps" title="Maps">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="8" y1="2" x2="8" y2="18" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="6" x2="16" y2="22" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutMaps" title="Maps">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Maps</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutYoutube" title="YouTube">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" fill="none" stroke="currentColor" stroke-width="1.6"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutYoutube" title="YouTube">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" fill="none" stroke="currentColor" stroke-width="1.8"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor"/></svg></span>
                   <span class="app-tile-label">YouTube</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutBrowser" title="Web Browser">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.6"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutBrowser" title="Web Browser">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.8"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Browser</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutMusic" title="Music Player">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutMusic" title="Music">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Music</span>
                 </button>
-                <button type="button" class="app-tile glass" id="shortcutSettings" title="Settings">
-                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                <button type="button" class="app-tile" id="shortcutSettings" title="Settings">
+                  <span class="app-tile-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
                   <span class="app-tile-label">Settings</span>
                 </button>
               </div>
             </div>
 
-            <!-- Hardware & Device Controls -->
-            <div class="card glass-soft">
+            <!-- Hardware Controls -->
+            <div class="card">
               <h3>Hardware Controls &amp; Toggles</h3>
               <div class="hardware-controls-grid">
-                <!-- Torch -->
-                <div class="hardware-tile glass">
+                <div class="hardware-tile">
                   <div class="hw-head">
                     <strong>Torch / Flashlight</strong>
                     <span id="torchStatus" class="mini-status">OFF</span>
                   </div>
                   <button type="button" class="btn small" id="toggleTorchBtn">Toggle Flashlight</button>
                 </div>
-                <!-- Ping Latency -->
-                <div class="hardware-tile glass">
+                <div class="hardware-tile">
                   <div class="hw-head">
                     <strong>Network Latency</strong>
                     <span id="pingTestResult" class="mini-status">-- ms</span>
                   </div>
                   <button type="button" class="btn small" id="pingTestBtn">Ping Test</button>
                 </div>
-                <!-- Volume Slider -->
                 <label class="field">
                   <span>Assistant Volume <output id="controlVolumeVal">100%</output></span>
                   <input type="range" id="controlVolume" min="0.1" max="1" step="0.05" value="1">
                 </label>
-                <!-- Brightness Slider -->
                 <label class="field">
-                  <span>HUD Display Brightness <output id="controlBrightnessVal">100%</output></span>
+                  <span>Display Brightness <output id="controlBrightnessVal">100%</output></span>
                   <input type="range" id="controlBrightness" min="20" max="100" step="5" value="100">
                 </label>
               </div>
             </div>
 
-            <!-- Background Assistant Activator (Section 4) -->
-            <div class="card glass-soft">
-              <div class="card-head-row">
-                <div>
-                  <h3>Background Assistant</h3>
-                  <p class="hint">Persistent background listening is not available in this build. Use the microphone button while VDPAI is open.</p>
-                </div>
-                <span class="mini-status" id="bgAssistantStatus">UNAVAILABLE</span>
-              </div>
-              <button type="button" class="btn" id="activateBackgroundBtn" disabled aria-disabled="true">Background Listening Unavailable</button>
-            </div>
-
-            <!-- System Telemetry -->
-            <div class="card glass-soft">
+            <!-- Device Telemetry -->
+            <div class="card">
               <h3>Device Telemetry</h3>
               <dl class="facts">
                 <dt>Battery</dt><dd id="ccBatteryText">Checking…</dd>
@@ -713,20 +733,19 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 4: Profile & Control Center -->
-        <section class="page-view" id="pageSettings" data-page="settings" aria-label="Page 4: Profile & Control Center">
+        <!-- ============================================================ PAGE 5: Profile & Settings -->
+        <section class="page-view" id="pageSettings" data-page="settings" aria-label="Page 5: Profile & Settings">
           <div class="page-scroll-content">
             <header class="section-banner">
               <h2>PROFILE &amp; CONTROL CENTER</h2>
-              <p>User profile, isolated profiles, AI provider credentials, memory, and appearance.</p>
+              <p>User profile, isolated profiles, AI credentials, memory, and appearance.</p>
             </header>
 
             <!-- User Profile Hero Card -->
-            <div class="card glass-soft profile-card-hero">
+            <div class="card profile-card-hero">
               <div class="profile-hero-content">
                 <div class="profile-avatar-wrap">
-                  <img src="/assets/vdpai_icon.jpg" alt="User Avatar" class="profile-avatar-img" onerror="this.src='/assets/icon.png'">
-                  <div class="profile-avatar-glow"></div>
+                  <img src="/assets/robot_avatar.svg" alt="User Avatar" class="profile-avatar-img">
                 </div>
                 <div class="profile-details">
                   <h3 id="profileHeroName">Sir</h3>
@@ -736,8 +755,8 @@
               </div>
             </div>
 
-            <!-- Control Center Quick Launch Tile -->
-            <div class="card glass-soft cc-quick-launcher-card">
+            <!-- Master Control Center Launcher -->
+            <div class="card">
               <div class="card-head-row">
                 <div>
                   <span class="kicker">MASTER SETTINGS</span>
@@ -748,8 +767,8 @@
               </div>
             </div>
 
-            <!-- AI Model & Provider Card on Page 4 -->
-            <div class="card glass-soft" id="page4ProviderCard">
+            <!-- AI Model & Provider Card -->
+            <div class="card" id="page4ProviderCard">
               <div class="card-head-row">
                 <div>
                   <span class="kicker">AI MODEL &amp; PROVIDER</span>
@@ -764,12 +783,12 @@
               </div>
             </div>
 
-            <!-- User Profiles (Section 11) -->
-            <div class="card glass-soft">
+            <!-- User Profiles -->
+            <div class="card">
               <div class="card-head-row">
                 <div>
                   <h3>Isolated User Profiles</h3>
-                  <p class="hint">Each profile keeps independent memories, conversations, and settings. Switching opens a fresh personal environment without data leak.</p>
+                  <p class="hint">Each profile keeps independent memories, conversations, and settings.</p>
                 </div>
                 <span class="mini-status" id="activeProfileBadge">Primary</span>
               </div>
@@ -787,8 +806,8 @@
               </div>
             </div>
 
-            <!-- Personality & Tone Selector (Section 1) -->
-            <div class="card glass-soft">
+            <!-- Personality & Tone Selector -->
+            <div class="card">
               <h3>AI Personality &amp; Style</h3>
               <p class="hint">Adjust how VDPAI responds and addresses you.</p>
               <label class="field">
@@ -798,8 +817,8 @@
               <label class="field">
                 <span>Personality Persona</span>
                 <select id="personalitySelect">
-                  <option value="jarvis">JARVIS (Calm, confident, and subtly witty)</option>
-                  <option value="professional">Professional (Executive precision, direct)</option>
+                  <option value="jarvis">Calm, confident, and witty</option>
+                  <option value="professional">Professional (Executive precision)</option>
                   <option value="friendly">Friendly (Warm, supportive companion)</option>
                   <option value="concise">Concise (Ultra-brief bullet points)</option>
                   <option value="creative">Creative (Imaginative and expansive)</option>
@@ -807,8 +826,8 @@
               </label>
             </div>
 
-            <!-- Personal Memory Management (Section 6) -->
-            <div class="card glass-soft">
+            <!-- Personal Memory Management -->
+            <div class="card">
               <div class="card-head-row">
                 <div>
                   <h3>Personal Memory Manager</h3>
@@ -851,55 +870,52 @@
       </div>
     </div>
 
-    <!-- Dynamic Floating Pill Bottom Navigation Bar (5 Main Pages: Home, Chat, Tasks, Control, Profile) -->
+    <!-- Dynamic Floating Pill Bottom Navigation Bar (Home, Chat, Tasks, Control, Profile) -->
     <nav class="bottom-nav-bar" id="bottomNavBar" role="tablist" aria-label="Main Navigation">
       <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Home">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
         <span class="nav-label">Home</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="chat" role="tab" aria-selected="false" title="Chat">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.5" r="1" fill="currentColor"/><circle cx="8" cy="11.5" r="1" fill="currentColor"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="11.5" r="1" fill="currentColor"/><circle cx="8" cy="11.5" r="1" fill="currentColor"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/></svg>
         </span>
         <span class="nav-label">Chat</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="tasks" role="tab" aria-selected="false" title="Tasks">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
         </span>
         <span class="nav-label">Tasks</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="Control">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
         </span>
         <span class="nav-label">Control</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false" title="Profile">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
         <span class="nav-label">Profile</span>
       </button>
-      <!-- Kept hidden for script compatibility -->
-      <button type="button" id="navVoiceBtn" style="display:none" aria-hidden="true"></button>
-      <button type="button" id="navMoreBtn" style="display:none" aria-hidden="true"></button>
     </nav>
   </div>
 
   <!-- Screen Brightness Tint Overlay -->
   <div id="brightnessOverlay" class="brightness-overlay" aria-hidden="true"></div>
 
-  <!-- ---------------------------------------------------------- Control Center Overlay (backward-compatible & comprehensive) -->
+  <!-- ---------------------------------------------------------- Control Center Overlay -->
   <div id="controlCenter" class="overlay" hidden>
     <section class="overlay-card control-center" role="dialog" aria-modal="true" aria-labelledby="ccTitle">
       <header class="overlay-head">
-        <button class="icon-btn back" id="ccClose" type="button" aria-label="Back to HUD">←</button>
+        <button class="icon-btn back" id="ccClose" type="button" aria-label="Back">←</button>
         <div>
           <h1 id="ccTitle">CONTROL CENTER</h1>
-          <small>VDPAI · settings are saved on this device</small>
+          <small>VDPAI · settings saved on this device</small>
         </div>
         <span class="overlay-badge">v1.0</span>
       </header>
@@ -910,7 +926,7 @@
         <button type="button" role="tab" data-tab="backend">Backend Server</button>
         <button type="button" role="tab" data-tab="privacy">Privacy</button>
         <button type="button" role="tab" data-tab="appearance">Appearance</button>
-        <button type="button" role="tab" data-tab="about">App Information</button>
+        <button type="button" role="tab" data-tab="about">About</button>
       </nav>
 
       <div class="cc-body">
@@ -923,13 +939,13 @@
             </div>
             <button class="btn primary" id="addProviderBtn" type="button">+ Add New API</button>
           </div>
-          <div class="active-provider glass-soft" id="activeProviderSummary">
+          <div class="active-provider" id="activeProviderSummary">
             <span class="kicker">ACTIVE PROVIDER</span>
             <strong>Not configured</strong>
             <small>Add a provider to start chatting.</small>
           </div>
           <div id="providerList" class="provider-list"></div>
-          <div class="card glass-soft">
+          <div class="card">
             <label class="field">
               <span>System instructions / personality</span>
               <textarea id="systemPrompt" rows="4" maxlength="4000" placeholder="You are VDPAI, a calm and capable personal assistant…"></textarea>
@@ -949,7 +965,7 @@
               <p>Android speech recognition and Text-to-Speech, with a browser fallback.</p>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <label class="switch-row">
               <span><strong>Spoken replies</strong><small>Read the actual assistant answer aloud.</small></span>
               <input type="checkbox" id="ttsToggle">
@@ -987,7 +1003,7 @@
             <p class="hint" id="voiceCapabilities" role="status"></p>
             <p class="hint" id="voiceStatus"></p>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>Microphone status</h3>
             <dl class="facts" id="voiceFacts"></dl>
           </div>
@@ -998,10 +1014,10 @@
           <div class="section-head">
             <div>
               <h2>Backend Server <span class="optional">optional</span></h2>
-              <p>The HUD never requires a backend. A backend is only used for its health/status endpoint.</p>
+              <p>The app never requires a backend. A backend is only used for its health/status endpoint.</p>
             </div>
           </div>
-          <form id="backendForm" class="card glass-soft">
+          <form id="backendForm" class="card">
             <label class="field">
               <span>Backend URL</span>
               <input id="backendUrl" type="url" inputmode="url" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://your-server.example">
@@ -1026,11 +1042,11 @@
               <p>Conversations, personal memories, and credentials are stored locally on this device.</p>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <dl class="facts" id="privacyFacts"></dl>
             <p class="hint" id="privacyStorageNote"></p>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>Conversation history</h3>
             <p class="hint" id="historyStats">No conversations yet.</p>
             <div class="row wrap">
@@ -1038,19 +1054,18 @@
               <button class="btn small danger-ghost" id="clearHistoryBtn" type="button">Clear all conversations</button>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>API credentials</h3>
             <p class="hint">
               API keys are stored in this app's private data directory and sent directly to the provider you choose.
-              They are never committed to source control, logged, or embedded in the APK build.
             </p>
             <div class="row wrap">
               <button class="btn small danger-ghost" id="clearAllDataBtn" type="button">Delete all local data</button>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>Permissions</h3>
-            <p class="hint">VDPAI requests Internet and Microphone only. Speech recognition and TTS are provided by Android.</p>
+            <p class="hint">VDPAI requests Internet and Microphone only.</p>
             <button class="btn small" id="privacyPermissionBtn" type="button">Check microphone permission</button>
             <p class="hint" id="privacyPermissionResult" role="status"></p>
           </div>
@@ -1061,23 +1076,23 @@
           <div class="section-head">
             <div>
               <h2>Appearance</h2>
-              <p>Tune the HUD theme without adding unnecessary battery load.</p>
+              <p>Tune the theme styling and visual preferences.</p>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <label class="field">
               <span>Accent theme</span>
               <select id="themeSelect">
+                <option value="blue">Royal Blue</option>
                 <option value="cyan">Quantum cyan</option>
                 <option value="emerald">Emerald core</option>
                 <option value="violet">Ion violet</option>
-                <option value="blue">Electric blue</option>
                 <option value="gold">Amber gold</option>
                 <option value="crimson">Crimson red</option>
               </select>
             </label>
             <label class="switch-row">
-              <span><strong>Low-glow mode</strong><small>Dims lighting and glass effects to save battery.</small></span>
+              <span><strong>Low-glow mode</strong><small>Dims lighting and shadow effects to save battery.</small></span>
               <input type="checkbox" id="lowGlowToggle">
             </label>
             <label class="switch-row">
@@ -1085,11 +1100,11 @@
               <input type="checkbox" id="reduceMotionToggle">
             </label>
             <label class="switch-row">
-              <span><strong>HUD grid</strong><small>Show the subtle background grid.</small></span>
+              <span><strong>Background grid</strong><small>Show the subtle modern pattern.</small></span>
               <input type="checkbox" id="gridToggle">
             </label>
             <label class="switch-row">
-              <span><strong>Launch animation</strong><small>Play futuristic launch sequence at startup.</small></span>
+              <span><strong>Launch animation</strong><small>Play welcome sequence on startup.</small></span>
               <input type="checkbox" id="launchAnimToggle" checked>
             </label>
           </div>
@@ -1103,14 +1118,14 @@
               <p>VDPAI · Personal AI Assistant</p>
             </div>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <dl class="facts" id="aboutFacts"></dl>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>Open-source components</h3>
             <p class="hint">Capacitor (MIT) · AndroidX (Apache-2.0) · Kotlin (Apache-2.0).</p>
           </div>
-          <div class="card glass-soft">
+          <div class="card">
             <h3>Privacy &amp; Security Note</h3>
             <p class="hint">
               VDPAI stores all conversations, notes, and memory locally. Zero third-party analytics or background data harvesting.
@@ -1125,12 +1140,12 @@
   <div id="historySheet" class="overlay" hidden>
     <section class="overlay-card history-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
       <header class="overlay-head">
-        <button class="icon-btn back" id="historyClose" type="button" aria-label="Back to HUD">←</button>
+        <button class="icon-btn back" id="historyClose" type="button" aria-label="Back">←</button>
         <div>
           <h1 id="historyTitle">CONVERSATIONS</h1>
           <small>Stored locally on this device</small>
         </div>
-        <button class="btn primary small" id="newChatBtn2" type="button">+ New</button>
+        <button class="btn primary small" id="newChatBtn3" type="button">+ New</button>
       </header>
       <div class="history-tools">
         <label class="sr-only" for="historySearch">Search conversations</label>

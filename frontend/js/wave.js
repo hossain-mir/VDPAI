@@ -93,8 +93,8 @@ export class Waveform {
     const gap = 3;
     const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars);
     const mid = height / 2;
-    const primary = error ? "#ff6b7a" : speaking || listening ? "#3dffb0" : "#58e7ff";
-    const secondary = error ? "#ff9aa5" : "#58e7ff";
+    const primary = error ? "#ef4444" : speaking || listening ? "#10b981" : "#1d68f0";
+    const secondary = error ? "#f87171" : "#3b82f6";
 
     for (let index = 0; index < bars; index += 1) {
       const x = index * (barWidth + gap);

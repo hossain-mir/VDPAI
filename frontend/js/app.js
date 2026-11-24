@@ -986,10 +986,10 @@ function wireHud() {
     $("#toggleTorchBtn")?.click();
   });
 
-  // Suggestion Pills on Chat View (Screen 2)
-  $$(".suggestion-pill").forEach((pill) => {
+  // Suggestion Pills & Chips on Chat View
+  $$(".suggestion-pill, .suggestion-chip").forEach((pill) => {
     pill.addEventListener("click", () => {
-      const prompt = pill.dataset.prompt || "";
+      const prompt = pill.dataset.prompt || pill.textContent || "";
       const input = $("#chatInput");
       if (input) {
         input.value = prompt;
@@ -1000,9 +1000,30 @@ function wireHud() {
     });
   });
 
-  // Chat View Voice Trigger & Back Button
+  // Follow-up suggestion pills (Screen 3)
+  $$(".follow-up-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      const prompt = pill.dataset.prompt || pill.textContent || "";
+      if (!prompt) return;
+      const input = $("#chatInput");
+      if (input) {
+        input.value = prompt;
+        autoGrow(input);
+        syncSendButton();
+        $("#chatForm")?.requestSubmit();
+      }
+    });
+  });
+
+  // Chat View Voice Trigger & Back Buttons
   $("#chatVoiceTriggerBtn")?.addEventListener("click", () => toggleVoice());
   $("#chatBackBtn")?.addEventListener("click", () => switchPage("home"));
+  $("#toolsBackBtn")?.addEventListener("click", () => switchPage("home"));
+  $("#ttsChatQuickBtn")?.addEventListener("click", () => $("#ttsQuickBtn")?.click());
+  $("#newChatChatBtn")?.addEventListener("click", () => $("#newChatBtn")?.click());
+  $("#toolsAudioBtn")?.addEventListener("click", () => $("#ttsQuickBtn")?.click());
+  $("#toolsRefreshBtn")?.addEventListener("click", () => $("#newChatBtn")?.click());
+
   $("#homeChatLauncher")?.addEventListener("click", () => {
     switchPage("chat");
     setTimeout(() => $("#chatInput")?.focus(), 150);
@@ -1013,8 +1034,8 @@ function wireHud() {
     setTimeout(() => $("#chatInput")?.focus(), 150);
   });
 
-  // Tool Action Cards on Tasks page
-  $$(".tool-action-card").forEach((card) => {
+  // Tool Cards on Tasks / Tools page (Screen 2)
+  $$(".tool-card, .tool-action-card").forEach((card) => {
     card.addEventListener("click", () => {
       const prompt = card.dataset.prompt || "";
       const input = $("#chatInput");
@@ -1024,6 +1045,60 @@ function wireHud() {
         syncSendButton();
         switchPage("chat");
         setTimeout(() => input.focus(), 150);
+      }
+    });
+  });
+
+  // Category Pills on Tools page (Screen 2)
+  $$("#toolsCategoryRow .category-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      $$("#toolsCategoryRow .category-pill").forEach((p) => {
+        const active = p === pill;
+        p.classList.toggle("active", active);
+        p.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      const cat = pill.dataset.cat;
+      const toolsList = $("#toolsCardsList");
+      const banner = document.querySelector(".tools-info-banner");
+      const recentSection = $("#recentChatsSection");
+      const bgCard = $("#bgStandbyCard");
+      const subtabs = $("#assistantSubtabs");
+      const panes = document.querySelector(".assistant-panes");
+
+      if (cat === "tools") {
+        if (toolsList) toolsList.hidden = false;
+        if (banner) banner.hidden = false;
+        if (recentSection) recentSection.hidden = false;
+        if (bgCard) bgCard.hidden = true;
+        if (subtabs) subtabs.hidden = true;
+        if (panes) panes.hidden = true;
+      } else if (cat === "ai") {
+        if (toolsList) toolsList.hidden = true;
+        if (banner) banner.hidden = true;
+        if (recentSection) recentSection.hidden = true;
+        if (bgCard) bgCard.hidden = false;
+        if (subtabs) subtabs.hidden = false;
+        if (panes) panes.hidden = false;
+        const taskBtn = document.querySelector('#assistantSubtabs .subtab-btn[data-pane="tasks"]');
+        taskBtn?.click();
+      } else if (cat === "utility") {
+        if (toolsList) toolsList.hidden = true;
+        if (banner) banner.hidden = true;
+        if (recentSection) recentSection.hidden = true;
+        if (bgCard) bgCard.hidden = true;
+        if (subtabs) subtabs.hidden = false;
+        if (panes) panes.hidden = false;
+        const toolBtn = document.querySelector('#assistantSubtabs .subtab-btn[data-pane="tools"]');
+        toolBtn?.click();
+      } else if (cat === "more") {
+        if (toolsList) toolsList.hidden = true;
+        if (banner) banner.hidden = true;
+        if (recentSection) recentSection.hidden = false;
+        if (bgCard) bgCard.hidden = true;
+        if (subtabs) subtabs.hidden = false;
+        if (panes) panes.hidden = false;
+        const noteBtn = document.querySelector('#assistantSubtabs .subtab-btn[data-pane="notes"]');
+        noteBtn?.click();
       }
     });
   });
@@ -1454,7 +1529,7 @@ function applyAppearance() {
   document.body.classList.toggle("reduce-motion", settings.reduceMotion);
   document.body.classList.toggle("no-grid", !settings.showGrid);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", "#02070a");
+  if (meta) meta.setAttribute("content", "#ffffff");
   if (!app.core) return;
   const reduced = settings.reduceMotion || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   app.core.reduced = Boolean(reduced);
