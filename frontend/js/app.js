@@ -1474,6 +1474,7 @@ function wireLaunchSequence() {
   const settings = getSettings();
   if (settings.launchAnimationEnabled === false || typeof window === "undefined" || window.HSAI_TEST) {
     splash.hidden = true;
+    splash.style.display = "none";
     return;
   }
 
@@ -1483,10 +1484,16 @@ function wireLaunchSequence() {
 
   const dismiss = () => {
     splash.classList.add("fade-out");
-    setTimeout(() => { splash.hidden = true; }, 400);
+    setTimeout(() => {
+      splash.hidden = true;
+      splash.style.display = "none";
+    }, 400);
   };
 
-  skip?.addEventListener("click", dismiss);
+  skip?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dismiss();
+  });
   splash.addEventListener("click", dismiss);
 
   if (fill) fill.style.width = "40%";

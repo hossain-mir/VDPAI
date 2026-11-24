@@ -78,6 +78,16 @@
   box-sizing: border-box;
 }
 
+[hidden],
+[hidden="true"],
+.modal[hidden],
+.overlay[hidden],
+.action-drawer[hidden],
+.assistant-pane[hidden],
+.cc-page[hidden] {
+  display: none !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -1800,6 +1810,10 @@ body.keyboard-open .bottom-nav-bar {
   justify-content: center;
 }
 
+.overlay[hidden] {
+  display: none !important;
+}
+
 .overlay-card {
   width: 100%;
   max-width: 520px;
@@ -1978,6 +1992,10 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   justify-content: center;
   padding: 20px;
+}
+
+.modal[hidden] {
+  display: none !important;
 }
 
 .modal-card {

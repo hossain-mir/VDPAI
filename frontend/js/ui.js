@@ -179,9 +179,11 @@ let confirmResolve = null;
 
 export function initConfirmDialog() {
   const modal = $("#confirmModal");
+  if (modal) modal.hidden = true;
   initPromptDialog();
   if (!modal || modal.dataset.wired === "1") return;
   modal.dataset.wired = "1";
+  modal.hidden = true;
   $("#confirmCancel")?.addEventListener("click", () => closeConfirm(false));
   $("#confirmOk")?.addEventListener("click", () => closeConfirm(true));
   modal.addEventListener("click", (event) => {
@@ -229,8 +231,10 @@ function closePrompt(result) {
 
 function initPromptDialog() {
   const modal = $("#promptModal");
+  if (modal) modal.hidden = true;
   if (!modal || modal.dataset.wired === "1") return;
   modal.dataset.wired = "1";
+  modal.hidden = true;
   $("#promptCancel")?.addEventListener("click", () => closePrompt(null));
   $("#promptForm")?.addEventListener("submit", (event) => {
     event.preventDefault();
