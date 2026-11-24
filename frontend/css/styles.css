@@ -1015,7 +1015,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: url('/assets/robot_avatar.svg') center/contain no-repeat;
+  background: #ffffff url('/assets/icon.png') center/contain no-repeat;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 

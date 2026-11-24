@@ -371,16 +371,53 @@ async function send(raw, { source = "text" } = {}) {
     ui.toast("VDPAI is still answering. Stop the current response first.", "warn");
     return;
   }
-  // Prevent duplicate messages sent in rapid succession
-  if (message === lastSentText && Date.now() - lastSentTime < 2500) {
+  // Prevent rapid duplicate sends of identical text within 1.2s
+  if (message === lastSentText && Date.now() - lastSentTime < 1200) {
     return;
   }
   lastSentText = message;
   lastSentTime = Date.now();
 
+  const conversation = ensureConversation();
+
+  // Clear composer input immediately and sync send button
+  const chatInput = $("#chatInput");
+  if (chatInput) {
+    chatInput.value = "";
+    autoGrow(chatInput);
+  }
+  syncSendButton();
+
+  // Switch to chat page so the conversation is prominent
+  switchPage("chat");
+  syncChatEmptySuggestions();
+
+  // Immediately render user's message in the transcript
+  app.transcript?.add("user", message, source === "voice" ? "voice" : "");
+  app.transcript?.scroll();
+
+  addHudLogEntry(`Command: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
+
   const ready = providerReady();
   if (!ready.ok) {
     showConfigError(ready.reason);
+    const bubble = app.transcript?.add(
+      "assistant",
+      `⚠️ ${ready.reason}\n\nTo chat with VDPAI, please configure an AI provider with an API key in Control Center.`,
+      "System · Configuration"
+    );
+    if (bubble) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn tiny primary";
+      btn.style.cssText = "margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-radius: 999px; padding: 6px 14px; cursor: pointer;";
+      btn.textContent = "⚙️ Configure AI Provider";
+      btn.addEventListener("click", () => openControlCenter("ai"));
+      bubble.appendChild(btn);
+    }
+    app.transcript?.scroll();
+    setComposerBusy(false);
+    syncSendButton();
     return;
   }
 
@@ -388,27 +425,18 @@ async function send(raw, { source = "text" } = {}) {
   app.lastAnswer = "";
   app.lastMeta = "";
   app.controller = new AbortController();
-  const conversation = ensureConversation();
   const provider = ready.provider;
 
-  switchPage("chat");
-  syncChatEmptySuggestions();
-
-  const chatInput = $("#chatInput");
-  if (chatInput) {
-    chatInput.value = "";
-    autoGrow(chatInput);
-  }
   setComposerBusy(true);
   uiState.set("THINKING", source === "voice" ? "interpreting voice command" : "reasoning");
   setResponseStatus("THINKING", "busy");
   setResponseText("", { muted: true });
   $("#responseMeta").textContent = `${provider.name} · ${provider.model} · receiving response…`;
   $("#stopGenBtn").hidden = false;
-  app.transcript?.add("user", message, source === "voice" ? "voice" : "");
-  app.liveBubble = app.transcript?.add("assistant", "", `${provider.name} · ${provider.model}`);
 
-  addHudLogEntry(`Command: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
+  // Live assistant bubble with Thinking indicator
+  app.liveBubble = app.transcript?.add("assistant", "Thinking…", `${provider.name} · ${provider.model}`);
+  app.transcript?.scroll();
 
   try {
     const result = await sendChat({
@@ -421,6 +449,7 @@ async function send(raw, { source = "text" } = {}) {
           const textNode = app.liveBubble.firstChild;
           if (textNode) textNode.nodeValue = full || "…";
         }
+        app.transcript?.scroll();
         const panel = $("#responseText");
         if (panel) panel.scrollTop = panel.scrollHeight;
       },
@@ -449,15 +478,22 @@ async function send(raw, { source = "text" } = {}) {
     }
   } catch (error) {
     const aborted = app.controller?.signal.aborted || error?.code === "aborted";
-    const message = aborted ? "Response generation stopped." : error?.message || "The AI request failed.";
-    if (app.liveBubble?.parentNode) app.liveBubble.remove();
-    app.liveBubble = null;
-    setResponseText(message, { error: !aborted, muted: aborted });
+    const errorMsg = aborted ? "Response generation stopped." : error?.message || "The AI request failed.";
+    if (app.liveBubble) {
+      const textNode = app.liveBubble.firstChild;
+      if (textNode && !aborted) {
+        textNode.nodeValue = `❌ ${errorMsg}`;
+      } else if (aborted) {
+        textNode.nodeValue = "[stopped by user]";
+      }
+    } else {
+      app.transcript?.add(aborted ? "system" : "error", errorMsg);
+    }
+    setResponseText(errorMsg, { error: !aborted, muted: aborted });
     $("#responseMeta").textContent = aborted ? "Stopped by user" : "Request failed";
     setResponseStatus(aborted ? "STOPPED" : "ERROR", aborted ? "" : "error");
-    app.transcript?.add(aborted ? "system" : "error", message);
-    uiState.set(aborted ? "IDLE" : "ERROR", aborted ? "response stopped" : message.slice(0, 100));
-    if (!aborted) ui.toast(message, "error", 5000);
+    uiState.set(aborted ? "IDLE" : "ERROR", aborted ? "response stopped" : errorMsg.slice(0, 100));
+    if (!aborted) ui.toast(errorMsg, "error", 5000);
     setTimeout(() => {
       if (!app.busy && !app.voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
     }, 4200);
@@ -474,6 +510,7 @@ async function send(raw, { source = "text" } = {}) {
     refreshControlCenter();
     renderVoiceCapabilities();
     syncSendButton();
+    app.transcript?.scroll();
   }
 }
 
@@ -531,16 +568,17 @@ function renderResponseStatus() {
 }
 
 function syncSendButton() {
-  const send = $(".send-pill-btn") || $(".send");
+  const send = $("#sendBtn") || $(".composer-send-btn") || $(".send-pill-btn") || $(".send");
   const input = $("#chatInput");
   if (send) {
     const hasText = Boolean(input?.value?.trim());
     send.disabled = !hasText || Boolean(app.busy);
+    send.classList.toggle("is-active", hasText && !app.busy);
   }
 }
 
 function setComposerBusy(busy) {
-  const send = $(".send-pill-btn") || $(".send");
+  const send = $("#sendBtn") || $(".composer-send-btn") || $(".send-pill-btn") || $(".send");
   const input = $("#chatInput");
   if (input) input.disabled = Boolean(busy);
   if (send) {
@@ -702,25 +740,52 @@ function wireHud() {
   if ($("#app").dataset.wired === "1") return;
   $("#app").dataset.wired = "1";
 
-  $("#chatForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = $("#chatInput");
+  const input = $("#chatInput");
+  const sendBtn = $("#sendBtn") || $(".composer-send-btn");
+  const chatForm = $("#chatForm");
+
+  const submitCurrentMessage = () => {
+    if (!input) return;
     const text = input.value.trim();
     if (!text) return;
     send(text);
-  });
+  };
 
-  const input = $("#chatInput");
-  input.addEventListener("input", () => {
-    autoGrow(input);
-    syncSendButton();
-  });
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+  if (chatForm) {
+    chatForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      $("#chatForm").requestSubmit();
-    }
-  });
+      submitCurrentMessage();
+    });
+  }
+
+  if (sendBtn) {
+    sendBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      submitCurrentMessage();
+    });
+  }
+
+  if (input) {
+    input.addEventListener("input", () => {
+      autoGrow(input);
+      syncSendButton();
+    });
+    input.addEventListener("change", () => {
+      syncSendButton();
+    });
+    input.addEventListener("paste", () => {
+      setTimeout(() => {
+        autoGrow(input);
+        syncSendButton();
+      }, 10);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        submitCurrentMessage();
+      }
+    });
+  }
 
   input.addEventListener("focus", () => {
     document.body.classList.add("input-focused");

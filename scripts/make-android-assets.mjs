@@ -152,15 +152,8 @@ function vdpaiIconShader(round, foreground = false) {
 
 function splash(scale) {
   return (x, y, w, h) => {
-    const size = Math.min(w, h);
-    const u = (x - w / 2) / size;
-    const v = (y - h / 2) / size;
-    const radius = Math.hypot(u, v);
-    let color = blend(DARK, DEEP_NAVY, Math.max(0, 1 - radius / (0.85 * scale)) ** 2 * 0.2);
-    // Subtle central reactor glow
-    const core = Math.max(0, 1 - radius / (0.35 * scale));
-    color = blend(color, CYAN, core * 0.25);
-    return [...color, 255];
+    // Pure clean white splash background matching the modern white theme
+    return [255, 255, 255, 255];
   };
 }
 
