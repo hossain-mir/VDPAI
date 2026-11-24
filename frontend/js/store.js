@@ -933,10 +933,22 @@ export function getHudLog() {
 
 export function addHudLogEntry(text) {
   try {
+    const cleanText = String(text || "").trim();
+    if (!cleanText) return null;
     const log = getHudLog();
     const d = new Date();
     const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    const entry = { id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, time, text };
+    if (log.length > 0 && log[0].text === cleanText) {
+      log[0].time = time;
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(HUD_LOG_KEY, JSON.stringify(log));
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("vdpai:hudlog", { detail: log[0] }));
+      }
+      return log[0];
+    }
+    const entry = { id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, time, text: cleanText };
     log.unshift(entry);
     if (log.length > 50) log.length = 50;
     if (typeof localStorage !== "undefined") {

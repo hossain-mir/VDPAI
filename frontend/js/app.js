@@ -218,6 +218,7 @@ function initVoice() {
       if (input && text) {
         input.value = text;
         autoGrow(input);
+        syncSendButton();
       }
     },
     onFinal: (text) => {
@@ -225,18 +226,21 @@ function initVoice() {
       if (input) {
         input.value = "";
         autoGrow(input);
+        syncSendButton();
       }
       handleVoiceCommand(text);
     },
     onError: (message, code) => {
-      ui.toast(message, "error", 7500);
-      app.transcript?.add("error", message);
-      uiState.set("ERROR", message.slice(0, 100));
+      ui.toast(message, code === "not-allowed" || code === "permission" ? "error" : "warn", 4500);
+      if (code !== "no-speech" && code !== "timeout") {
+        app.transcript?.add("error", message);
+      }
+      uiState.set(code === "not-allowed" || code === "permission" ? "ERROR" : "IDLE", message.slice(0, 100));
       updateMicChip();
       setTimeout(() => {
         if (!app.busy && !app.voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
       }, 4200);
-      if (code === "permission") renderVoiceCapabilities();
+      if (code === "permission" || code === "not-allowed") renderVoiceCapabilities();
     },
     onState: (state, detail) => {
       if (state === "IDLE" && (app.busy || app.voice?.isSpeaking)) return;
@@ -355,6 +359,10 @@ async function handleVoiceCommand(text) {
   await send(command, { source: "voice" });
 }
 
+let lastSentText = "";
+let lastSentTime = 0;
+let lastConfigToast = 0;
+
 /* --------------------------------------------------------------------- chat */
 async function send(raw, { source = "text" } = {}) {
   const message = String(raw || "").trim();
@@ -363,6 +371,13 @@ async function send(raw, { source = "text" } = {}) {
     ui.toast("VDPAI is still answering. Stop the current response first.", "warn");
     return;
   }
+  // Prevent duplicate messages sent in rapid succession
+  if (message === lastSentText && Date.now() - lastSentTime < 2500) {
+    return;
+  }
+  lastSentText = message;
+  lastSentTime = Date.now();
+
   const ready = providerReady();
   if (!ready.ok) {
     showConfigError(ready.reason);
@@ -376,8 +391,11 @@ async function send(raw, { source = "text" } = {}) {
   const conversation = ensureConversation();
   const provider = ready.provider;
 
-  $("#chatInput").value = "";
-  autoGrow($("#chatInput"));
+  const chatInput = $("#chatInput");
+  if (chatInput) {
+    chatInput.value = "";
+    autoGrow(chatInput);
+  }
   setComposerBusy(true);
   uiState.set("THINKING", source === "voice" ? "interpreting voice command" : "reasoning");
   setResponseStatus("THINKING", "busy");
@@ -387,8 +405,7 @@ async function send(raw, { source = "text" } = {}) {
   app.transcript?.add("user", message, source === "voice" ? "voice" : "");
   app.liveBubble = app.transcript?.add("assistant", "", `${provider.name} · ${provider.model}`);
 
-  addHudLogEntry(`Command received: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
-  addHudLogEntry("AI thinking...");
+  addHudLogEntry(`Command: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
 
   try {
     const result = await sendChat({
@@ -437,7 +454,7 @@ async function send(raw, { source = "text" } = {}) {
     setResponseStatus(aborted ? "STOPPED" : "ERROR", aborted ? "" : "error");
     app.transcript?.add(aborted ? "system" : "error", message);
     uiState.set(aborted ? "IDLE" : "ERROR", aborted ? "response stopped" : message.slice(0, 100));
-    if (!aborted) ui.toast(message, "error", 7500);
+    if (!aborted) ui.toast(message, "error", 5000);
     setTimeout(() => {
       if (!app.busy && !app.voice?.isSpeaking && uiState.current === "ERROR") uiState.set("IDLE", "awaiting command");
     }, 4200);
@@ -453,6 +470,7 @@ async function send(raw, { source = "text" } = {}) {
     renderHistory();
     refreshControlCenter();
     renderVoiceCapabilities();
+    syncSendButton();
   }
 }
 
@@ -463,7 +481,10 @@ function showConfigError(reason) {
   setResponseStatus("NO API", "error");
   app.transcript?.add("error", message);
   uiState.set("ERROR", "AI provider not configured");
-  ui.toast(reason, "warn", 7000);
+  if (Date.now() - lastConfigToast > 3000) {
+    ui.toast(reason, "warn", 5000);
+    lastConfigToast = Date.now();
+  }
 }
 
 function speakAnswer(text) {
@@ -506,11 +527,23 @@ function renderResponseStatus() {
   else setResponseStatus("IDLE");
 }
 
+function syncSendButton() {
+  const send = $(".send-pill-btn") || $(".send");
+  const input = $("#chatInput");
+  if (send) {
+    const hasText = Boolean(input?.value?.trim());
+    send.disabled = !hasText || Boolean(app.busy);
+  }
+}
+
 function setComposerBusy(busy) {
-  const send = $(".send");
-  if (send) send.disabled = Boolean(busy);
+  const send = $(".send-pill-btn") || $(".send");
   const input = $("#chatInput");
   if (input) input.disabled = Boolean(busy);
+  if (send) {
+    const hasText = Boolean(input?.value?.trim());
+    send.disabled = Boolean(busy) || !hasText;
+  }
 }
 
 function newConversation() {
@@ -518,6 +551,12 @@ function newConversation() {
     ui.toast("Stop the current response before starting a new conversation.", "warn");
     return;
   }
+  const input = $("#chatInput");
+  if (input) {
+    input.value = "";
+    autoGrow(input);
+  }
+  syncSendButton();
   const current = getActiveConversation();
   if (current && current.messages.length === 0) {
     closeHistory();
@@ -664,13 +703,49 @@ function wireHud() {
   });
 
   const input = $("#chatInput");
-  input.addEventListener("input", () => autoGrow(input));
+  input.addEventListener("input", () => {
+    autoGrow(input);
+    syncSendButton();
+  });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
       $("#chatForm").requestSubmit();
     }
   });
+
+  input.addEventListener("focus", () => {
+    document.body.classList.add("input-focused");
+    setTimeout(() => {
+      input.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
+  });
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (!active || !["INPUT", "TEXTAREA"].includes(active.tagName)) {
+        document.body.classList.remove("input-focused");
+      }
+    }, 100);
+  });
+
+  if (typeof window !== "undefined" && window.visualViewport) {
+    const initialH = window.innerHeight;
+    window.visualViewport.addEventListener("resize", () => {
+      const isKeyboard = window.visualViewport.height < initialH * 0.8;
+      document.body.classList.toggle("keyboard-open", isKeyboard);
+      if (isKeyboard) {
+        setTimeout(() => {
+          const active = document.activeElement;
+          if (active && ["INPUT", "TEXTAREA"].includes(active.tagName)) {
+            active.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }, 80);
+      }
+    });
+  }
+
+  syncSendButton();
 
   let micPressTimer = null;
   let micLongPressed = false;
@@ -833,6 +908,7 @@ function wireHud() {
         if (chatInp) {
           chatInp.value = `[Attached: ${file.name}] ${chatInp.value}`;
           chatInp.focus();
+          syncSendButton();
         }
         ui.toast(`Attached ${file.name}`, "ok");
       }

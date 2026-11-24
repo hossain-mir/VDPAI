@@ -49,7 +49,13 @@ export async function sendChat({ text, conversationId, onDelta, signal }) {
   }
 
   const conversation = (conversationId && getConversation(conversationId)) || ensureConversation();
-  const userMessage = addMessage(conversation.id, "user", content);
+  const lastMsg = conversation.messages[conversation.messages.length - 1];
+  let userMessage;
+  if (lastMsg && lastMsg.role === "user" && lastMsg.content.trim() === content.trim()) {
+    userMessage = lastMsg;
+  } else {
+    userMessage = addMessage(conversation.id, "user", content);
+  }
   setConversationProvider(conversation.id, provider.id, provider.model);
 
   const messages = buildContext(conversation);

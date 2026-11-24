@@ -135,10 +135,14 @@
                 </div>
               </section>
 
-              <!-- Single Unified HUD Activity & Waveform Log -->
-              <section class="hud-log-panel glass" id="hudActivityLog" aria-label="Activity and HUD log">
+              <!-- Conversation Chat Stream (Transcript) -->
+              <section class="activity-wrap glass" id="chatStreamPanel" aria-label="Conversation stream">
                 <canvas id="waveCanvas" class="wave" aria-hidden="true"></canvas>
-                <div class="activity" id="transcript" role="log" aria-live="polite" hidden></div>
+                <div class="activity" id="transcript" role="log" aria-live="polite"></div>
+              </section>
+
+              <!-- Single Unified HUD Activity Log -->
+              <section class="hud-log-panel glass" id="hudActivityLog" aria-label="Activity and HUD log">
                 <header class="panel-head">
                   <div class="hud-log-head-left">
                     <span class="hud-live-dot" aria-hidden="true"></span>
@@ -174,7 +178,7 @@
                 </button>
                 <label class="sr-only" for="chatInput">Message</label>
                 <textarea id="chatInput" rows="1" placeholder="Ask VDPAI..." maxlength="8000" enterkeyhint="send"></textarea>
-                <button class="send-pill-btn" type="submit" aria-label="Send message" title="Send">
+                <button class="send-pill-btn" type="submit" aria-label="Send message" title="Send" id="sendBtn" disabled>
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
                 </button>
               </form>

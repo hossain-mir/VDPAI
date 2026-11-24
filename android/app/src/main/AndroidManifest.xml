@@ -8,7 +8,6 @@
     <!-- Native SpeechRecognizer input. Audio is handled by the Android speech
          service, not recorded or stored by VDPAI itself. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 

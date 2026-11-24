@@ -102,10 +102,41 @@ export class Transcript {
 
   add(role, text, meta = "") {
     if (!this.host) return null;
+    const cleanText = String(text || "").trim();
+    if (!cleanText && role !== "assistant") return null;
+
+    // Deduplicate consecutive identical error or system messages
+    const lastChild = this.host.lastElementChild;
+    if (lastChild && (role === "error" || role === "system")) {
+      const isSameRole = lastChild.classList.contains(role);
+      const isSameText = (lastChild.firstChild?.nodeValue || "").trim() === cleanText;
+      if (isSameRole && isSameText) {
+        const metaEl = lastChild.querySelector(".meta");
+        const footer = [meta, timeLabel()].filter(Boolean).join(" · ");
+        if (metaEl && footer) metaEl.textContent = footer;
+        this.scroll();
+        return lastChild;
+      }
+      if (role === "error" && isSameRole) {
+        if (lastChild.firstChild) lastChild.firstChild.nodeValue = cleanText;
+        const metaEl = lastChild.querySelector(".meta");
+        const footer = [meta, timeLabel()].filter(Boolean).join(" · ");
+        if (metaEl && footer) metaEl.textContent = footer;
+        this.scroll();
+        return lastChild;
+      }
+    }
+
     const className =
-      role === "user" ? "bubble user" : role === "assistant" ? "bubble assistant" : role === "error" ? "bubble error" : "bubble system";
+      role === "user"
+        ? "bubble user"
+        : role === "assistant"
+        ? "bubble assistant"
+        : role === "error"
+        ? "bubble error"
+        : "bubble system";
     const bubble = el("div", className);
-    bubble.appendChild(document.createTextNode(String(text || "")));
+    bubble.appendChild(document.createTextNode(cleanText));
     const footer = [meta, timeLabel()].filter(Boolean).join(" · ");
     if (footer) bubble.appendChild(el("span", "meta", footer));
     this.host.appendChild(bubble);
@@ -127,7 +158,13 @@ export class Transcript {
       return;
     }
     const messages = conversation.messages.slice(-30);
+    let lastMsg = null;
     for (const message of messages) {
+      if (!message.content || !message.content.trim()) continue;
+      if (lastMsg && lastMsg.role === message.role && lastMsg.content.trim() === message.content.trim()) {
+        continue;
+      }
+      lastMsg = message;
       this.add(
         message.role,
         message.content,
