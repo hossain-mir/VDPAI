@@ -1883,3 +1883,354 @@ body.input-focused .home-scroll-content {
   transform: none;
 }
 
+/* ============================================================
+   VDPAI Lumo-HUD 4-Page Reference UI Enhancements
+   ============================================================ */
+
+/* Topbar Menu & Model Pill Selector (Screen 2) */
+.topbar-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 150ms ease;
+}
+.topbar-menu-btn:hover {
+  background: rgba(88, 231, 255, 0.12);
+}
+.topbar-menu-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.model-pill-selector {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(7, 20, 32, 0.75);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all 180ms ease;
+}
+.model-pill-selector:hover {
+  border-color: var(--primary);
+  background: rgba(10, 26, 40, 0.9);
+}
+.model-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+.model-pill-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+/* 4 Quick Prompt Cards on Chat Page (Screen 2) */
+.chat-prompts-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 2px 14px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-prompts-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-prompt-pill {
+  flex: 0 0 auto;
+  min-width: 135px;
+  max-width: 165px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(6, 16, 26, 0.72);
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chat-prompt-pill:hover,
+.chat-prompt-pill:active {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(88, 231, 255, 0.16);
+}
+.prompt-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(88, 231, 255, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.prompt-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.prompt-texts strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+.prompt-texts small {
+  font-size: 10.5px;
+  color: var(--muted);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Action Drawer for + Button in Chat Dock */
+.action-drawer {
+  position: absolute;
+  bottom: 74px;
+  left: 12px;
+  right: 12px;
+  background: rgba(5, 15, 24, 0.95);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), var(--glow);
+  z-index: 100;
+  animation: slideUpDrawer 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideUpDrawer {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.action-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.action-drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.drawer-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 12px;
+  background: rgba(10, 24, 36, 0.7);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 160ms ease;
+}
+.drawer-action-btn:hover {
+  background: rgba(16, 38, 56, 0.85);
+  border-color: var(--primary);
+}
+.drawer-icon {
+  font-size: 20px;
+}
+
+/* 6 Prominent AI Action Cards on Tools Page (Screen 3) */
+.lumo-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+.tool-action-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(7, 19, 28, 0.7);
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tool-action-card:hover,
+.tool-action-card:active {
+  border-color: var(--primary);
+  background: rgba(10, 26, 40, 0.85);
+  box-shadow: 0 4px 20px rgba(88, 231, 255, 0.18);
+  transform: translateY(-2px);
+}
+.tool-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(88, 231, 255, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tool-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.tool-card-info strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+.tool-card-info small {
+  font-size: 11px;
+  color: var(--muted);
+  display: block;
+  margin-top: 2px;
+}
+
+/* Recent Chats (Screen 3) */
+.recent-chats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.recent-chat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(5, 14, 22, 0.6);
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  width: 100%;
+  transition: all 160ms ease;
+}
+.recent-chat-item:hover {
+  background: rgba(8, 22, 34, 0.8);
+  border-color: var(--primary);
+}
+.recent-chat-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.recent-chat-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.recent-chat-title {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-chat-time {
+  font-size: 11px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+.recent-chat-empty {
+  padding: 14px;
+  text-align: center;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+/* Hero Profile Card on Page 4 */
+.profile-card-hero {
+  padding: 16px;
+  background: rgba(7, 20, 30, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.profile-hero-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.profile-avatar-wrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+.profile-avatar-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+}
+.profile-avatar-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  background: radial-gradient(circle, rgba(88, 231, 255, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.profile-details h3 {
+  margin: 0 0 4px 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+.profile-role-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--secondary);
+  background: rgba(61, 255, 176, 0.12);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 255, 176, 0.3);
+  display: inline-block;
+  letter-spacing: 0.05em;
+}
+.profile-device-note {
+  margin: 6px 0 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+

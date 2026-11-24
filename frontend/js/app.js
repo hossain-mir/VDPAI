@@ -626,10 +626,12 @@ function refreshProviderUi() {
   const p4Title = $("#p4ActiveProviderTitle");
   const p4Model = $("#p4ActiveProviderModel");
   const p4Badge = $("#p4ProviderStatusBadge");
+  const pillName = $("#modelPillName");
   if (provider) {
     ui.setChip("chipProvider", "ok", truncate(provider.name.toUpperCase(), 14));
     if (badge) badge.textContent = provider.name;
     if (model) model.textContent = `${provider.model} · ${provider.apiKey || provider.type === "custom" ? "credential ready" : "no key"}`;
+    if (pillName) pillName.textContent = provider.model || provider.name;
     if (p4Title) p4Title.textContent = `Active Provider: ${provider.name}`;
     if (p4Model) p4Model.textContent = `Model: ${provider.model} · ${provider.endpoint || "Default Endpoint"}`;
     if (p4Badge) {
@@ -641,6 +643,7 @@ function refreshProviderUi() {
     ui.setChip("chipProvider", "bad", "NO API");
     if (badge) badge.textContent = "Not configured";
     if (model) model.textContent = "Add a provider in Control Center";
+    if (pillName) pillName.textContent = "VDPAI 2.0";
     if (p4Title) p4Title.textContent = "Active Provider: None";
     if (p4Model) p4Model.textContent = "Add an AI provider to enable streaming intelligence.";
     if (p4Badge) {
@@ -879,6 +882,9 @@ function wireHud() {
 
   $("#historyBtn").addEventListener("click", openHistory);
   $("#controlBtn").addEventListener("click", () => openControlCenter("ai"));
+  $("#topMenuBtn")?.addEventListener("click", () => openControlCenter("ai"));
+  $("#modelPillBtn")?.addEventListener("click", () => openControlCenter("ai"));
+  $("#openFullControlCenterBtn")?.addEventListener("click", () => openControlCenter("ai"));
 
   $("#shareBtn")?.addEventListener("click", async () => {
     if (!app.lastAnswer) {
@@ -897,7 +903,21 @@ function wireHud() {
     ui.toast(ok ? "Copied to clipboard." : "Could not copy.", ok ? "ok" : "warn");
   });
 
-  $("#attachMediaBtn")?.addEventListener("click", () => {
+  // Action Drawer & Attachments
+  $("#attachMediaBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = !drawer.hidden;
+  });
+
+  $("#closeActionDrawerBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+  });
+
+  $("#drawerAttachBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
     const picker = document.createElement("input");
     picker.type = "file";
     picker.accept = "image/*,.pdf,.txt,.md";
@@ -914,6 +934,109 @@ function wireHud() {
       }
     });
     picker.click();
+  });
+
+  $("#drawerWhatsappBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+    const text = ($("#chatInput")?.value || "").trim();
+    if (text) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    } else {
+      window.open("https://wa.me/", "_blank");
+    }
+  });
+
+  $("#drawerSmsBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+    const text = ($("#chatInput")?.value || "").trim();
+    if (text) {
+      window.location.href = `sms:?body=${encodeURIComponent(text)}`;
+    } else {
+      window.location.href = "sms:";
+    }
+  });
+
+  $("#drawerEmailBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+    const text = ($("#chatInput")?.value || "").trim();
+    if (text) {
+      window.location.href = `mailto:?subject=VDPAI%20Briefing&body=${encodeURIComponent(text)}`;
+    } else {
+      window.location.href = "mailto:?subject=VDPAI";
+    }
+  });
+
+  $("#drawerPhoneBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+    window.location.href = "tel:";
+  });
+
+  $("#drawerTorchBtn")?.addEventListener("click", () => {
+    const drawer = $("#actionDrawer");
+    if (drawer) drawer.hidden = true;
+    $("#toggleTorchBtn")?.click();
+  });
+
+  // Screen 2: 4 Quick Prompt Pills on Chat page
+  $$(".chat-prompt-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      const prompt = pill.dataset.prompt || "";
+      const input = $("#chatInput");
+      if (input) {
+        input.value = prompt;
+        autoGrow(input);
+        syncSendButton();
+        input.focus();
+      }
+    });
+  });
+
+  // Screen 3: 6 Tool Action Cards on Tools page
+  $$(".tool-action-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const prompt = card.dataset.prompt || "";
+      const input = $("#chatInput");
+      if (input) {
+        input.value = prompt;
+        autoGrow(input);
+        syncSendButton();
+        switchPage("home");
+        setTimeout(() => input.focus(), 150);
+      }
+    });
+  });
+
+  // Background Standby Mode Toggle
+  let bgStandbyActive = false;
+  $("#toggleBgStandbyBtn")?.addEventListener("click", () => {
+    bgStandbyActive = !bgStandbyActive;
+    const badge = $("#bgStandbyStatusBadge");
+    const btn = $("#toggleBgStandbyBtn");
+    if (bgStandbyActive) {
+      if (badge) {
+        badge.textContent = "STANDBY ACTIVE";
+        badge.dataset.tone = "ok";
+      }
+      if (btn) btn.textContent = "Disable Background Standby";
+      ui.toast("Background Core Active: VDPAI is in standby waiting for commands via Quick Settings Tile.", "ok", 4500);
+      addHudLogEntry("Background core standby activated.");
+    } else {
+      if (badge) {
+        badge.textContent = "STANDBY OFF";
+        badge.dataset.tone = "warn";
+      }
+      if (btn) btn.textContent = "Enable Background Standby";
+      ui.toast("Background Core Standby turned off.", "warn", 3000);
+      addHudLogEntry("Background core standby paused.");
+    }
+  });
+
+  $("#viewAllRecentChatsBtn")?.addEventListener("click", () => {
+    switchPage("control");
   });
 
   const persSelect = $("#personalitySelect");
@@ -1006,6 +1129,48 @@ function switchPage(pageId) {
     btn.classList.toggle("is-active", isCurrent);
     btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
   });
+
+  if (pageId === "assistant") {
+    renderRecentChats();
+  } else if (pageId === "control") {
+    renderHistory();
+  }
+}
+
+function renderRecentChats() {
+  const host = $("#recentChatsList");
+  if (!host) return;
+  const conversations = getConversations().slice(0, 5);
+  host.textContent = "";
+  if (!conversations.length) {
+    host.appendChild(ui.el("div", "recent-chat-empty", "No recent conversations. Start one from Chat."));
+    return;
+  }
+  for (const conv of conversations) {
+    const row = ui.el("button", "recent-chat-item glass");
+    row.type = "button";
+    const icon = ui.el("span", "recent-chat-icon");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.6");
+    svg.appendChild(path);
+    icon.appendChild(svg);
+    const title = ui.el("span", "recent-chat-title", conv.title || "Conversation");
+    const time = ui.el("span", "recent-chat-time", ui.relativeTime(conv.updatedAt));
+    row.appendChild(icon);
+    row.appendChild(title);
+    row.appendChild(time);
+    row.addEventListener("click", () => {
+      setActiveConversation(conv.id);
+      renderActiveConversation({ announce: false });
+      switchPage("home");
+    });
+    host.appendChild(row);
+  }
 }
 
 function handleEmergencyStop() {
@@ -1114,6 +1279,8 @@ function updateGreeting() {
   const user = settings.userName || "Sir";
   const saluteEl = $("#greetingSalute");
   if (saluteEl) saluteEl.textContent = `${salute}, ${user}.`;
+  const heroName = $("#profileHeroName");
+  if (heroName) heroName.textContent = user;
 }
 
 function wireNavigation() {

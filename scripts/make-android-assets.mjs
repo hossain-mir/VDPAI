@@ -238,11 +238,11 @@ if (hasSource) {
   // Android; copying instead of resampling guarantees no colour or alpha loss.
   for (const [density] of DENSITIES) {
     mkdirSync(join(RES, `mipmap-${density}`), { recursive: true });
+    copyFileSync(ICON_SOURCE, join(RES, `mipmap-${density}`, "ic_launcher.png"));
+    copyFileSync(ICON_SOURCE, join(RES, `mipmap-${density}`, "ic_launcher_round.png"));
   }
   mkdirSync(join(RES, "drawable-nodpi"), { recursive: true });
   mkdirSync(join(RES, "drawable"), { recursive: true });
-  copyFileSync(ICON_SOURCE, join(RES, "mipmap-xxxhdpi", "ic_launcher.png"));
-  copyFileSync(ICON_SOURCE, join(RES, "mipmap-xxxhdpi", "ic_launcher_round.png"));
   copyFileSync(ICON_SOURCE, join(RES, "drawable-nodpi", "ic_launcher_user.png"));
 
   writeFileSync(

@@ -36,6 +36,9 @@
     <!-- Top HUD Header -->
     <header class="topbar">
       <div class="brand">
+        <button class="topbar-menu-btn" id="topMenuBtn" type="button" aria-label="Open Control Center" title="Menu">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 44 44"><path d="M22 3 39 12.5v19L22 41 5 31.5v-19Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M15 28V16l14 12V16" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
         </span>
@@ -44,6 +47,13 @@
           <small>PERSONAL AI ASSISTANT</small>
         </div>
       </div>
+
+      <!-- Topbar Model Selector Pill (Screen 2) -->
+      <button type="button" class="model-pill-selector" id="modelPillBtn" title="Active Model & Provider">
+        <span class="model-pill-dot" aria-hidden="true"></span>
+        <span class="model-pill-name" id="modelPillName">VDPAI 2.0</span>
+        <svg viewBox="0 0 24 24" class="model-pill-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+      </button>
 
       <div class="status-chips" aria-label="System status">
         <span class="chip" id="chipProvider" data-tone="bad" title="Selected AI provider"><i></i>NO API</span>
@@ -116,6 +126,46 @@
                 </div>
               </section>
 
+              <!-- 4 Quick Prompt Cards (Screen 2) -->
+              <div class="chat-prompts-carousel" aria-label="Quick prompts">
+                <button type="button" class="chat-prompt-pill glass" data-prompt="Summarize the following content into key takeaways: ">
+                  <span class="prompt-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </span>
+                  <div class="prompt-texts">
+                    <strong>Summarize</strong>
+                    <small>Long articles or docs</small>
+                  </div>
+                </button>
+                <button type="button" class="chat-prompt-pill glass" data-prompt="Help me write a professional draft for: ">
+                  <span class="prompt-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </span>
+                  <div class="prompt-texts">
+                    <strong>Write</strong>
+                    <small>Emails, posts and more</small>
+                  </div>
+                </button>
+                <button type="button" class="chat-prompt-pill glass" data-prompt="Brainstorm 5 innovative and creative ideas for: ">
+                  <span class="prompt-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </span>
+                  <div class="prompt-texts">
+                    <strong>Brainstorm</strong>
+                    <small>Ideas and outlines</small>
+                  </div>
+                </button>
+                <button type="button" class="chat-prompt-pill glass" data-prompt="Provide a detailed, well-sourced research overview of: ">
+                  <span class="prompt-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </span>
+                  <div class="prompt-texts">
+                    <strong>Research</strong>
+                    <small>Topics and insights</small>
+                  </div>
+                </button>
+              </div>
+
               <!-- Latest Response Card -->
               <section class="response-panel glass" aria-label="Latest assistant response">
                 <header class="panel-head">
@@ -182,6 +232,41 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-6.5 18-3-7.5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
                 </button>
               </form>
+
+              <!-- Action Drawer for + button -->
+              <div class="action-drawer glass" id="actionDrawer" hidden>
+                <div class="action-drawer-head">
+                  <span class="action-drawer-title">Quick Actions &amp; Integrations</span>
+                  <button type="button" class="btn tiny" id="closeActionDrawerBtn">✕</button>
+                </div>
+                <div class="action-drawer-grid">
+                  <button type="button" class="drawer-action-btn" id="drawerAttachBtn">
+                    <span class="drawer-icon">📎</span>
+                    <span class="drawer-label">Attach File</span>
+                  </button>
+                  <button type="button" class="drawer-action-btn" id="drawerWhatsappBtn">
+                    <span class="drawer-icon">💬</span>
+                    <span class="drawer-label">WhatsApp</span>
+                  </button>
+                  <button type="button" class="drawer-action-btn" id="drawerSmsBtn">
+                    <span class="drawer-icon">✉️</span>
+                    <span class="drawer-label">SMS</span>
+                  </button>
+                  <button type="button" class="drawer-action-btn" id="drawerEmailBtn">
+                    <span class="drawer-icon">📧</span>
+                    <span class="drawer-label">Email</span>
+                  </button>
+                  <button type="button" class="drawer-action-btn" id="drawerPhoneBtn">
+                    <span class="drawer-icon">📞</span>
+                    <span class="drawer-label">Phone</span>
+                  </button>
+                  <button type="button" class="drawer-action-btn" id="drawerTorchBtn">
+                    <span class="drawer-icon">🔦</span>
+                    <span class="drawer-label">Flashlight</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="dock-tools">
                 <button id="ttsQuickBtn" class="icon-btn" type="button" aria-pressed="true" aria-label="Spoken replies on" title="Spoken replies">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
@@ -194,13 +279,102 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 2: Personal Assistant -->
-        <section class="page-view" id="pageAssistant" data-page="assistant" aria-label="Page 2: Personal Assistant">
+        <!-- ============================================================ PAGE 2: Tools & Intelligence -->
+        <section class="page-view" id="pageAssistant" data-page="assistant" aria-label="Page 2: Tools & Intelligence">
           <div class="page-scroll-content">
             <header class="section-banner">
-              <h2>PERSONAL ASSISTANT</h2>
-              <p>Tasks, notes, reminders, agenda, and daily intelligence overview.</p>
+              <h2>TOOLS &amp; INTELLIGENCE</h2>
+              <p>Specialized AI accelerators, recent conversations, device actions, and background core.</p>
             </header>
+
+            <!-- 6 Prominent AI Action Cards (Screen 3) -->
+            <div class="lumo-tools-grid" aria-label="AI Tool Accelerators">
+              <button type="button" class="tool-action-card glass" data-prompt="Summarize the following text into clear bullet points: ">
+                <span class="tool-card-icon tool-icon-summarize">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Summarize</strong>
+                  <small>Condense any content</small>
+                </div>
+              </button>
+
+              <button type="button" class="tool-action-card glass" data-prompt="Help me write a well-crafted draft for: ">
+                <span class="tool-card-icon tool-icon-write">
+                  <svg viewBox="0 0 24 24"><path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Write</strong>
+                  <small>Create with AI assistance</small>
+                </div>
+              </button>
+
+              <button type="button" class="tool-action-card glass" data-prompt="Brainstorm creative ideas, solutions, and outlines for: ">
+                <span class="tool-card-icon tool-icon-brainstorm">
+                  <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Brainstorm</strong>
+                  <small>Generate ideas and outlines</small>
+                </div>
+              </button>
+
+              <button type="button" class="tool-action-card glass" data-prompt="Find comprehensive insights, verified sources, and research on: ">
+                <span class="tool-card-icon tool-icon-research">
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Research</strong>
+                  <small>Find insights and sources</small>
+                </div>
+              </button>
+
+              <button type="button" class="tool-action-card glass" data-prompt="Translate the following text accurately into English: ">
+                <span class="tool-card-icon tool-icon-translate">
+                  <svg viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Translate</strong>
+                  <small>Break language barriers</small>
+                </div>
+              </button>
+
+              <button type="button" class="tool-action-card glass" data-prompt="Write clean, performant, and well-commented code to implement: ">
+                <span class="tool-card-icon tool-icon-code">
+                  <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" fill="none" stroke="currentColor" stroke-width="1.6"/><polyline points="8 6 2 12 8 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                </span>
+                <div class="tool-card-info">
+                  <strong>Code</strong>
+                  <small>Generate and explain code</small>
+                </div>
+              </button>
+            </div>
+
+            <!-- Background Assistant Core Standby Card -->
+            <div class="card glass-soft" id="bgStandbyCard">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">BACKGROUND INTELLIGENCE</span>
+                  <h3>Run in Background</h3>
+                  <p class="hint">When enabled, VDPAI maintains standby to instantly receive your commands via the Android Quick Settings Tile and Notification.</p>
+                </div>
+                <span class="mini-status" id="bgStandbyStatusBadge">STANDBY READY</span>
+              </div>
+              <div class="row wrap" style="margin-top: 10px; gap: 8px;">
+                <button type="button" class="btn small primary" id="toggleBgStandbyBtn">Toggle Background Standby</button>
+                <button type="button" class="btn" id="activateBackgroundBtn" disabled aria-disabled="true" style="display:none">Background Listening Unavailable</button>
+                <span class="mini-status" id="bgAssistantStatus" style="display:none">UNAVAILABLE</span>
+              </div>
+            </div>
+
+            <!-- Recent Chats (Screen 3) -->
+            <div class="card glass-soft" id="recentChatsSection">
+              <div class="card-head-row">
+                <h3>Recent chats</h3>
+                <button type="button" class="btn tiny" id="viewAllRecentChatsBtn">View all ➔</button>
+              </div>
+              <div class="recent-chats-list" id="recentChatsList"></div>
+            </div>
 
             <!-- Daily Activity Summary Grid -->
             <div class="metrics-grid">
@@ -344,13 +518,29 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 3: Control Center -->
-        <section class="page-view" id="pageControl" data-page="control" aria-label="Page 3: Control Center">
+        <!-- ============================================================ PAGE 3: Chat History & Safety -->
+        <section class="page-view" id="pageControl" data-page="control" aria-label="Page 3: Conversation History">
           <div class="page-scroll-content">
             <header class="section-banner">
-              <h2>COMMAND &amp; CONTROL CENTER</h2>
-              <p>App integrations, hardware toggles, system telemetry, and emergency controls.</p>
+              <div class="row between wrap" style="gap: 12px; align-items: center;">
+                <div>
+                  <h2>CONVERSATION HISTORY</h2>
+                  <p>All conversations are saved locally on this device only. No data is leaked or sent elsewhere.</p>
+                </div>
+                <button type="button" class="btn small primary" id="pageNewChatBtn">+ New Chat</button>
+              </div>
             </header>
+
+            <!-- Search Bar & List -->
+            <div class="card glass-soft">
+              <input id="pageHistorySearch" class="inline-search" placeholder="Search conversations by title or topic…" maxlength="80">
+              <div id="pageHistoryList" class="history-list" style="margin-top: 12px;"></div>
+              <div class="row wrap end" style="margin-top: 14px; gap: 8px;">
+                <button type="button" class="btn tiny" id="exportHistoryBtn">Export JSON</button>
+                <button type="button" class="btn tiny danger-ghost" id="clearHistoryBtn">Clear All History</button>
+                <button type="button" id="newChatBtn2" style="display:none">+ New Chat</button>
+              </div>
+            </div>
 
             <!-- Emergency Stop Control (Section 8) -->
             <div class="card emergency-card glass">
@@ -471,13 +661,40 @@
           </div>
         </section>
 
-        <!-- ============================================================ PAGE 4: AI & Personalization -->
-        <section class="page-view" id="pageSettings" data-page="settings" aria-label="Page 4: AI & Personalization">
+        <!-- ============================================================ PAGE 4: Profile & Control Center -->
+        <section class="page-view" id="pageSettings" data-page="settings" aria-label="Page 4: Profile & Control Center">
           <div class="page-scroll-content">
             <header class="section-banner">
-              <h2>AI &amp; PERSONALIZATION</h2>
-              <p>Model selection, voice tuning, memory manager, user profiles, and appearance.</p>
+              <h2>PROFILE &amp; CONTROL CENTER</h2>
+              <p>User profile, isolated profiles, AI provider credentials, memory, and appearance.</p>
             </header>
+
+            <!-- User Profile Hero Card -->
+            <div class="card glass-soft profile-card-hero">
+              <div class="profile-hero-content">
+                <div class="profile-avatar-wrap">
+                  <img src="/assets/vdpai_icon.jpg" alt="User Avatar" class="profile-avatar-img" onerror="this.src='/assets/icon.png'">
+                  <div class="profile-avatar-glow"></div>
+                </div>
+                <div class="profile-details">
+                  <h3 id="profileHeroName">Sir</h3>
+                  <span class="profile-role-tag" id="profileHeroRole">PRIMARY PROFILE · OWNER</span>
+                  <p class="profile-device-note">All data stored locally on this Android device.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Control Center Quick Launch Tile -->
+            <div class="card glass-soft cc-quick-launcher-card">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">MASTER SETTINGS</span>
+                  <h3>Control Center</h3>
+                  <p class="hint">Manage AI providers, voice tuning, backend server, privacy, and theme styling.</p>
+                </div>
+                <button type="button" class="btn small primary" id="openFullControlCenterBtn">Open Settings ➔</button>
+              </div>
+            </div>
 
             <!-- AI Model & Provider Card on Page 4 -->
             <div class="card glass-soft" id="page4ProviderCard">
@@ -500,7 +717,7 @@
               <div class="card-head-row">
                 <div>
                   <h3>Isolated User Profiles</h3>
-                  <p class="hint">Each profile keeps independent memories, conversations, and settings.</p>
+                  <p class="hint">Each profile keeps independent memories, conversations, and settings. Switching opens a fresh personal environment without data leak.</p>
                 </div>
                 <span class="mini-status" id="activeProfileBadge">Primary</span>
               </div>
@@ -509,7 +726,7 @@
                 <select id="profileSelect"></select>
               </label>
               <form id="addProfileForm" class="row">
-                <input id="addProfileInput" placeholder="New profile name" maxlength="40" required>
+                <input id="addProfileInput" placeholder="New profile name (e.g. Guest)" maxlength="40" required>
                 <button type="submit" class="btn small">+ Add Profile</button>
               </form>
               <div id="profilesManagerList" class="profiles-list"></div>
@@ -582,44 +799,35 @@
       </div>
     </div>
 
-    <!-- Dynamic Pill Bottom Navigation Bar (Floating Futuristic Dock) -->
+    <!-- Dynamic Pill Bottom Navigation Bar (4 Main Pages: Chat, Tools, History, Profile) -->
     <nav class="bottom-nav-bar" id="bottomNavBar" role="tablist" aria-label="Main Navigation">
-      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Home">
+      <button type="button" class="nav-pill-btn is-active" data-page="home" role="tab" aria-selected="true" title="Chat">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="11.5" r="1" fill="currentColor"/><circle cx="8" cy="11.5" r="1" fill="currentColor"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/></svg>
         </span>
-        <span class="nav-label">Home</span>
+        <span class="nav-label">Chat</span>
       </button>
-      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false" title="Tasks">
+      <button type="button" class="nav-pill-btn" data-page="assistant" role="tab" aria-selected="false" title="Tools">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2ZM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </span>
-        <span class="nav-label">Tasks</span>
+        <span class="nav-label">Tools</span>
       </button>
-      <button type="button" class="nav-pill-btn nav-pill-voice" id="navVoiceBtn" role="button" aria-label="Voice Input" title="Voice">
+      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="History">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </span>
-        <span class="nav-label">Voice</span>
-      </button>
-      <button type="button" class="nav-pill-btn" data-page="control" role="tab" aria-selected="false" title="Control Center">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-        </span>
-        <span class="nav-label">Control</span>
+        <span class="nav-label">History</span>
       </button>
       <button type="button" class="nav-pill-btn" data-page="settings" role="tab" aria-selected="false" title="Profile">
         <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
         </span>
         <span class="nav-label">Profile</span>
       </button>
-      <button type="button" class="nav-pill-btn" id="navMoreBtn" role="button" aria-label="Add or More Shortcuts" title="More">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/></svg>
-        </span>
-        <span class="nav-label">More</span>
-      </button>
+      <!-- Kept hidden for script compatibility -->
+      <button type="button" id="navVoiceBtn" style="display:none" aria-hidden="true"></button>
+      <button type="button" id="navMoreBtn" style="display:none" aria-hidden="true"></button>
     </nav>
   </div>
 
