@@ -803,9 +803,10 @@ body[data-active-page="tasks"] .topbar,
   padding: calc(var(--safe-top) + 8px) 16px 8px;
   background: #ffffff;
   border-bottom: 1px solid #f1f5f9;
-  z-index: 20;
+  z-index: 50;
   min-height: 54px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .chat-header-left {
@@ -1823,10 +1824,10 @@ body.input-focused .follow-up-dock {
 }
 
 /* Keyboard open hide nav */
-body.keyboard-open .bottom-nav-bar {
-  transform: translateY(120px);
-  opacity: 0;
-  pointer-events: none;
+body.keyboard-open .bottom-nav-bar,
+body.input-focused .bottom-nav-bar {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 /* ============================================================

@@ -176,6 +176,8 @@ async function boot() {
     newConversation,
     openControlCenter,
     switchPage,
+    goBack,
+    handleBackNavigation,
     emergencyStop: handleEmergencyStop,
     getState: () => ({
       busy: app.busy,
@@ -615,11 +617,24 @@ function setComposerBusy(busy) {
   }
 }
 
-function newConversation() {
+async function newConversation({ confirm = true } = {}) {
   if (app.busy) {
     ui.toast("Stop the current response before starting a new conversation.", "warn");
     return;
   }
+  const current = getActiveConversation();
+  const hasMessages = Boolean(current && Array.isArray(current.messages) && current.messages.length > 0);
+  if (confirm && hasMessages) {
+    const ok = await ui.confirmAction({
+      title: "Start a new chat?",
+      text: "Your current conversation will remain saved in Chat History.",
+      confirmLabel: "New Chat",
+      cancelLabel: "Cancel",
+      danger: false,
+    });
+    if (!ok) return;
+  }
+
   const input = $("#chatInput");
   if (input) {
     input.value = "";
@@ -627,30 +642,24 @@ function newConversation() {
     autoGrow(input);
   }
   syncSendButton();
-  const current = getActiveConversation();
-  if (current && current.messages.length === 0) {
-    closeHistory();
-    app.transcript?.clear();
-    syncChatEmptySuggestions();
-    setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
-    $("#responseMeta").textContent = "Local HUD · no backend required";
-    app.lastAnswer = "";
-    setResponseStatus("IDLE");
-    return;
-  }
+
   const provider = getActiveProvider();
   createConversation({ providerId: provider?.id || null, model: provider?.model || "" });
   saveNow().catch(() => {});
   closeHistory();
   app.lastAnswer = "";
   app.lastMeta = "";
+  app.busy = false;
+
   renderActiveConversation({ announce: false });
   syncChatEmptySuggestions();
   setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
   $("#responseMeta").textContent = "Local HUD · no backend required";
   setResponseStatus("IDLE");
+  renderResponseStatus();
   renderHistory();
   refreshControlCenter();
+  ui.toast("Started new conversation", "ok", 1500);
 }
 
 function renderActiveConversation({ announce = false } = {}) {
@@ -820,7 +829,14 @@ function wireHud() {
 
   input.addEventListener("focus", () => {
     document.body.classList.add("keyboard-open", "input-focused");
+    const appEl = $("#app") || document.querySelector(".app");
+    if (appEl && window.visualViewport) {
+      appEl.style.height = `${window.visualViewport.height}px`;
+    }
     setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       app.transcript?.scroll({ force: true });
     }, 60);
   });
@@ -829,26 +845,60 @@ function wireHud() {
       const active = document.activeElement;
       if (!active || !["INPUT", "TEXTAREA"].includes(active.tagName)) {
         document.body.classList.remove("keyboard-open", "input-focused");
+        const appEl = $("#app") || document.querySelector(".app");
+        if (appEl) {
+          appEl.style.height = "100%";
+        }
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
         app.transcript?.scroll();
       }
     }, 120);
   });
 
   if (typeof window !== "undefined" && window.visualViewport) {
+    const appEl = $("#app") || document.querySelector(".app");
+    let baselineHeight = window.innerHeight;
     let lastHeight = window.visualViewport.height;
+
     const handleViewportResize = () => {
       const vh = window.visualViewport.height;
-      const isShrunk = vh < (window.innerHeight - 80) || (window.innerHeight > 400 && vh < window.innerHeight * 0.85);
+      const isShrunk = vh < (baselineHeight - 80) || (baselineHeight > 400 && vh < baselineHeight * 0.85);
       const isInputActive = Boolean(document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName));
-      const keyboardActive = isShrunk || isInputActive;
+      const keyboardActive = isShrunk && isInputActive;
 
       document.body.classList.toggle("keyboard-open", keyboardActive);
-      if (keyboardActive && Math.abs(vh - lastHeight) > 30) {
+      document.body.classList.toggle("input-focused", keyboardActive);
+
+      if (appEl) {
+        if (keyboardActive) {
+          appEl.style.height = `${vh}px`;
+          if (window.visualViewport.offsetTop > 0 || window.scrollY > 0) {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+          }
+        } else {
+          appEl.style.height = "100%";
+          baselineHeight = Math.max(baselineHeight, window.innerHeight);
+        }
+      }
+
+      if (keyboardActive && Math.abs(vh - lastHeight) > 20) {
         app.transcript?.scroll({ force: true });
       }
       lastHeight = vh;
     };
+
     window.visualViewport.addEventListener("resize", handleViewportResize);
+    window.visualViewport.addEventListener("scroll", () => {
+      if (document.body.classList.contains("keyboard-open") && (window.visualViewport.offsetTop > 0 || window.scrollY > 0)) {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }
+    });
   }
 
   syncSendButton();
@@ -1120,12 +1170,15 @@ function wireHud() {
 
   // Chat View Voice Trigger & Back Buttons
   $("#chatVoiceTriggerBtn")?.addEventListener("click", () => toggleVoice());
-  $("#chatBackBtn")?.addEventListener("click", () => switchPage("home"));
-  $("#toolsBackBtn")?.addEventListener("click", () => switchPage("home"));
+  $("#chatBackBtn")?.addEventListener("click", () => goBack());
+  $("#toolsBackBtn")?.addEventListener("click", () => goBack());
   $("#ttsChatQuickBtn")?.addEventListener("click", () => $("#ttsQuickBtn")?.click());
-  $("#newChatChatBtn")?.addEventListener("click", () => $("#newChatBtn")?.click());
+  $("#newChatChatBtn")?.addEventListener("click", () => newConversation());
   $("#toolsAudioBtn")?.addEventListener("click", () => $("#ttsQuickBtn")?.click());
-  $("#toolsRefreshBtn")?.addEventListener("click", () => $("#newChatBtn")?.click());
+  $("#toolsRefreshBtn")?.addEventListener("click", () => {
+    renderRecentChats();
+    ui.toast("Tools refreshed", "ok", 1200);
+  });
 
   $("#homeChatLauncher")?.addEventListener("click", () => {
     switchPage("chat");
@@ -1206,16 +1259,6 @@ function wireHud() {
     });
   });
 
-  // Visual Viewport Keyboard Handling (prevents bottom nav from overlapping input)
-  if (typeof window !== "undefined" && window.visualViewport) {
-    window.visualViewport.addEventListener("resize", () => {
-      const isKeyboardOpen = window.visualViewport.height < window.innerHeight * 0.78;
-      document.body.classList.toggle("keyboard-open", isKeyboardOpen);
-      if (isKeyboardOpen && activePageIndex === 1) {
-        app.transcript?.scroll();
-      }
-    });
-  }
 
   $("#hudLogSearch")?.addEventListener("input", () => renderHudLog());
 
@@ -1318,6 +1361,7 @@ function wireHud() {
 
 let activePageIndex = 0;
 const PAGES = ["home", "chat", "tasks", "control", "settings"];
+const pageHistory = ["home"];
 
 function syncChatEmptySuggestions() {
   const conversation = getActiveConversation();
@@ -1333,11 +1377,18 @@ function syncChatEmptySuggestions() {
   }
 }
 
-function switchPage(pageId) {
+function switchPage(pageId, { pushHistory = true } = {}) {
   if (pageId === "assistant") pageId = "tasks";
   const index = PAGES.indexOf(pageId);
   if (index < 0) return;
   activePageIndex = index;
+
+  if (pushHistory) {
+    if (pageHistory[pageHistory.length - 1] !== pageId) {
+      pageHistory.push(pageId);
+      if (pageHistory.length > 25) pageHistory.shift();
+    }
+  }
 
   document.body.dataset.activePage = pageId;
   const appEl = $("#app");
@@ -1373,6 +1424,58 @@ function switchPage(pageId) {
     syncChatEmptySuggestions();
     app.transcript?.scroll({ force: true });
   }
+}
+
+function goBack() {
+  if (pageHistory.length > 1) {
+    pageHistory.pop(); // remove current page
+    const prevPage = pageHistory[pageHistory.length - 1] || "home";
+    switchPage(prevPage, { pushHistory: false });
+    return true;
+  }
+  if (activePageIndex !== 0) {
+    pageHistory.length = 0;
+    pageHistory.push("home");
+    switchPage("home", { pushHistory: false });
+    return true;
+  }
+  return false;
+}
+
+function handleBackNavigation() {
+  // 1. If keyboard or input focused, dismiss keyboard
+  if (document.body.classList.contains("keyboard-open") || (document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName))) {
+    if (document.activeElement && typeof document.activeElement.blur === "function") {
+      document.activeElement.blur();
+    }
+    document.body.classList.remove("keyboard-open", "input-focused");
+    const appEl = $("#app") || document.querySelector(".app");
+    if (appEl) appEl.style.height = "100%";
+    window.scrollTo(0, 0);
+    return true;
+  }
+
+  // 2. If action drawer is open, close it
+  const actionDrawer = $("#actionDrawer");
+  if (actionDrawer && !actionDrawer.hidden) {
+    actionDrawer.hidden = true;
+    return true;
+  }
+
+  // 3. If history sheet is open, close it
+  const historySheet = $("#historySheet");
+  if (historySheet && !historySheet.hidden) {
+    closeHistory();
+    return true;
+  }
+
+  // 4. If on any non-home page, navigate back
+  if (activePageIndex !== 0) {
+    return goBack();
+  }
+
+  // 5. If already on home, return false to let native minimize/exit app
+  return false;
 }
 
 function renderRecentChats() {

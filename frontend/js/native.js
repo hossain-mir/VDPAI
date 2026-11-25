@@ -42,6 +42,9 @@
   if (typeof cap.nativeCallback === "function") {
     cap.nativeCallback("App", "addListener", { eventName: "backButton" }, () => {
       if (closeTopOverlay()) return;
+      if (window.VDPAI && typeof window.VDPAI.handleBackNavigation === "function") {
+        if (window.VDPAI.handleBackNavigation()) return;
+      }
       leaveApp();
     });
   }
