@@ -46,6 +46,7 @@ import { initAssistant, renderAllAssistant } from "./assistant.js";
 import { initIntegrations } from "./integrations.js";
 import { initMemory, renderMemories } from "./memory.js";
 import { initProfiles } from "./profiles.js";
+import { initAuth, openAuthModal, openPrivacyTerms } from "./auth.js";
 
 const $ = ui.$;
 const $$ = ui.$$;
@@ -151,6 +152,7 @@ async function boot() {
   });
 
   wireNavigation();
+  initAuth();
   wireLaunchSequence();
   updateGreeting();
   renderQuickCommands();

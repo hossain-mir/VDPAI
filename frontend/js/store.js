@@ -53,6 +53,10 @@ export function defaultSettings() {
     privateMode: false,
     launchAnimationEnabled: true,
     onboardingCompleted: false,
+    authMode: "local",
+    accountUser: "",
+    rememberSession: true,
+    sessionExpiresAt: null,
     backgroundAssistantEnabled: false,
     continuousConversationMode: false,
   };

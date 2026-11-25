@@ -99,3 +99,70 @@ export async function testBackend(baseUrl, { timeoutMs = 12000 } = {}) {
     clearTimeout(timer);
   }
 }
+
+export async function unlockBackend(baseUrl, token) {
+  const checked = validateBackendUrl(baseUrl);
+  if (!checked.ok || !checked.url) return { ok: false, error: checked.error || "No backend configured." };
+  try {
+    const res = await fetch(joinUrl(checked.url, "/api/unlock"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ token: String(token || "").trim() }),
+      credentials: "include",
+    });
+    const text = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data?.error?.message || `Authentication failed (HTTP ${res.status}).`,
+        status: res.status,
+      };
+    }
+    return { ok: true, data, status: res.status };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || "Cannot connect to authentication server.") };
+  }
+}
+
+export async function revokeBackend(baseUrl) {
+  const checked = validateBackendUrl(baseUrl);
+  if (!checked.ok || !checked.url) return { ok: true };
+  try {
+    await fetch(joinUrl(checked.url, "/api/revoke"), {
+      method: "POST",
+      credentials: "include",
+    });
+    return { ok: true };
+  } catch {
+    return { ok: true };
+  }
+}
+
+export async function checkBackendSession(baseUrl) {
+  const checked = validateBackendUrl(baseUrl);
+  if (!checked.ok || !checked.url) return { ok: false, error: "No backend configured." };
+  try {
+    const res = await fetch(joinUrl(checked.url, "/api/session"), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      credentials: "include",
+    });
+    const text = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+    if (!res.ok) return { ok: false, error: `Server error (HTTP ${res.status}).`, status: res.status };
+    return { ok: true, data, status: res.status };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || "Cannot reach server.") };
+  }
+}

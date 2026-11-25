@@ -2555,3 +2555,237 @@ body.reduce-motion *::after,
     display: none !important;
   }
 }
+
+/* ============================================================
+   AUTH MODAL, TABS & PRIVACY TERMS (Part 6)
+   ============================================================ */
+.auth-modal-card {
+  max-width: 460px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 18px 20px 14px;
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.auth-tab-btn.is-active {
+  background: var(--card-bg);
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.auth-modal-body {
+  overflow-y: auto;
+  padding-right: 2px;
+  max-height: 60vh;
+}
+
+.auth-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-alert-banner {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.auth-alert-banner.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.auth-alert-banner.warn {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.auth-alert-banner.ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.auth-note {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+
+.auth-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -2px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.link-btn:hover, .link-btn:active {
+  text-decoration: underline;
+}
+
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.password-rules-card {
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pwd-rule {
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.pwd-rule.valid {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.local-mode-intro {
+  text-align: center;
+  padding: 6px 0;
+}
+
+.local-mode-shield {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.local-shield-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--primary);
+}
+
+.local-mode-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 6px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  background: var(--bg-soft);
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.auth-modal-foot {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-footer-terms {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.privacy-modal-card {
+  max-width: 500px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.privacy-terms-body {
+  overflow-y: auto;
+  max-height: 55vh;
+  padding-right: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.privacy-terms-body h3 {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 14px 0 4px;
+}
+
+.privacy-terms-body h3:first-child {
+  margin-top: 0;
+}
+
+.privacy-terms-body p {
+  margin: 0 0 10px;
+}

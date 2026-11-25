@@ -817,6 +817,24 @@
               </div>
             </div>
 
+            <!-- Account & Authentication Card -->
+            <div class="card" id="page5AuthCard">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">ACCOUNT &amp; ACCESS</span>
+                  <h3 id="authAccountModeTitle">Active Mode: Local (Guest)</h3>
+                  <p class="hint" id="authAccountModeDesc">100% private on-device storage. No cloud tracking or remote account required.</p>
+                </div>
+                <span class="mini-status" id="authAccountBadge" data-tone="ok">LOCAL MODE</span>
+              </div>
+              <div class="row wrap" style="gap: 8px; margin-top: 12px;">
+                <button type="button" class="btn small primary" id="openAuthModalBtn">Sign In / Switch Mode ➔</button>
+                <button type="button" class="btn small" id="authSwitchGuestBtn">Use Local / Guest Mode</button>
+                <button type="button" class="btn small danger-ghost" id="authLogoutBtn" style="display:none;">Log Out</button>
+                <button type="button" class="btn small" id="openPrivacyTermsBtn">Privacy &amp; Terms</button>
+              </div>
+            </div>
+
             <!-- Theme & Appearance Quick Card -->
             <div class="card" id="page5ThemeCard">
               <div class="card-head-row">
@@ -1351,6 +1369,217 @@
         </div>
       </footer>
     </form>
+  </div>
+
+  <!-- ------------------------------------------------------------- Auth Modal -->
+  <div id="authModal" class="modal" hidden>
+    <div class="modal-card auth-modal-card" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <header class="modal-head">
+        <div>
+          <span class="kicker">AUTHENTICATION &amp; ACCESS</span>
+          <h2 id="authModalTitle">Account &amp; Access Mode</h2>
+        </div>
+        <button class="icon-btn" id="authCloseBtn" type="button" aria-label="Close">×</button>
+      </header>
+
+      <!-- Auth Tabs: Sign In, Sign Up, Local Mode, Password Help -->
+      <nav class="auth-tabs" id="authTabs" role="tablist" aria-label="Authentication modes">
+        <button type="button" class="auth-tab-btn is-active" data-tab="login" role="tab" aria-selected="true">Sign In</button>
+        <button type="button" class="auth-tab-btn" data-tab="signup" role="tab" aria-selected="false">Sign Up</button>
+        <button type="button" class="auth-tab-btn" data-tab="local" role="tab" aria-selected="false">Local Mode</button>
+        <button type="button" class="auth-tab-btn" data-tab="recovery" role="tab" aria-selected="false">Help / Reset</button>
+      </nav>
+
+      <div class="modal-body auth-modal-body">
+        <!-- Error / Status Message Banner -->
+        <div id="authAlertBanner" class="auth-alert-banner" role="alert" style="display:none;"></div>
+
+        <!-- 1. SIGN IN TAB -->
+        <form id="authLoginForm" class="auth-tab-panel is-active" data-panel="login">
+          <p class="auth-note">
+            Connect to your self-hosted or dedicated VDPAI backend server. Your credentials are authenticated directly with your server.
+          </p>
+
+          <label class="field">
+            <span>Backend Server URL</span>
+            <input id="authLoginServerUrl" type="url" inputmode="url" maxlength="500" autocapitalize="off" spellcheck="false" placeholder="https://vdpai.your-server.com">
+          </label>
+
+          <label class="field">
+            <span>Username or Access Token</span>
+            <input id="authLoginUser" type="text" maxlength="200" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="admin or token">
+          </label>
+
+          <label class="field">
+            <span>Password / Secret</span>
+            <span class="secret-row">
+              <input id="authLoginPassword" type="password" maxlength="200" autocomplete="current-password" placeholder="Enter password or token">
+              <button class="btn tiny" id="authToggleLoginPasswordBtn" type="button" aria-label="Toggle password visibility">Show</button>
+            </span>
+          </label>
+
+          <div class="auth-options-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="authRememberSession" checked>
+              <span>Remember session</span>
+            </label>
+            <button type="button" class="link-btn" id="authGoToRecoveryLink">Forgot Password?</button>
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn primary" id="authLoginSubmitBtn" type="submit">Sign In to Server</button>
+            <button class="btn" id="authLoginUseLocalBtn" type="button">Continue in Local Mode (No Account)</button>
+          </div>
+        </form>
+
+        <!-- 2. SIGN UP / CONNECT TAB -->
+        <form id="authSignupForm" class="auth-tab-panel" data-panel="signup" style="display:none;">
+          <p class="auth-note">
+            VDPAI has zero third-party cloud tracking. To set up an account, connect to a self-hosted or dedicated backend instance.
+          </p>
+
+          <label class="field">
+            <span>Backend Server URL</span>
+            <input id="authSignupServerUrl" type="url" inputmode="url" maxlength="500" autocapitalize="off" spellcheck="false" placeholder="https://vdpai.your-server.com">
+          </label>
+
+          <label class="field">
+            <span>Email or Username</span>
+            <input id="authSignupUser" type="text" maxlength="200" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="user@example.com">
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <span class="secret-row">
+              <input id="authSignupPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="Minimum 8 characters">
+              <button class="btn tiny" id="authToggleSignupPasswordBtn" type="button" aria-label="Toggle password visibility">Show</button>
+            </span>
+          </label>
+
+          <label class="field">
+            <span>Confirm Password</span>
+            <span class="secret-row">
+              <input id="authSignupConfirmPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="Re-enter password">
+              <button class="btn tiny" id="authToggleSignupConfirmBtn" type="button" aria-label="Toggle confirm password visibility">Show</button>
+            </span>
+          </label>
+
+          <!-- Password Validation Checklist -->
+          <div class="password-rules-card" id="passwordRulesCard">
+            <div class="pwd-rule" id="ruleLength"><span>•</span> Minimum 8 characters</div>
+            <div class="pwd-rule" id="ruleContent"><span>•</span> Contains letters and numbers</div>
+            <div class="pwd-rule" id="ruleMatch"><span>•</span> Passwords match</div>
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn primary" id="authSignupSubmitBtn" type="submit">Connect &amp; Register</button>
+            <button class="btn" id="authSignupUseLocalBtn" type="button">Skip &amp; Use Local Mode</button>
+          </div>
+        </form>
+
+        <!-- 3. LOCAL / GUEST MODE TAB -->
+        <div id="authLocalPanel" class="auth-tab-panel" data-panel="local" style="display:none;">
+          <div class="local-mode-intro">
+            <div class="local-mode-shield">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="local-shield-icon">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </div>
+            <h3>100% Private Local Mode</h3>
+            <p>
+              In Local Mode, VDPAI functions fully offline on your device without needing any remote server or login account.
+            </p>
+            <ul class="local-mode-benefits">
+              <li>✓ All chats, memory, and settings stored in private local storage</li>
+              <li>✓ Direct API connectivity to OpenAI, Anthropic, Gemini, Groq, Ollama</li>
+              <li>✓ Zero data collection, telemetry, or third-party profiling</li>
+              <li>✓ Isolated user profiles on device (Work, Personal, Guest)</li>
+            </ul>
+          </div>
+          <div class="auth-actions">
+            <button class="btn primary" id="authActivateLocalBtn" type="button">Activate Local Mode</button>
+            <button class="btn danger-ghost" id="authWipeAccountBtn" type="button">Reset All Local Profile Data</button>
+          </div>
+        </div>
+
+        <!-- 4. PASSWORD RECOVERY / HELP TAB -->
+        <div id="authRecoveryPanel" class="auth-tab-panel" data-panel="recovery" style="display:none;">
+          <h3>Password &amp; Access Recovery</h3>
+          <p class="auth-note">
+            Because VDPAI is designed with zero-knowledge local-first security:
+          </p>
+
+          <div class="card" style="margin-bottom: 12px;">
+            <strong>Self-Hosted Backend Recovery</strong>
+            <p class="hint" style="margin-top: 4px;">
+              If you forgot your backend access token, update the <code>VDPAI_ACCESS_TOKEN</code> environment variable or restart your server with a new token in <code>config.py</code>.
+            </p>
+          </div>
+
+          <div class="card" style="margin-bottom: 12px;">
+            <strong>Local Mode Security &amp; Data Reset</strong>
+            <p class="hint" style="margin-top: 4px;">
+              In Local Mode, your data is stored strictly on this device. You can reset your local profiles and clear cached sessions anytime from Settings.
+            </p>
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn primary" id="authRecoveryBackToLoginBtn" type="button">Back to Sign In</button>
+            <button class="btn" id="authRecoveryUseLocalBtn" type="button">Switch to Local Mode</button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-foot auth-modal-foot">
+        <div class="auth-footer-terms">
+          <span>By using VDPAI, you agree to our</span>
+          <button type="button" class="link-btn" id="authOpenTermsLink">Terms of Service</button>
+          <span>&amp;</span>
+          <button type="button" class="link-btn" id="authOpenPrivacyLink">Privacy Policy</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ----------------------------------------------- Privacy & Terms Modal -->
+  <div id="privacyTermsModal" class="modal" hidden>
+    <div class="modal-card privacy-modal-card" role="dialog" aria-modal="true" aria-labelledby="privacyTermsTitle">
+      <header class="modal-head">
+        <div>
+          <span class="kicker">LEGAL &amp; PRIVACY</span>
+          <h2 id="privacyTermsTitle">Privacy Policy &amp; Terms</h2>
+        </div>
+        <button class="icon-btn" id="privacyTermsCloseBtn" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="modal-body privacy-terms-body">
+        <h3>1. 100% Local-First Privacy Policy</h3>
+        <p>
+          VDPAI is built from the ground up to respect your digital sovereignty. All conversation histories, system prompts, personal memories, and provider configurations remain stored directly in your Android device's private application storage.
+        </p>
+        <p>
+          No personal data, telemetry, analytics, or behavioral cookies are sent to VDPAI developers or any third-party advertising network.
+        </p>
+
+        <h3>2. AI Provider Communications</h3>
+        <p>
+          When you configure an AI API provider (such as OpenAI, Anthropic, Google Gemini, Groq, or DeepSeek), your prompt text and conversation context are transmitted directly over secure HTTPS to that specific provider using your own API key. You are subject to each provider's individual terms and privacy policies.
+        </p>
+
+        <h3>3. Backend Server Connectivity</h3>
+        <p>
+          Connecting a remote backend server is completely optional. If connected, authentication uses opaque session grants and CSRF-protected tokens. You may disconnect or revoke sessions at any time.
+        </p>
+
+        <h3>4. Terms of Service</h3>
+        <p>
+          VDPAI is provided "as is" without warranties of any kind. You retain full ownership of all prompts and data generated. You are responsible for maintaining the confidentiality of your API keys and server access tokens.
+        </p>
+      </div>
+      <footer class="modal-foot">
+        <button class="btn primary" id="privacyTermsDoneBtn" type="button">Understood &amp; Accept</button>
+      </footer>
+    </div>
   </div>
 
   <!-- ------------------------------------------------------------ Confirm Modal -->
