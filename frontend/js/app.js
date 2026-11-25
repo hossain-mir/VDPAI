@@ -1041,6 +1041,15 @@ function wireHud() {
   $("#topMenuBtn")?.addEventListener("click", () => openControlCenter("ai"));
   $("#modelPillBtn")?.addEventListener("click", () => openControlCenter("ai"));
   $("#openFullControlCenterBtn")?.addEventListener("click", () => openControlCenter("ai"));
+  $("#replayOnboardingBtn")?.addEventListener("click", () => {
+    ui.toast("Restarting onboarding tour…", "ok", 1500);
+    replayOnboarding();
+  });
+  $("#replayOnboardingBtnCc")?.addEventListener("click", () => {
+    closeControlCenter();
+    ui.toast("Restarting onboarding tour…", "ok", 1500);
+    replayOnboarding();
+  });
 
   $("#shareBtn")?.addEventListener("click", async () => {
     if (!app.lastAnswer) {
@@ -1695,6 +1704,28 @@ function wireNavigation() {
   });
 }
 
+let isOnboardingNavigating = false;
+
+function replayOnboarding() {
+  isOnboardingNavigating = false;
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem("vdpai_onboarding_completed");
+    }
+    updateSettings({ onboardingCompleted: false });
+    saveNow().catch(() => {});
+  } catch {
+    /* ignore */
+  }
+
+  const splash = $("#splashScreen");
+  if (!splash) return;
+  splash.hidden = false;
+  splash.style.display = "flex";
+  splash.classList.remove("fade-out", "splash-opening-anim");
+  wireLaunchSequence();
+}
+
 function wireLaunchSequence() {
   const splash = $("#splashScreen");
   if (!splash) return;
@@ -1706,11 +1737,13 @@ function wireLaunchSequence() {
   if (typeof window === "undefined" || window.HSAI_TEST) {
     splash.hidden = true;
     splash.style.display = "none";
-    splash.remove?.();
     return;
   }
 
   const dismiss = (speed = 350) => {
+    if (isOnboardingNavigating) return;
+    isOnboardingNavigating = true;
+
     try {
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("vdpai_onboarding_completed", "true");
@@ -1725,7 +1758,8 @@ function wireLaunchSequence() {
     setTimeout(() => {
       splash.hidden = true;
       splash.style.display = "none";
-      splash.remove?.();
+      splash.classList.remove("fade-out", "splash-opening-anim");
+      isOnboardingNavigating = false;
     }, speed);
   };
 
@@ -1734,17 +1768,21 @@ function wireLaunchSequence() {
     if (settings.launchAnimationEnabled === false || settings.reduceMotion) {
       splash.hidden = true;
       splash.style.display = "none";
-      splash.remove?.();
       return;
     }
 
-    // Lightweight returning-user opening branding animation (smooth, no long delay)
+    // Lightweight returning-user opening branding animation (smooth, fast, dismissable)
+    splash.classList.remove("fade-out");
     splash.classList.add("splash-opening-anim");
+    splash.hidden = false;
+    splash.style.display = "flex";
     const bottom = $(".splash-bottom", splash);
     if (bottom) bottom.style.display = "none";
+    const headerBar = $(".splash-header-bar", splash);
+    if (headerBar) headerBar.style.display = "none";
     splash.style.cursor = "pointer";
 
-    let timer = setTimeout(() => dismiss(400), 700);
+    let timer = setTimeout(() => dismiss(350), 750);
     splash.addEventListener(
       "click",
       () => {
@@ -1756,18 +1794,117 @@ function wireLaunchSequence() {
     return;
   }
 
-  // Show onboarding screen on first install
+  // Show onboarding slides for first install or replay
+  splash.classList.remove("fade-out", "splash-opening-anim");
   splash.hidden = false;
   splash.style.display = "flex";
+  splash.style.cursor = "default";
 
+  const bottom = $(".splash-bottom", splash);
+  if (bottom) bottom.style.display = "flex";
+  const headerBar = $(".splash-header-bar", splash);
+  if (headerBar) headerBar.style.display = "flex";
+
+  const slides = $$(".onboarding-slide", splash);
+  const dots = $$(".splash-dot", splash);
+  const stepIndicator = $("#splashStepIndicator");
   const continueBtn = $("#splashContinueBtn");
-  continueBtn?.addEventListener("click", () => dismiss(350));
+  const skipBtn = $("#splashSkipBtn");
+  const totalSlides = slides.length || 4;
+  let currentSlide = 0;
 
-  const skip = $("#splashSkipBtn");
-  skip?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    dismiss(350);
+  function setSlide(index) {
+    if (index < 0) index = 0;
+    if (index >= totalSlides) index = totalSlides - 1;
+    currentSlide = index;
+
+    slides.forEach((slide, idx) => {
+      slide.classList.toggle("active", idx === currentSlide);
+    });
+
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle("active", idx === currentSlide);
+    });
+
+    if (stepIndicator) {
+      stepIndicator.textContent = `Step ${currentSlide + 1} of ${totalSlides}`;
+    }
+
+    if (continueBtn) {
+      if (currentSlide === totalSlides - 1) {
+        continueBtn.textContent = "Get Started 🚀";
+        continueBtn.classList.add("get-started");
+      } else {
+        continueBtn.textContent = "Continue ➔";
+        continueBtn.classList.remove("get-started");
+      }
+    }
+  }
+
+  setSlide(0);
+
+  // Debounced Continue / Get Started handler
+  if (continueBtn) {
+    continueBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (isOnboardingNavigating) return;
+
+      if (currentSlide < totalSlides - 1) {
+        setSlide(currentSlide + 1);
+      } else {
+        dismiss(350);
+      }
+    };
+  }
+
+  // Skip handler
+  if (skipBtn) {
+    skipBtn.onclick = (e) => {
+      e.stopPropagation();
+      dismiss(350);
+    };
+  }
+
+  // Dot navigation
+  dots.forEach((dot) => {
+    dot.onclick = (e) => {
+      e.stopPropagation();
+      if (isOnboardingNavigating) return;
+      const target = parseInt(dot.getAttribute("data-index"), 10);
+      if (!Number.isNaN(target)) {
+        setSlide(target);
+      }
+    };
   });
+
+  // Touch swipe support (left = next, right = prev)
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const slider = $("#onboardingSlider") || splash;
+
+  slider.ontouchstart = (e) => {
+    if (e.touches && e.touches[0]) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  };
+
+  slider.ontouchend = (e) => {
+    if (isOnboardingNavigating || !e.changedTouches || !e.changedTouches[0]) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX < 0) {
+        if (currentSlide < totalSlides - 1) {
+          setSlide(currentSlide + 1);
+        }
+      } else {
+        if (currentSlide > 0) {
+          setSlide(currentSlide - 1);
+        }
+      }
+    }
+  };
 }
 
 function autoGrow(input) {

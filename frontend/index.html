@@ -16,39 +16,104 @@
 
   <!-- ============================================================ SCREEN 1: Onboarding / Welcome Screen -->
   <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Onboarding">
+    <div class="splash-header-bar">
+      <span class="splash-step-indicator" id="splashStepIndicator">Step 1 of 4</span>
+      <button type="button" class="splash-skip-link" id="splashSkipBtn">Skip</button>
+    </div>
+
     <div class="splash-content">
-      <div class="splash-top">
-        <div class="splash-logo-badge">
-          <img src="/assets/icon.png" alt="VDPAI" class="splash-brand-badge-img">
+      <div class="onboarding-slider" id="onboardingSlider">
+        <!-- Slide 0: Welcome & Overview -->
+        <div class="onboarding-slide active" data-slide="0">
+          <div class="splash-top">
+            <div class="splash-logo-badge">
+              <img src="/assets/icon.png" alt="VDPAI" class="splash-brand-badge-img">
+            </div>
+            <h1 class="splash-title">Meet VDPAI</h1>
+            <h2 class="splash-subtitle">Your Personal AI Assistant</h2>
+            <p class="splash-tagline">Smarter. Faster. More Helpful.</p>
+          </div>
+          <div class="splash-illustration-wrap">
+            <img src="/assets/icon.png" alt="VDPAI Assistant" class="splash-robot-img">
+          </div>
+          <p class="splash-description">
+            Ask complex questions, brainstorm ideas, code solutions, and experience enterprise-level artificial intelligence directly on your device.
+          </p>
         </div>
-        <h1 class="splash-title">VDPAI</h1>
-        <h2 class="splash-subtitle">Your Personal AI Assistant</h2>
-        <p class="splash-tagline">Smarter. Faster. More Helpful.</p>
+
+        <!-- Slide 1: 100% Private & Local-First -->
+        <div class="onboarding-slide" data-slide="1">
+          <div class="splash-top">
+            <h1 class="splash-title">100% Private</h1>
+            <h2 class="splash-subtitle">Local-First Architecture</h2>
+            <p class="splash-tagline">Your Data Belongs to You</p>
+          </div>
+          <div class="splash-illustration-wrap">
+            <div class="onboarding-feature-icon-wrap">
+              <svg class="onboarding-feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </div>
+          </div>
+          <p class="splash-description">
+            All conversations, preferences, and API credentials are kept private and stored locally on your device. Zero telemetry, zero tracking.
+          </p>
+        </div>
+
+        <!-- Slide 2: Multi-Provider AI -->
+        <div class="onboarding-slide" data-slide="2">
+          <div class="splash-top">
+            <h1 class="splash-title">Multi-Provider AI</h1>
+            <h2 class="splash-subtitle">Bring Your Own Key</h2>
+            <p class="splash-tagline">Freedom to Choose Any Model</p>
+          </div>
+          <div class="splash-illustration-wrap">
+            <div class="onboarding-feature-icon-wrap">
+              <svg class="onboarding-feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+          </div>
+          <p class="splash-description">
+            Seamlessly connect OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, or run local models offline with Ollama.
+          </p>
+        </div>
+
+        <!-- Slide 3: Ready to Begin -->
+        <div class="onboarding-slide" data-slide="3">
+          <div class="splash-top">
+            <div class="splash-logo-badge">
+              <img src="/assets/icon.png" alt="VDPAI" class="splash-brand-badge-img">
+            </div>
+            <h1 class="splash-title">Ready to Begin</h1>
+            <h2 class="splash-subtitle">Let's Get Started</h2>
+            <p class="splash-tagline">Zero Setup Friction</p>
+          </div>
+          <div class="splash-illustration-wrap">
+            <img src="/assets/icon.png" alt="VDPAI Assistant" class="splash-robot-img">
+          </div>
+          <p class="splash-description">
+            Your personal AI workspace is ready. Zero permissions requested upfront—permissions are only asked when you use features.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="splash-bottom">
+      <div class="splash-dots" id="splashDots" aria-label="Onboarding slide indicators">
+        <button type="button" class="splash-dot active" data-index="0" aria-label="Slide 1"></button>
+        <button type="button" class="splash-dot" data-index="1" aria-label="Slide 2"></button>
+        <button type="button" class="splash-dot" data-index="2" aria-label="Slide 3"></button>
+        <button type="button" class="splash-dot" data-index="3" aria-label="Slide 4"></button>
       </div>
 
-      <div class="splash-illustration-wrap">
-        <img src="/assets/icon.png" alt="VDPAI Assistant" class="splash-robot-img">
-      </div>
+      <button type="button" class="splash-continue-btn" id="splashContinueBtn">Continue ➔</button>
 
-      <div class="splash-bottom">
-        <p class="splash-description">
-          Using this software, you can ask your questions and receive enterprise level artificial intelligence assistant.
-        </p>
-
-        <div class="splash-dots" aria-hidden="true">
-          <span class="splash-dot active"></span>
-          <span class="splash-dot"></span>
-          <span class="splash-dot"></span>
-          <span class="splash-dot"></span>
-        </div>
-
-        <button type="button" class="splash-continue-btn" id="splashSkipBtn">Continue ➔</button>
-
-        <!-- Hidden progress elements to maintain API compatibility -->
-        <div class="sr-only" aria-hidden="true" style="display:none">
-          <div id="splashProgress"></div>
-          <span id="splashStatusText">ONLINE</span>
-        </div>
+      <!-- Hidden progress elements to maintain API compatibility -->
+      <div class="sr-only" aria-hidden="true" style="display:none">
+        <div id="splashProgress"></div>
+        <span id="splashStatusText">ONLINE</span>
       </div>
     </div>
   </div>
@@ -769,6 +834,18 @@
               </div>
             </div>
 
+            <!-- Onboarding Tour Replay Card -->
+            <div class="card" id="page5OnboardingCard">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">WELCOME TOUR</span>
+                  <h3>First-Launch Onboarding</h3>
+                  <p class="hint">Replay the introductory walkthrough and feature tour anytime.</p>
+                </div>
+                <button type="button" class="btn small" id="replayOnboardingBtn">Replay Tour ↺</button>
+              </div>
+            </div>
+
             <!-- Master Control Center Launcher -->
             <div class="card">
               <div class="card-head-row">
@@ -1180,6 +1257,13 @@
           </div>
           <div class="card">
             <dl class="facts" id="aboutFacts"></dl>
+          </div>
+          <div class="card">
+            <h3>Onboarding Tour</h3>
+            <p class="hint">Want to see the first-launch introduction slides again?</p>
+            <div class="row" style="margin-top: 8px;">
+              <button class="btn small" id="replayOnboardingBtnCc" type="button">Replay Onboarding Tour ↺</button>
+            </div>
           </div>
           <div class="card">
             <h3>Open-source components</h3>
