@@ -543,19 +543,6 @@ async function send(raw, { source = "text" } = {}) {
   }
 }
 
-function showConfigError(reason) {
-  const message = `${reason} Open Control Center → AI & API to configure a provider. The HUD stays available offline.`;
-  setResponseText(message, { error: true });
-  $("#responseMeta").textContent = "No usable AI provider";
-  setResponseStatus("NO API", "error");
-  app.transcript?.add("error", message);
-  uiState.set("ERROR", "AI provider not configured");
-  if (Date.now() - lastConfigToast > 3000) {
-    ui.toast(reason, "warn", 5000);
-    lastConfigToast = Date.now();
-  }
-}
-
 function speakAnswer(text) {
   app.voice?.speak(text).then((result) => {
     if (!result.ok) {
@@ -596,25 +583,19 @@ function renderResponseStatus() {
   else setResponseStatus("IDLE");
 }
 
-function syncSendButton() {
+function syncSendButton(busy = app.busy) {
   const send = $("#sendBtn") || $(".composer-send-btn") || $(".send-pill-btn") || $(".send");
   const input = $("#chatInput");
   if (send) {
     const hasText = Boolean(input?.value?.trim());
-    send.disabled = !hasText || Boolean(app.busy);
-    send.classList.toggle("is-active", hasText && !app.busy);
+    send.disabled = !hasText || Boolean(busy);
+    send.classList.toggle("is-active", hasText && !busy);
+    send.classList.toggle("is-busy", Boolean(busy));
   }
 }
 
 function setComposerBusy(busy) {
-  const send = $("#sendBtn") || $(".composer-send-btn") || $(".send-pill-btn") || $(".send");
-  const input = $("#chatInput");
-  // Never disable the input textarea so typing is never blocked and keyboard never drops
-  if (send) {
-    const hasText = Boolean(input?.value?.trim());
-    send.disabled = Boolean(busy) || !hasText;
-    send.classList.toggle("is-busy", Boolean(busy));
-  }
+  syncSendButton(busy);
 }
 
 async function newConversation({ confirm = true } = {}) {
@@ -1680,9 +1661,10 @@ function wireNavigation() {
     }
     if (e.ctrlKey || e.metaKey) {
       if (e.key === "1") { e.preventDefault(); switchPage("home"); }
-      else if (e.key === "2") { e.preventDefault(); switchPage("assistant"); }
-      else if (e.key === "3") { e.preventDefault(); switchPage("control"); }
-      else if (e.key === "4") { e.preventDefault(); switchPage("settings"); }
+      else if (e.key === "2") { e.preventDefault(); switchPage("chat"); }
+      else if (e.key === "3") { e.preventDefault(); switchPage("tasks"); }
+      else if (e.key === "4") { e.preventDefault(); switchPage("control"); }
+      else if (e.key === "5") { e.preventDefault(); switchPage("settings"); }
       else if (e.key === "n" || e.key === "N") { e.preventDefault(); newConversation(); }
       else if (e.key === "k" || e.key === "K") { e.preventDefault(); openHistory(); }
     } else if (e.key === "Escape") {
