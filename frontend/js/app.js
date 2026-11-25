@@ -47,6 +47,7 @@ import { initIntegrations } from "./integrations.js";
 import { initMemory, renderMemories } from "./memory.js";
 import { initProfiles } from "./profiles.js";
 import { initAuth, openAuthModal, openPrivacyTerms } from "./auth.js";
+import { initSecurity, openPinLock, openPinSetupModal } from "./security.js";
 
 const $ = ui.$;
 const $$ = ui.$$;
@@ -153,6 +154,7 @@ async function boot() {
 
   wireNavigation();
   initAuth();
+  initSecurity();
   wireLaunchSequence();
   updateGreeting();
   renderQuickCommands();

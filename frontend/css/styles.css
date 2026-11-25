@@ -2789,3 +2789,163 @@ body.reduce-motion *::after,
 .privacy-terms-body p {
   margin: 0 0 10px;
 }
+
+/* ============================================================
+   PIN LOCK & SECURITY KEYPAD (Part 7)
+   ============================================================ */
+.pin-lock-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  color: var(--text);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 20px) 24px calc(var(--safe-bottom) + 20px);
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.pin-lock-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin-lock-container {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pin-lock-header {
+  margin-bottom: 24px;
+}
+
+.pin-lock-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: contain;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px var(--glow);
+}
+
+.pin-lock-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.pin-status-text {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+  min-height: 20px;
+}
+
+.pin-status-text.error {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.pin-status-text.success {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.pin-dots-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  min-height: 24px;
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-border);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.pin-dot.filled {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.pin-dots-container.shake {
+  animation: pinShake 0.4s ease-in-out;
+}
+
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.keypad-btn {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.keypad-btn:active {
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: scale(0.93);
+}
+
+.keypad-btn.aux {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+}
+
+.keypad-btn.aux:active {
+  background: var(--bg-soft);
+}
+
+.pin-setup-modal-card {
+  max-width: 380px;
+  text-align: center;
+}
+
+.pin-setup-prompt {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 6px 0 2px;
+}

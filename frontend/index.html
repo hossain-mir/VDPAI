@@ -118,6 +118,34 @@
     </div>
   </div>
 
+  <!-- ============================================================ SCREEN: App PIN Lock Overlay -->
+  <div id="pinLockScreen" class="pin-lock-screen" role="dialog" aria-modal="true" aria-label="Enter PIN" hidden style="display:none;">
+    <div class="pin-lock-container">
+      <div class="pin-lock-header">
+        <img src="/assets/icon.png" alt="VDPAI" class="pin-lock-avatar">
+        <h2>VDPAI Locked</h2>
+        <p id="pinLockStatus" class="pin-status-text">Enter your PIN to unlock</p>
+      </div>
+
+      <div class="pin-dots-container" id="lockPinDots"></div>
+
+      <div class="pin-keypad" id="lockKeypad">
+        <button type="button" class="keypad-btn" data-val="1">1</button>
+        <button type="button" class="keypad-btn" data-val="2">2</button>
+        <button type="button" class="keypad-btn" data-val="3">3</button>
+        <button type="button" class="keypad-btn" data-val="4">4</button>
+        <button type="button" class="keypad-btn" data-val="5">5</button>
+        <button type="button" class="keypad-btn" data-val="6">6</button>
+        <button type="button" class="keypad-btn" data-val="7">7</button>
+        <button type="button" class="keypad-btn" data-val="8">8</button>
+        <button type="button" class="keypad-btn" data-val="9">9</button>
+        <button type="button" class="keypad-btn aux" data-val="clear">C</button>
+        <button type="button" class="keypad-btn" data-val="0">0</button>
+        <button type="button" class="keypad-btn aux" data-val="back">⌫</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app" id="app" hidden>
     <!-- Top Universal Clean Header -->
     <header class="topbar">
@@ -832,6 +860,35 @@
                 <button type="button" class="btn small" id="authSwitchGuestBtn">Use Local / Guest Mode</button>
                 <button type="button" class="btn small danger-ghost" id="authLogoutBtn" style="display:none;">Log Out</button>
                 <button type="button" class="btn small" id="openPrivacyTermsBtn">Privacy &amp; Terms</button>
+              </div>
+            </div>
+
+            <!-- Security & PIN Lock Card -->
+            <div class="card" id="page5SecurityCard">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">SECURITY &amp; PRIVACY</span>
+                  <h3>App PIN Lock &amp; Protection</h3>
+                  <p class="hint">Require a secure 4 or 6-digit PIN code when opening VDPAI.</p>
+                </div>
+                <span class="mini-status" id="pinLockStatusBadge" data-tone="warn">DISABLED</span>
+              </div>
+              <label class="switch-row" style="margin-top: 10px;">
+                <span><strong>Enable PIN Lock</strong><small>Lock application on exit or inactivity.</small></span>
+                <input type="checkbox" id="pinLockToggle">
+              </label>
+              <label class="field" style="margin-top: 8px;">
+                <span>Auto-Lock Timeout</span>
+                <select id="autoLockTimeoutSelect">
+                  <option value="0">Immediately</option>
+                  <option value="30">30 seconds</option>
+                  <option value="60" selected>1 minute</option>
+                  <option value="300">5 minutes</option>
+                  <option value="-1">Never (Manual Lock Only)</option>
+                </select>
+              </label>
+              <div class="row wrap" style="gap: 8px; margin-top: 10px;">
+                <button type="button" class="btn small" id="changePinBtn" style="display:none;">Change PIN Code</button>
               </div>
             </div>
 
@@ -1578,6 +1635,53 @@
       </div>
       <footer class="modal-foot">
         <button class="btn primary" id="privacyTermsDoneBtn" type="button">Understood &amp; Accept</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- -------------------------------------------------------- PIN Setup Modal -->
+  <div id="pinSetupModal" class="modal" hidden>
+    <div class="modal-card pin-setup-modal-card" role="dialog" aria-modal="true" aria-labelledby="pinSetupTitle">
+      <header class="modal-head">
+        <div>
+          <span class="kicker">APP SECURITY</span>
+          <h2 id="pinSetupTitle">Configure PIN Lock</h2>
+        </div>
+        <button class="icon-btn" id="pinSetupCloseBtn" type="button" aria-label="Close">×</button>
+      </header>
+
+      <div class="modal-body pin-setup-modal-body">
+        <label class="field" style="margin-bottom: 12px;">
+          <span>PIN Code Length</span>
+          <select id="pinSetupLengthSelect">
+            <option value="4" selected>4-Digit PIN (Standard)</option>
+            <option value="6">6-Digit PIN (Enhanced Security)</option>
+          </select>
+        </label>
+
+        <p class="pin-setup-prompt" id="pinSetupPrompt">Enter a new 4-digit PIN</p>
+        <p id="pinSetupStatus" class="pin-status-text"></p>
+
+        <div class="pin-dots-container" id="setupPinDots"></div>
+
+        <div class="pin-keypad" id="setupKeypad">
+          <button type="button" class="keypad-btn" data-val="1">1</button>
+          <button type="button" class="keypad-btn" data-val="2">2</button>
+          <button type="button" class="keypad-btn" data-val="3">3</button>
+          <button type="button" class="keypad-btn" data-val="4">4</button>
+          <button type="button" class="keypad-btn" data-val="5">5</button>
+          <button type="button" class="keypad-btn" data-val="6">6</button>
+          <button type="button" class="keypad-btn" data-val="7">7</button>
+          <button type="button" class="keypad-btn" data-val="8">8</button>
+          <button type="button" class="keypad-btn" data-val="9">9</button>
+          <button type="button" class="keypad-btn aux" data-val="clear">C</button>
+          <button type="button" class="keypad-btn" data-val="0">0</button>
+          <button type="button" class="keypad-btn aux" data-val="back">⌫</button>
+        </div>
+      </div>
+
+      <footer class="modal-foot">
+        <button class="btn" id="pinSetupCancelBtn" type="button">Cancel</button>
       </footer>
     </div>
   </div>

@@ -57,6 +57,10 @@ export function defaultSettings() {
     accountUser: "",
     rememberSession: true,
     sessionExpiresAt: null,
+    pinLockEnabled: false,
+    pinHash: "",
+    pinLength: 4,
+    autoLockTimeout: 60,
     backgroundAssistantEnabled: false,
     continuousConversationMode: false,
   };
