@@ -160,9 +160,6 @@ export class Transcript {
   renderConversation(conversation, { announce = false } = {}) {
     this.clear();
     if (!conversation || !conversation.messages.length) {
-      if (announce) {
-        this.add("system", "VDPAI READY · configure a provider in Control Center → AI & API");
-      }
       return;
     }
     const messages = conversation.messages.slice(-30);

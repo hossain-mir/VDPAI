@@ -380,31 +380,47 @@ async function send(raw, { source = "text" } = {}) {
 
   const conversation = ensureConversation();
 
-  // Clear composer input immediately and sync send button
+  // Clear composer input and sync send button
   const chatInput = $("#chatInput");
   if (chatInput) {
     chatInput.value = "";
+    chatInput.style.height = "";
     autoGrow(chatInput);
   }
   syncSendButton();
 
-  // Switch to chat page so the conversation is prominent
-  switchPage("chat");
-  syncChatEmptySuggestions();
+  // Switch to chat page if not already there, avoiding unnecessary reloads
+  if (activePageIndex !== 1) {
+    switchPage("chat");
+  }
+
+  // Smoothly hide empty welcome suggestions immediately
+  const emptyEl = $("#chatEmptySuggestions");
+  if (emptyEl) {
+    emptyEl.hidden = true;
+    emptyEl.style.display = "none";
+  }
 
   // Immediately render user's message in the transcript
   app.transcript?.add("user", message, source === "voice" ? "voice" : "");
-  app.transcript?.scroll();
+  app.transcript?.scroll({ force: true });
 
   addHudLogEntry(`Command: "${message.slice(0, 32)}${message.length > 32 ? '…' : ''}"`);
 
   const ready = providerReady();
   if (!ready.ok) {
-    showConfigError(ready.reason);
+    setResponseText(ready.reason, { error: true });
+    $("#responseMeta").textContent = "No usable AI provider";
+    setResponseStatus("NO API", "error");
+    uiState.set("ERROR", "AI provider not configured");
+    if (Date.now() - lastConfigToast > 4000) {
+      ui.toast(ready.reason, "warn", 4000);
+      lastConfigToast = Date.now();
+    }
     const bubble = app.transcript?.add(
       "assistant",
-      `⚠️ ${ready.reason}\n\nTo chat with VDPAI, please configure an AI provider with an API key in Control Center.`,
-      "System · Configuration"
+      `⚠️ ${ready.reason}\n\nTo chat with VDPAI, please configure an AI provider with an API key.`,
+      "Configuration Required"
     );
     if (bubble) {
       const btn = document.createElement("button");
@@ -415,7 +431,7 @@ async function send(raw, { source = "text" } = {}) {
       btn.addEventListener("click", () => openControlCenter("ai"));
       bubble.appendChild(btn);
     }
-    app.transcript?.scroll();
+    app.transcript?.scroll({ force: true });
     setComposerBusy(false);
     syncSendButton();
     return;
@@ -591,10 +607,11 @@ function syncSendButton() {
 function setComposerBusy(busy) {
   const send = $("#sendBtn") || $(".composer-send-btn") || $(".send-pill-btn") || $(".send");
   const input = $("#chatInput");
-  if (input) input.disabled = Boolean(busy);
+  // Never disable the input textarea so typing is never blocked and keyboard never drops
   if (send) {
     const hasText = Boolean(input?.value?.trim());
     send.disabled = Boolean(busy) || !hasText;
+    send.classList.toggle("is-busy", Boolean(busy));
   }
 }
 
@@ -606,6 +623,7 @@ function newConversation() {
   const input = $("#chatInput");
   if (input) {
     input.value = "";
+    input.style.height = "";
     autoGrow(input);
   }
   syncSendButton();
@@ -613,6 +631,7 @@ function newConversation() {
   if (current && current.messages.length === 0) {
     closeHistory();
     app.transcript?.clear();
+    syncChatEmptySuggestions();
     setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
     $("#responseMeta").textContent = "Local HUD · no backend required";
     app.lastAnswer = "";
@@ -625,7 +644,8 @@ function newConversation() {
   closeHistory();
   app.lastAnswer = "";
   app.lastMeta = "";
-  renderActiveConversation({ announce: true });
+  renderActiveConversation({ announce: false });
+  syncChatEmptySuggestions();
   setResponseText("New conversation ready. Ask VDPAI anything.", { muted: true });
   $("#responseMeta").textContent = "Local HUD · no backend required";
   setResponseStatus("IDLE");
@@ -799,52 +819,36 @@ function wireHud() {
   }
 
   input.addEventListener("focus", () => {
-    document.body.classList.add("input-focused");
+    document.body.classList.add("keyboard-open", "input-focused");
     setTimeout(() => {
-      input.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 100);
+      app.transcript?.scroll({ force: true });
+    }, 60);
   });
   input.addEventListener("blur", () => {
     setTimeout(() => {
       const active = document.activeElement;
       if (!active || !["INPUT", "TEXTAREA"].includes(active.tagName)) {
-        document.body.classList.remove("input-focused");
+        document.body.classList.remove("keyboard-open", "input-focused");
+        app.transcript?.scroll();
       }
-    }, 100);
+    }, 120);
   });
 
   if (typeof window !== "undefined" && window.visualViewport) {
-    const initialH = window.innerHeight;
+    let lastHeight = window.visualViewport.height;
     const handleViewportResize = () => {
       const vh = window.visualViewport.height;
-      const isKeyboard = vh < initialH * 0.82;
-      document.body.classList.toggle("keyboard-open", isKeyboard);
-      const appEl = $("#app");
-      if (appEl) {
-        if (isKeyboard) {
-          appEl.style.height = `${vh}px`;
-        } else {
-          appEl.style.height = "";
-        }
+      const isShrunk = vh < (window.innerHeight - 80) || (window.innerHeight > 400 && vh < window.innerHeight * 0.85);
+      const isInputActive = Boolean(document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName));
+      const keyboardActive = isShrunk || isInputActive;
+
+      document.body.classList.toggle("keyboard-open", keyboardActive);
+      if (keyboardActive && Math.abs(vh - lastHeight) > 30) {
+        app.transcript?.scroll({ force: true });
       }
-      if (isKeyboard) {
-        setTimeout(() => {
-          const active = document.activeElement;
-          if (active && ["INPUT", "TEXTAREA"].includes(active.tagName)) {
-            active.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }
-          app.transcript?.scroll({ force: true });
-        }, 60);
-      } else {
-        setTimeout(() => {
-          app.transcript?.scroll();
-        }, 60);
-      }
+      lastHeight = vh;
     };
     window.visualViewport.addEventListener("resize", handleViewportResize);
-    window.visualViewport.addEventListener("scroll", () => {
-      if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
-    });
   }
 
   syncSendButton();
@@ -1083,13 +1087,18 @@ function wireHud() {
   // Suggestion Pills & Chips on Chat View
   $$(".suggestion-pill, .suggestion-chip").forEach((pill) => {
     pill.addEventListener("click", () => {
-      const prompt = pill.dataset.prompt || pill.textContent || "";
-      const input = $("#chatInput");
-      if (input) {
-        input.value = prompt;
-        autoGrow(input);
-        syncSendButton();
-        input.focus();
+      const prompt = (pill.dataset.prompt || pill.textContent || "").trim();
+      if (!prompt) return;
+      if (prompt.endsWith(":") || prompt.endsWith("for:") || prompt.endsWith("of:")) {
+        const input = $("#chatInput");
+        if (input) {
+          input.value = `${prompt} `;
+          autoGrow(input);
+          syncSendButton();
+          input.focus();
+        }
+      } else {
+        send(prompt);
       }
     });
   });
@@ -1313,8 +1322,15 @@ const PAGES = ["home", "chat", "tasks", "control", "settings"];
 function syncChatEmptySuggestions() {
   const conversation = getActiveConversation();
   const emptyEl = $("#chatEmptySuggestions");
-  const hasMessages = Boolean(conversation && conversation.messages && conversation.messages.length > 0);
-  if (emptyEl) emptyEl.hidden = hasMessages;
+  const transcript = $("#transcript");
+  const hasMessages = Boolean(
+    (conversation && conversation.messages && conversation.messages.length > 0) ||
+    (transcript && transcript.children.length > 0)
+  );
+  if (emptyEl) {
+    emptyEl.hidden = hasMessages;
+    emptyEl.style.display = hasMessages ? "none" : "flex";
+  }
 }
 
 function switchPage(pageId) {
@@ -1322,6 +1338,10 @@ function switchPage(pageId) {
   const index = PAGES.indexOf(pageId);
   if (index < 0) return;
   activePageIndex = index;
+
+  document.body.dataset.activePage = pageId;
+  const appEl = $("#app");
+  if (appEl) appEl.dataset.activePage = pageId;
 
   const slider = $("#pagesSlider");
   if (slider) {
@@ -1616,7 +1636,7 @@ function wireLaunchSequence() {
 function autoGrow(input) {
   if (!input) return;
   input.style.height = "auto";
-  input.style.height = `${Math.min(120, Math.max(42, input.scrollHeight))}px`;
+  input.style.height = `${Math.min(120, Math.max(24, input.scrollHeight))}px`;
 }
 
 function tickClock() {
