@@ -54,6 +54,17 @@ CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 """
 
 ROLES = {"user", "assistant", "system", "tool"}
@@ -344,6 +355,54 @@ class MemoryStore:
 
     async def prune(self, days: int) -> int:
         return await asyncio.to_thread(self.prune_sync, days)
+
+    # ------------------------------------------------------------------- users
+    def create_user_sync(self, username: str, email: str, password_hash: str, salt: str) -> dict:
+        stamp = now_iso()
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute(
+                "INSERT INTO users(username, email, password_hash, salt, created_at, updated_at)"
+                " VALUES(?,?,?,?,?,?)",
+                (username.strip(), email.strip().lower(), password_hash, salt, stamp, stamp),
+            )
+            user_id = int(cursor.lastrowid)
+            row = connection.execute("SELECT id, username, email, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row)
+
+    async def create_user(self, username: str, email: str, password_hash: str, salt: str) -> dict:
+        return await asyncio.to_thread(self.create_user_sync, username, email, password_hash, salt)
+
+    def get_user_sync(self, username_or_email: str) -> dict | None:
+        target = username_or_email.strip()
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM users WHERE username = ? OR email = ?",
+                (target, target.lower()),
+            ).fetchone()
+        return dict(row) if row else None
+
+    async def get_user(self, username_or_email: str) -> dict | None:
+        return await asyncio.to_thread(self.get_user_sync, username_or_email)
+
+    def delete_user_sync(self, username: str) -> bool:
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute("DELETE FROM users WHERE username = ?", (username.strip(),))
+            return cursor.rowcount > 0
+
+    async def delete_user(self, username: str) -> bool:
+        return await asyncio.to_thread(self.delete_user_sync, username)
+
+    def update_password_sync(self, username: str, new_hash: str, new_salt: str) -> bool:
+        stamp = now_iso()
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE users SET password_hash = ?, salt = ?, updated_at = ? WHERE username = ?",
+                (new_hash, new_salt, stamp, username.strip()),
+            )
+            return cursor.rowcount > 0
+
+    async def update_password(self, username: str, new_hash: str, new_salt: str) -> bool:
+        return await asyncio.to_thread(self.update_password_sync, username, new_hash, new_salt)
 
 
 store = MemoryStore(settings.db_path)

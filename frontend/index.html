@@ -15,7 +15,7 @@
   <a class="skip-link" href="#chatInput">Skip to message input</a>
 
   <!-- ============================================================ SCREEN 1: Onboarding / Welcome Screen -->
-  <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Onboarding">
+  <div id="splashScreen" class="splash-screen" role="dialog" aria-modal="true" aria-label="VDPAI Onboarding" hidden style="display:none;">
     <div class="splash-header-bar">
       <span class="splash-step-indicator" id="splashStepIndicator">Step 1 of 4</span>
       <button type="button" class="splash-skip-link" id="splashSkipBtn">Skip</button>
@@ -146,7 +146,7 @@
     </div>
   </div>
 
-  <div class="app" id="app" hidden>
+  <div class="app" id="app">
     <!-- Top Universal Clean Header -->
     <header class="topbar">
       <div class="topbar-left">
@@ -296,15 +296,15 @@
               </section>
 
               <!-- Home Chat Launcher -->
-              <div class="home-chat-launcher" id="homeChatLauncher" role="button" tabindex="0" title="Open Full Chat Interface">
+              <form class="home-chat-launcher" id="homeChatLauncher" autocomplete="off">
                 <div class="launcher-left">
                   <span class="launcher-avatar">
                     <img src="/assets/icon.png" alt="VDPAI">
                   </span>
-                  <span class="launcher-text">Ask VDPAI anything...</span>
+                  <input type="text" id="homeAskInput" class="home-ask-input" placeholder="Ask VDPAI anything..." maxlength="4000" enterkeyhint="send">
                 </div>
-                <button type="button" class="btn small primary launcher-btn" id="homeOpenChatBtn">Open Chat ➔</button>
-              </div>
+                <button type="submit" class="btn small primary launcher-btn" id="homeOpenChatBtn">Ask ➔</button>
+              </form>
             </main>
           </div>
         </section>
@@ -859,6 +859,7 @@
                 <button type="button" class="btn small primary" id="openAuthModalBtn">Sign In / Switch Mode ➔</button>
                 <button type="button" class="btn small" id="authSwitchGuestBtn">Use Local / Guest Mode</button>
                 <button type="button" class="btn small danger-ghost" id="authLogoutBtn" style="display:none;">Log Out</button>
+                <button type="button" class="btn small danger-ghost" id="authDeleteAccountBtn" style="display:none;">Delete Account</button>
                 <button type="button" class="btn small" id="openPrivacyTermsBtn">Privacy &amp; Terms</button>
               </div>
             </div>
@@ -1564,8 +1565,32 @@
         <div id="authRecoveryPanel" class="auth-tab-panel" data-panel="recovery" style="display:none;">
           <h3>Password &amp; Access Recovery</h3>
           <p class="auth-note">
-            Because VDPAI is designed with zero-knowledge local-first security:
+            Reset your local account password, or manage self-hosted server credentials.
           </p>
+
+          <!-- Local Password Reset Form -->
+          <form id="authResetPasswordForm" class="auth-reset-form" style="margin-bottom: 14px;">
+            <strong style="display:block; margin-bottom: 8px; font-size: 14px;">Reset Account Password</strong>
+            <label class="field">
+              <span>Account Email or Username</span>
+              <input id="authResetUser" type="text" maxlength="200" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Enter username or email" required>
+            </label>
+            <label class="field" style="margin-top: 8px;">
+              <span>New Password</span>
+              <span class="secret-row">
+                <input id="authResetNewPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="Minimum 8 characters" required>
+                <button class="btn tiny" id="authToggleResetPasswordBtn" type="button" aria-label="Toggle password visibility">Show</button>
+              </span>
+            </label>
+            <label class="field" style="margin-top: 8px;">
+              <span>Confirm New Password</span>
+              <span class="secret-row">
+                <input id="authResetConfirmPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="Re-enter new password" required>
+                <button class="btn tiny" id="authToggleResetConfirmBtn" type="button" aria-label="Toggle confirm password visibility">Show</button>
+              </span>
+            </label>
+            <button class="btn primary" id="authResetSubmitBtn" type="submit" style="margin-top: 10px; width: 100%;">Save New Password</button>
+          </form>
 
           <div class="card" style="margin-bottom: 12px;">
             <strong>Self-Hosted Backend Recovery</strong>

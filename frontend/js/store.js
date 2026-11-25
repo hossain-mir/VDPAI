@@ -13,6 +13,8 @@ export const APP_NAME = "VDPAI";
 export const APP_VERSION = "1.0.0";
 export const APP_ID = "com.hsai.assistant";
 
+import { dbSavePref, dbGetPref } from "./db.js";
+
 const STORAGE_KEY = "hsai.store.v2";
 const LEGACY_BACKEND_KEY = "jarvis.backendUrl";
 const listeners = new Set();
@@ -54,6 +56,7 @@ export function defaultSettings() {
     launchAnimationEnabled: true,
     onboardingCompleted: false,
     authMode: "local",
+    isLoggedIn: true,
     accountUser: "",
     rememberSession: true,
     sessionExpiresAt: null,
@@ -155,9 +158,11 @@ async function writeRaw(key, value) {
     if (prefs) {
       nativeStore = true;
       await prefs.set({ key, value });
+      dbSavePref(key, value).catch(() => {});
       return;
     }
     localStorage.setItem(key, value);
+    dbSavePref(key, value).catch(() => {});
   } catch {
     /* The in-memory state still works for this session. */
   }
@@ -329,7 +334,17 @@ let state = defaultState();
 export async function initStore() {
   if (ready) return state;
   ready = true;
-  const raw = await readRaw(STORAGE_KEY);
+  let raw = await readRaw(STORAGE_KEY);
+  if (!raw) {
+    try {
+      const fallback = await dbGetPref(STORAGE_KEY);
+      if (fallback && typeof fallback === "string") {
+        raw = fallback;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   if (raw) {
     try {
       state = sanitize(JSON.parse(raw));

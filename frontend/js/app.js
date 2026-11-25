@@ -1196,12 +1196,29 @@ function wireHud() {
     ui.toast("Tools refreshed", "ok", 1200);
   });
 
-  $("#homeChatLauncher")?.addEventListener("click", () => {
+  $("#homeChatLauncher")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const askInput = $("#homeAskInput");
+    const text = (askInput?.value || "").trim();
     switchPage("chat");
-    setTimeout(() => $("#chatInput")?.focus(), 150);
+    if (text) {
+      const chatInput = $("#chatInput");
+      if (chatInput) {
+        chatInput.value = text;
+        autoGrow(chatInput);
+        syncSendButton();
+      }
+      if (askInput) askInput.value = "";
+      setTimeout(() => {
+        $("#chatForm")?.requestSubmit();
+      }, 120);
+    } else {
+      setTimeout(() => $("#chatInput")?.focus(), 150);
+    }
   });
-  $("#homeOpenChatBtn")?.addEventListener("click", (e) => {
-    e.stopPropagation();
+
+  $("#homeChatLauncher")?.addEventListener("click", (e) => {
+    if (e.target && ["INPUT", "BUTTON"].includes(e.target.tagName)) return;
     switchPage("chat");
     setTimeout(() => $("#chatInput")?.focus(), 150);
   });
@@ -1657,37 +1674,9 @@ function wireNavigation() {
     });
   });
 
-  $("#navVoiceBtn")?.addEventListener("click", () => {
-    $("#micBtn")?.click();
-  });
-
   $("#navMoreBtn")?.addEventListener("click", () => {
     openControlCenter("ai");
   });
-
-  const viewport = $("#pagesViewport");
-  let startX = 0;
-  let startY = 0;
-  viewport?.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 1) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    }
-  }, { passive: true });
-
-  viewport?.addEventListener("touchend", (e) => {
-    if (e.changedTouches.length === 1) {
-      const diffX = e.changedTouches[0].clientX - startX;
-      const diffY = e.changedTouches[0].clientY - startY;
-      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-        if (diffX < 0 && activePageIndex < PAGES.length - 1) {
-          switchPage(PAGES[activePageIndex + 1]);
-        } else if (diffX > 0 && activePageIndex > 0) {
-          switchPage(PAGES[activePageIndex - 1]);
-        }
-      }
-    }
-  }, { passive: true });
 
   window.addEventListener("keydown", (e) => {
     if (e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) {
@@ -1767,34 +1756,9 @@ function wireLaunchSequence() {
     }, speed);
   };
 
-  if (isCompleted) {
-    const settings = getSettings();
-    if (settings.launchAnimationEnabled === false || settings.reduceMotion) {
-      splash.hidden = true;
-      splash.style.display = "none";
-      return;
-    }
-
-    // Lightweight returning-user opening branding animation (smooth, fast, dismissable)
-    splash.classList.remove("fade-out");
-    splash.classList.add("splash-opening-anim");
-    splash.hidden = false;
-    splash.style.display = "flex";
-    const bottom = $(".splash-bottom", splash);
-    if (bottom) bottom.style.display = "none";
-    const headerBar = $(".splash-header-bar", splash);
-    if (headerBar) headerBar.style.display = "none";
-    splash.style.cursor = "pointer";
-
-    let timer = setTimeout(() => dismiss(350), 750);
-    splash.addEventListener(
-      "click",
-      () => {
-        clearTimeout(timer);
-        dismiss(200);
-      },
-      { once: true },
-    );
+  if (isCompleted || getSettings().isLoggedIn) {
+    splash.hidden = true;
+    splash.style.display = "none";
     return;
   }
 
