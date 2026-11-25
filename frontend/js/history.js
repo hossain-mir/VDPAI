@@ -28,6 +28,13 @@ export function initHistory(context = {}) {
   bound = true;
   $("#historyBtn")?.addEventListener("click", openHistory);
   $("#historyClose")?.addEventListener("click", closeHistory);
+  const sheet = $("#historySheet");
+  sheet?.addEventListener("click", (e) => {
+    if (e.target === sheet) closeHistory();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isHistoryOpen()) closeHistory();
+  });
   $("#newChatBtn2")?.addEventListener("click", async () => {
     await ctx.onNewConversation?.();
     closeHistory();

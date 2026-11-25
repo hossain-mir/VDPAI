@@ -47,6 +47,7 @@ export function defaultSettings() {
     memoryEnabled: true,
     privateMode: false,
     launchAnimationEnabled: true,
+    onboardingCompleted: false,
     backgroundAssistantEnabled: false,
     continuousConversationMode: false,
   };
@@ -275,6 +276,7 @@ function sanitize(raw) {
   state.settings.showGrid = state.settings.showGrid !== false;
   state.settings.persistHistory = state.settings.persistHistory !== false;
   state.settings.memoryEnabled = state.settings.memoryEnabled !== false;
+  state.settings.onboardingCompleted = Boolean(state.settings.onboardingCompleted);
   state.settings.privateMode = Boolean(state.settings.privateMode);
   state.settings.personalityStyle = text(state.settings.personalityStyle, 30) || "jarvis";
   state.settings.userName = text(state.settings.userName, 60) || "Sir";

@@ -479,15 +479,26 @@ async function send(raw, { source = "text" } = {}) {
   } catch (error) {
     const aborted = app.controller?.signal.aborted || error?.code === "aborted";
     const errorMsg = aborted ? "Response generation stopped." : error?.message || "The AI request failed.";
-    if (app.liveBubble) {
-      const textNode = app.liveBubble.firstChild;
+    let errorTargetBubble = app.liveBubble;
+    if (errorTargetBubble) {
+      const textNode = errorTargetBubble.firstChild;
       if (textNode && !aborted) {
         textNode.nodeValue = `❌ ${errorMsg}`;
       } else if (aborted) {
         textNode.nodeValue = "[stopped by user]";
       }
     } else {
-      app.transcript?.add(aborted ? "system" : "error", errorMsg);
+      errorTargetBubble = app.transcript?.add(aborted ? "system" : "error", errorMsg);
+    }
+    if (!aborted && errorTargetBubble) {
+      const retryBtn = document.createElement("button");
+      retryBtn.type = "button";
+      retryBtn.className = "btn tiny danger-ghost";
+      retryBtn.style.cssText = "margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-radius: 999px; padding: 4px 12px; cursor: pointer;";
+      retryBtn.textContent = "🔄 Retry";
+      retryBtn.addEventListener("click", () => send(message, { source }));
+      errorTargetBubble.appendChild(retryBtn);
+      app.transcript?.scroll({ force: true });
     }
     setResponseText(errorMsg, { error: !aborted, muted: aborted });
     $("#responseMeta").textContent = aborted ? "Stopped by user" : "Request failed";
@@ -804,17 +815,35 @@ function wireHud() {
 
   if (typeof window !== "undefined" && window.visualViewport) {
     const initialH = window.innerHeight;
-    window.visualViewport.addEventListener("resize", () => {
-      const isKeyboard = window.visualViewport.height < initialH * 0.8;
+    const handleViewportResize = () => {
+      const vh = window.visualViewport.height;
+      const isKeyboard = vh < initialH * 0.82;
       document.body.classList.toggle("keyboard-open", isKeyboard);
+      const appEl = $("#app");
+      if (appEl) {
+        if (isKeyboard) {
+          appEl.style.height = `${vh}px`;
+        } else {
+          appEl.style.height = "";
+        }
+      }
       if (isKeyboard) {
         setTimeout(() => {
           const active = document.activeElement;
           if (active && ["INPUT", "TEXTAREA"].includes(active.tagName)) {
             active.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
-        }, 80);
+          app.transcript?.scroll({ force: true });
+        }, 60);
+      } else {
+        setTimeout(() => {
+          app.transcript?.scroll();
+        }, 60);
       }
+    };
+    window.visualViewport.addEventListener("resize", handleViewportResize);
+    window.visualViewport.addEventListener("scroll", () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
     });
   }
 
@@ -1309,13 +1338,20 @@ function switchPage(pageId) {
     btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
   });
 
+  if (pageId === "home") {
+    if (!getSettings().reduceMotion) app.core?.start();
+  } else {
+    // Conserve battery, memory and eliminate GPU canvas lag when not on home page
+    app.core?.stop();
+  }
+
   if (pageId === "tasks") {
     renderRecentChats();
   } else if (pageId === "control") {
     renderHistory();
   } else if (pageId === "chat") {
-    app.transcript?.scroll();
     syncChatEmptySuggestions();
+    app.transcript?.scroll({ force: true });
   }
 }
 
@@ -1536,43 +1572,45 @@ function wireLaunchSequence() {
   const splash = $("#splashScreen");
   if (!splash) return;
 
-  const settings = getSettings();
-  if (settings.launchAnimationEnabled === false || typeof window === "undefined" || window.HSAI_TEST) {
+  const isCompleted =
+    getSettings().onboardingCompleted ||
+    (typeof localStorage !== "undefined" && localStorage.getItem("vdpai_onboarding_completed") === "true");
+
+  if (isCompleted || typeof window === "undefined" || window.HSAI_TEST) {
     splash.hidden = true;
     splash.style.display = "none";
+    splash.remove?.();
     return;
   }
 
-  const fill = $("#splashProgress");
-  const status = $("#splashStatusText");
-  const skip = $("#splashSkipBtn");
+  // Show onboarding screen on first install
+  splash.hidden = false;
+  splash.style.display = "flex";
 
   const dismiss = () => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("vdpai_onboarding_completed", "true");
+      }
+      updateSettings({ onboardingCompleted: true });
+      saveNow().catch(() => {});
+    } catch {
+      /* ignore */
+    }
+
     splash.classList.add("fade-out");
     setTimeout(() => {
       splash.hidden = true;
       splash.style.display = "none";
-    }, 400);
+      splash.remove?.();
+    }, 350);
   };
 
+  const skip = $("#splashSkipBtn");
   skip?.addEventListener("click", (e) => {
     e.stopPropagation();
     dismiss();
   });
-  splash.addEventListener("click", dismiss);
-
-  if (fill) fill.style.width = "40%";
-  setTimeout(() => {
-    if (fill) fill.style.width = "75%";
-    if (status) status.textContent = "SYNCHRONIZING PERSONAL MEMORY…";
-  }, 350);
-
-  setTimeout(() => {
-    if (fill) fill.style.width = "100%";
-    if (status) status.textContent = "VDPAI CORE ONLINE";
-  }, 750);
-
-  setTimeout(dismiss, 1200);
 }
 
 function autoGrow(input) {

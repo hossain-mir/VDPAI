@@ -145,8 +145,16 @@ export class Transcript {
     return bubble;
   }
 
-  scroll() {
-    if (this.host) this.host.scrollTop = this.host.scrollHeight;
+  scroll({ force = false } = {}) {
+    const scroller = this.host?.closest(".chat-stream-panel") || this.host?.parentElement || this.host;
+    if (!scroller) return;
+    const isNearBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 140;
+    if (force || isNearBottom) {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
+    if (this.host && this.host !== scroller) {
+      this.host.scrollTop = this.host.scrollHeight;
+    }
   }
 
   renderConversation(conversation, { announce = false } = {}) {
@@ -171,6 +179,7 @@ export class Transcript {
         message.role === "assistant" ? `${conversation.providerId ? "AI" : "assistant"} · ${timeLabel(message.createdAt)}` : timeLabel(message.createdAt),
       );
     }
+    this.scroll({ force: true });
   }
 }
 
@@ -179,21 +188,38 @@ let confirmResolve = null;
 
 export function initConfirmDialog() {
   const modal = $("#confirmModal");
-  if (modal) modal.hidden = true;
-  initPromptDialog();
-  if (!modal || modal.dataset.wired === "1") return;
-  modal.dataset.wired = "1";
+  if (!modal) return;
   modal.hidden = true;
-  $("#confirmCancel")?.addEventListener("click", () => closeConfirm(false));
-  $("#confirmOk")?.addEventListener("click", () => closeConfirm(true));
+  modal.style.display = "none";
+  if (modal.dataset.wired === "1") return;
+  modal.dataset.wired = "1";
+
+  $("#confirmCancel")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeConfirm(false);
+  });
+  $("#confirmOk")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeConfirm(true);
+  });
   modal.addEventListener("click", (event) => {
     if (event.target === modal) closeConfirm(false);
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) {
+      closeConfirm(false);
+    }
   });
 }
 
 function closeConfirm(result) {
   const modal = $("#confirmModal");
-  if (modal) modal.hidden = true;
+  if (modal) {
+    document.activeElement?.blur?.();
+    modal.hidden = true;
+    modal.style.display = "none";
+  }
+  document.body.style.overflow = "";
   const resolve = confirmResolve;
   confirmResolve = null;
   resolve?.(result);
@@ -202,6 +228,7 @@ function closeConfirm(result) {
 let promptResolve = null;
 
 export function promptAction({ title = "Edit", text = "", value = "", confirmLabel = "Save", cancelLabel = "Cancel", placeholder = "" } = {}) {
+  initPromptDialog();
   const modal = $("#promptModal");
   const input = $("#promptInput");
   if (!modal || !input) return Promise.resolve(window.prompt(title, value));
@@ -212,6 +239,8 @@ export function promptAction({ title = "Edit", text = "", value = "", confirmLab
   input.value = value;
   input.placeholder = placeholder;
   modal.hidden = false;
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
   setTimeout(() => {
     input.focus({ preventScroll: true });
     input.select();
@@ -223,27 +252,55 @@ export function promptAction({ title = "Edit", text = "", value = "", confirmLab
 
 function closePrompt(result) {
   const modal = $("#promptModal");
-  if (modal) modal.hidden = true;
+  if (modal) {
+    const input = $("#promptInput");
+    input?.blur?.();
+    document.activeElement?.blur?.();
+    modal.hidden = true;
+    modal.style.display = "none";
+  }
+  document.body.style.overflow = "";
   const resolve = promptResolve;
   promptResolve = null;
   resolve?.(result);
 }
 
-function initPromptDialog() {
+export function initPromptDialog() {
   const modal = $("#promptModal");
-  if (modal) modal.hidden = true;
-  if (!modal || modal.dataset.wired === "1") return;
-  modal.dataset.wired = "1";
+  if (!modal) return;
   modal.hidden = true;
-  $("#promptCancel")?.addEventListener("click", () => closePrompt(null));
-  $("#promptForm")?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const value = $("#promptInput").value.trim();
+  modal.style.display = "none";
+  if (modal.dataset.wired === "1") return;
+  modal.dataset.wired = "1";
+
+  const cancelBtn = $("#promptCancel");
+  const form = $("#promptForm");
+  const input = $("#promptInput");
+  const okBtn = $("#promptOk");
+
+  cancelBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    closePrompt(null);
+  });
+
+  const submitValue = (e) => {
+    if (e) e.preventDefault();
+    const value = (input?.value || "").trim();
     if (!value) return;
     closePrompt(value);
-  });
+  };
+
+  form?.addEventListener("submit", submitValue);
+  okBtn?.addEventListener("click", submitValue);
+
   modal.addEventListener("click", (event) => {
     if (event.target === modal) closePrompt(null);
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) {
+      closePrompt(null);
+    }
   });
 }
 
@@ -258,6 +315,8 @@ export function confirmAction({ title = "Are you sure?", text = "", confirmLabel
   ok.className = danger ? "btn danger" : "btn primary";
   $("#confirmCancel").textContent = cancelLabel;
   modal.hidden = false;
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
   ok.focus({ preventScroll: true });
   return new Promise((resolve) => {
     confirmResolve = resolve;
@@ -277,6 +336,7 @@ export function openOverlay(id) {
   const node = document.getElementById(id);
   if (!node) return;
   node.hidden = false;
+  node.style.display = "flex";
   document.body.style.overflow = "hidden";
   const scope = node.querySelector(".cc-page:not([hidden])") || node;
   const focusable = scope.querySelector("input:not([hidden]), button:not([hidden]), select, textarea");
@@ -287,6 +347,7 @@ export function closeOverlay(id) {
   const node = document.getElementById(id);
   if (!node) return;
   node.hidden = true;
+  node.style.display = "none";
   if (!$("#controlCenter") || $("#controlCenter").hidden) {
     if (!$("#historySheet") || $("#historySheet").hidden) document.body.style.overflow = "";
   }
@@ -296,6 +357,7 @@ export function openModal(id) {
   const node = document.getElementById(id);
   if (!node) return;
   node.hidden = false;
+  node.style.display = "flex";
   document.body.style.overflow = "hidden";
   const field = node.querySelector("input:not([type=hidden]), select, textarea, button");
   setTimeout(() => field?.focus({ preventScroll: true }), 80);
@@ -305,6 +367,7 @@ export function closeModal(id) {
   const node = document.getElementById(id);
   if (!node) return;
   node.hidden = true;
+  node.style.display = "none";
   if (
     (! $("#controlCenter") || $("#controlCenter").hidden) &&
     (! $("#historySheet") || $("#historySheet").hidden) &&
@@ -313,6 +376,19 @@ export function closeModal(id) {
     (! $("#promptModal") || $("#promptModal").hidden)
   ) {
     document.body.style.overflow = "";
+  }
+}
+
+// Auto-wire dialogs on module load if DOM is ready
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      initConfirmDialog();
+      initPromptDialog();
+    });
+  } else {
+    initConfirmDialog();
+    initPromptDialog();
   }
 }
 

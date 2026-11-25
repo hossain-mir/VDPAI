@@ -71,6 +71,13 @@ export function initControlCenter(context = {}) {
 
   $("#controlBtn")?.addEventListener("click", () => openControlCenter("ai"));
   $("#ccClose")?.addEventListener("click", closeControlCenter);
+  const ccOverlay = $("#controlCenter");
+  ccOverlay?.addEventListener("click", (e) => {
+    if (e.target === ccOverlay) closeControlCenter();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isControlCenterOpen()) closeControlCenter();
+  });
   $$("#ccTabs [data-tab]").forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
