@@ -1,11 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="favBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1d68f0" />
-      <stop offset="100%" stop-color="#2563eb" />
-    </linearGradient>
+    <radialGradient id="orbGlow" cx="45%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="45%" stop-color="#6366f1"/>
+      <stop offset="85%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </radialGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#6366f1" flood-opacity="0.35"/>
+    </filter>
   </defs>
-  <rect width="64" height="64" rx="16" fill="#ffffff" />
-  <path d="M32 6 56 19.5v25L32 58 8 44.5v-25Z" fill="url(#favBlue)" />
-  <path d="M22 41V23l20 18V23" fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="56" rx="18" ry="4" fill="#6366f1" opacity="0.18"/>
+  <circle cx="32" cy="30" r="24" fill="url(#orbGlow)" filter="url(#softGlow)"/>
+  <!-- Two white pill eyes -->
+  <rect x="25" y="24" width="4" height="12" rx="2" fill="#ffffff"/>
+  <rect x="35" y="24" width="4" height="12" rx="2" fill="#ffffff"/>
 </svg>

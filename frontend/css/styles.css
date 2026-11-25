@@ -395,10 +395,21 @@ body.no-grid {
   margin-bottom: 8px;
 }
 
-.splash-hex-logo {
-  width: 48px;
-  height: 48px;
-  filter: drop-shadow(0 4px 10px rgba(29, 104, 240, 0.25));
+.splash-brand-badge-img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: contain;
+  box-shadow: 0 4px 14px var(--glow);
+}
+
+.splash-opening-anim .splash-robot-img {
+  animation: splashScaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes splashScaleIn {
+  0% { transform: scale(0.88); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .splash-title {

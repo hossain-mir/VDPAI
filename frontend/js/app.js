@@ -1703,18 +1703,14 @@ function wireLaunchSequence() {
     getSettings().onboardingCompleted ||
     (typeof localStorage !== "undefined" && localStorage.getItem("vdpai_onboarding_completed") === "true");
 
-  if (isCompleted || typeof window === "undefined" || window.HSAI_TEST) {
+  if (typeof window === "undefined" || window.HSAI_TEST) {
     splash.hidden = true;
     splash.style.display = "none";
     splash.remove?.();
     return;
   }
 
-  // Show onboarding screen on first install
-  splash.hidden = false;
-  splash.style.display = "flex";
-
-  const dismiss = () => {
+  const dismiss = (speed = 350) => {
     try {
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("vdpai_onboarding_completed", "true");
@@ -1730,13 +1726,47 @@ function wireLaunchSequence() {
       splash.hidden = true;
       splash.style.display = "none";
       splash.remove?.();
-    }, 350);
+    }, speed);
   };
+
+  if (isCompleted) {
+    const settings = getSettings();
+    if (settings.launchAnimationEnabled === false || settings.reduceMotion) {
+      splash.hidden = true;
+      splash.style.display = "none";
+      splash.remove?.();
+      return;
+    }
+
+    // Lightweight returning-user opening branding animation (smooth, no long delay)
+    splash.classList.add("splash-opening-anim");
+    const bottom = $(".splash-bottom", splash);
+    if (bottom) bottom.style.display = "none";
+    splash.style.cursor = "pointer";
+
+    let timer = setTimeout(() => dismiss(400), 700);
+    splash.addEventListener(
+      "click",
+      () => {
+        clearTimeout(timer);
+        dismiss(200);
+      },
+      { once: true },
+    );
+    return;
+  }
+
+  // Show onboarding screen on first install
+  splash.hidden = false;
+  splash.style.display = "flex";
+
+  const continueBtn = $("#splashContinueBtn");
+  continueBtn?.addEventListener("click", () => dismiss(350));
 
   const skip = $("#splashSkipBtn");
   skip?.addEventListener("click", (e) => {
     e.stopPropagation();
-    dismiss();
+    dismiss(350);
   });
 }
 
