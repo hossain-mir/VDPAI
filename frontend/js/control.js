@@ -771,8 +771,29 @@ function refreshPrivacy() {
 
 /* --------------------------------------------------------------- appearance */
 function bindAppearanceControls() {
+  $("#themeModeSelect")?.addEventListener("change", (event) => {
+    updateSettings({ themeMode: event.target.value });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
   $("#themeSelect")?.addEventListener("change", (event) => {
     updateSettings({ theme: event.target.value });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
+  $("#fontSizeSelect")?.addEventListener("change", (event) => {
+    updateSettings({ fontSize: event.target.value });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
+  $("#bubbleStyleSelect")?.addEventListener("change", (event) => {
+    updateSettings({ bubbleStyle: event.target.value });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
+  $("#glowSelect")?.addEventListener("change", (event) => {
+    const val = event.target.value;
+    updateSettings({ glowIntensity: val, lowGlow: val === "off" });
     ctx.onSettingsChanged?.();
     saveNow().catch(() => {});
   });
@@ -791,18 +812,40 @@ function bindAppearanceControls() {
     ctx.onSettingsChanged?.();
     saveNow().catch(() => {});
   });
+  $("#glassToggle")?.addEventListener("change", (event) => {
+    updateSettings({ glassEffect: event.target.checked });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
+  $("#launchAnimToggle")?.addEventListener("change", (event) => {
+    updateSettings({ launchAnimationEnabled: event.target.checked });
+    ctx.onSettingsChanged?.();
+    saveNow().catch(() => {});
+  });
 }
 
 function refreshAppearance() {
   const settings = getSettings();
+  const themeMode = $("#themeModeSelect");
+  if (themeMode) themeMode.value = settings.themeMode || "light";
   const theme = $("#themeSelect");
-  if (theme) theme.value = settings.theme;
-  const glow = $("#lowGlowToggle");
-  if (glow) glow.checked = settings.lowGlow;
+  if (theme) theme.value = settings.theme || "cyan";
+  const fontSize = $("#fontSizeSelect");
+  if (fontSize) fontSize.value = settings.fontSize || "medium";
+  const bubbleStyle = $("#bubbleStyleSelect");
+  if (bubbleStyle) bubbleStyle.value = settings.bubbleStyle || "comfortable";
+  const glow = $("#glowSelect");
+  if (glow) glow.value = settings.lowGlow ? "off" : (settings.glowIntensity || "medium");
+  const lowGlow = $("#lowGlowToggle");
+  if (lowGlow) lowGlow.checked = Boolean(settings.lowGlow);
   const motion = $("#reduceMotionToggle");
-  if (motion) motion.checked = settings.reduceMotion;
+  if (motion) motion.checked = Boolean(settings.reduceMotion);
   const grid = $("#gridToggle");
-  if (grid) grid.checked = settings.showGrid;
+  if (grid) grid.checked = Boolean(settings.showGrid);
+  const glass = $("#glassToggle");
+  if (glass) glass.checked = settings.glassEffect !== false;
+  const anim = $("#launchAnimToggle");
+  if (anim) anim.checked = settings.launchAnimationEnabled !== false;
 }
 
 /* -------------------------------------------------------------------- about */

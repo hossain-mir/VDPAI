@@ -755,6 +755,23 @@
               </div>
             </div>
 
+            <!-- Theme & Appearance Quick Card -->
+            <div class="card" id="page5ThemeCard">
+              <div class="card-head-row">
+                <div>
+                  <span class="kicker">DESIGN &amp; THEME</span>
+                  <h3>Theme Mode &amp; Styling</h3>
+                  <p class="hint">Switch between Light, Dark, AMOLED Black, or System mode.</p>
+                </div>
+              </div>
+              <div class="row wrap" style="gap: 8px; margin-top: 10px;">
+                <button type="button" class="btn small" id="p5ThemeLightBtn">☀️ Light</button>
+                <button type="button" class="btn small" id="p5ThemeDarkBtn">🌙 Dark</button>
+                <button type="button" class="btn small" id="p5ThemeAmoledBtn">🖤 AMOLED</button>
+                <button type="button" class="btn small" id="p5ThemeSystemBtn">⚙️ System</button>
+              </div>
+            </div>
+
             <!-- Master Control Center Launcher -->
             <div class="card">
               <div class="card-head-row">
@@ -1075,20 +1092,53 @@
         <section class="cc-page" data-page="appearance" role="tabpanel" hidden>
           <div class="section-head">
             <div>
-              <h2>Appearance</h2>
-              <p>Tune the theme styling and visual preferences.</p>
+              <h2>Appearance &amp; Themes</h2>
+              <p>Tune theme mode, accent colors, typography, and visual effects.</p>
             </div>
           </div>
           <div class="card">
             <label class="field">
-              <span>Accent theme</span>
+              <span>Theme Mode</span>
+              <select id="themeModeSelect">
+                <option value="light">Light Mode (Pure White &amp; Blue)</option>
+                <option value="dark">Dark Mode (Deep Navy)</option>
+                <option value="system">System Mode (Auto)</option>
+                <option value="amoled">AMOLED Black (Pure Black)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Primary Accent Color</span>
               <select id="themeSelect">
-                <option value="blue">Royal Blue</option>
-                <option value="cyan">Quantum cyan</option>
-                <option value="emerald">Emerald core</option>
-                <option value="violet">Ion violet</option>
-                <option value="gold">Amber gold</option>
-                <option value="crimson">Crimson red</option>
+                <option value="blue">Royal Blue (Reference)</option>
+                <option value="cyan">Quantum Cyan</option>
+                <option value="emerald">Emerald Core</option>
+                <option value="violet">Ion Violet</option>
+                <option value="gold">Amber Gold</option>
+                <option value="crimson">Crimson Red</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Font Size</span>
+              <select id="fontSizeSelect">
+                <option value="small">Small</option>
+                <option value="medium" selected>Medium (Default)</option>
+                <option value="large">Large</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Chat Bubble Spacing</span>
+              <select id="bubbleStyleSelect">
+                <option value="comfortable" selected>Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Glow Intensity</span>
+              <select id="glowSelect">
+                <option value="off">Off (Battery Saver)</option>
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium (Standard)</option>
+                <option value="high">High</option>
               </select>
             </label>
             <label class="switch-row">
@@ -1102,6 +1152,10 @@
             <label class="switch-row">
               <span><strong>Background grid</strong><small>Show the subtle modern pattern.</small></span>
               <input type="checkbox" id="gridToggle">
+            </label>
+            <label class="switch-row">
+              <span><strong>Glass Effect</strong><small>Translucent frosted glass blur on cards and sheets.</small></span>
+              <input type="checkbox" id="glassToggle" checked>
             </label>
             <label class="switch-row">
               <span><strong>Launch animation</strong><small>Play welcome sequence on startup.</small></span>

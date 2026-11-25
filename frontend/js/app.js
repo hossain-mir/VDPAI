@@ -157,6 +157,15 @@ async function boot() {
   renderHudLog();
   window.addEventListener("vdpai:hudlog", () => renderHudLog());
   window.addEventListener("vdpai:quickcommands", () => renderQuickCommands());
+  if (typeof window !== "undefined" && window.matchMedia) {
+    try {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (getSettings().themeMode === "system") applyAppearance();
+      });
+    } catch {
+      /* ignore */
+    }
+  }
   addHudLogEntry("App opened.");
   addHudLogEntry("VDPAI ready.");
 
@@ -919,6 +928,19 @@ function wireHud() {
     await app.voice.toggleListening();
   });
 
+  // Page 5 Quick Theme Buttons
+  const setPage5ThemeMode = (mode) => {
+    updateSettings({ themeMode: mode });
+    applyAppearance();
+    refreshControlCenter();
+    saveNow().catch(() => {});
+    ui.toast(`Theme: ${mode.toUpperCase()}`, "ok", 1500);
+  };
+  $("#p5ThemeLightBtn")?.addEventListener("click", () => setPage5ThemeMode("light"));
+  $("#p5ThemeDarkBtn")?.addEventListener("click", () => setPage5ThemeMode("dark"));
+  $("#p5ThemeAmoledBtn")?.addEventListener("click", () => setPage5ThemeMode("amoled"));
+  $("#p5ThemeSystemBtn")?.addEventListener("click", () => setPage5ThemeMode("system"));
+
   $("#themeQuickBtn")?.addEventListener("click", () => {
     const themes = ["cyan", "emerald", "violet", "blue", "gold", "crimson"];
     const current = document.body.dataset.theme || "cyan";
@@ -929,7 +951,7 @@ function wireHud() {
     const select = $("#themeSelect");
     if (select) select.value = nextTheme;
     saveNow().catch(() => {});
-    ui.toast(`Theme: ${nextTheme.toUpperCase()}`, "", 1600);
+    ui.toast(`Accent: ${nextTheme.toUpperCase()}`, "", 1600);
   });
 
   $("#ttsQuickBtn").addEventListener("click", () => {
@@ -1739,12 +1761,40 @@ function tickClock() {
 /* ----------------------------------------------------------------- appearance */
 function applyAppearance() {
   const settings = getSettings();
-  document.body.dataset.theme = settings.theme;
-  document.body.classList.toggle("low-glow", settings.lowGlow);
-  document.body.classList.toggle("reduce-motion", settings.reduceMotion);
+  const mode = settings.themeMode || "light";
+  document.body.dataset.mode = mode;
+  document.body.dataset.theme = settings.theme || "cyan";
+  document.body.dataset.fontSize = settings.fontSize || "medium";
+  document.body.dataset.bubbleStyle = settings.bubbleStyle || "comfortable";
+  document.body.dataset.glow = settings.lowGlow ? "off" : (settings.glowIntensity || "medium");
+
+  document.body.classList.toggle("low-glow", Boolean(settings.lowGlow));
+  document.body.classList.toggle("reduce-motion", Boolean(settings.reduceMotion));
   document.body.classList.toggle("no-grid", !settings.showGrid);
+  document.body.classList.toggle("no-glass", settings.glassEffect === false);
+
+  const isDark = mode === "dark" || mode === "amoled" || (mode === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", "#ffffff");
+  if (meta) {
+    meta.setAttribute("content", mode === "amoled" ? "#000000" : isDark ? "#0b0f19" : "#ffffff");
+  }
+
+  const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+  if (colorSchemeMeta) {
+    colorSchemeMeta.setAttribute("content", isDark ? "dark" : "light");
+  }
+
+  // Update Page 5 active button indicators if present
+  $$("#page5ThemeCard button").forEach((btn) => {
+    const id = btn.id || "";
+    const active =
+      (mode === "light" && id === "p5ThemeLightBtn") ||
+      (mode === "dark" && id === "p5ThemeDarkBtn") ||
+      (mode === "amoled" && id === "p5ThemeAmoledBtn") ||
+      (mode === "system" && id === "p5ThemeSystemBtn");
+    btn.classList.toggle("primary", active);
+  });
+
   if (!app.core) return;
   const reduced = settings.reduceMotion || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   app.core.reduced = Boolean(reduced);
